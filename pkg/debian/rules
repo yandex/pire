@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	mkdir -p build
+	cd build && ../configure --prefix=/usr
+	touch configure-stamp
+
+build: build-stamp
+build-stamp: configure-stamp  
+	dh_testdir
+	cd build && $(MAKE) all
+	touch build-stamp
+
+clean: 
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+	rm -Rf build
+	dh_clean 
+
+install: install-stamp
+install-stamp: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+	cd build && $(MAKE) DESTDIR=$(CURDIR)/debian/world install
+	dh_install --sourcedir=$(CURDIR)/debian/world 
+	touch install-stamp
+
+binary-indep: build install
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

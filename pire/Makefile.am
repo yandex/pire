@@ -1,0 +1,108 @@
+
+if ENABLE_DEBUG
+AM_CXXFLAGS = -DPIRE_DEBUG
+endif
+
+lib_LTLIBRARIES = libpire.la
+libpire_la_SOURCES = \
+	align.h \
+	any.h \
+	classes.cpp \
+	defs.h \
+	determine.h \
+	encoding.cpp \
+	encoding.h \
+	extra.h \
+	fsm.cpp \
+	fsm.h \
+	fwd.h \
+	glue.cpp \
+	glue.h \
+	partition.h \
+	pire.h \
+	re_lexer.cpp \
+	re_lexer.h \
+	re_scanner.h \
+	scanner_io.cpp \
+	stl.h \
+	vbitset.h \
+	re_parser.ypp \
+	scanners/loaded.h \
+	scanners/multi.h \
+	scanners/slow.h \
+	scanners/simple.h \
+	stub/lexical_cast.h \
+	stub/saveload.h \
+	stub/singleton.h \
+	stub/utf8.cpp \
+	stub/utf8.h \
+	stub/noncopyable.h \
+	stub/codepage_h.h \
+	stub/doccodes_h.h \
+	stub/unidata_h.h \
+	stub/unidata_cpp.h
+
+if ENABLE_EXTRA
+libpire_la_SOURCES += \
+	extra/capture.cpp \
+	extra/capture.h \
+	extra/count.cpp \
+	extra/count.h \
+	extra/glyphs.cpp \
+	extra/glyphs.h
+endif
+
+pire_hdrdir = $(includedir)/pire
+pire_hdr_HEADERS = \
+	align.h \
+	any.h \
+	defs.h \
+	determine.h \
+	encoding.h \
+	extra.h \
+	fsm.h \
+	fwd.h \
+	glue.h \
+	partition.h \
+	pire.h \
+	re_lexer.h \
+	re_parser.h \
+	re_scanner.h \
+	stl.h \
+	vbitset.h
+
+if ENABLE_EXTRA
+pire_extradir = $(includedir)/pire/extra
+pire_extra_HEADERS = \
+	extra/capture.h \
+	extra/count.h \
+	extra/glyphs.h
+endif
+
+pire_scannersdir = $(includedir)/pire/scanners
+pire_scanners_HEADERS = \
+	scanners/multi.h \
+	scanners/slow.h \
+	scanners/simple.h \
+	scanners/loaded.h
+
+pire_stubdir = $(includedir)/pire/stub
+pire_stub_HEADERS = \
+	stub/defaults.h \
+	stub/singleton.h \
+	stub/saveload.h \
+	stub/lexical_cast.h
+
+bin_PROGRAMS = pire_inline pigrep
+
+pire_inline_SOURCES = inline.lpp stub/hacks.h stub/memstreams.h
+pire_inline_LDADD = libpire.la
+
+pigrep_SOURCES = pigrep.cpp
+pigrep_LDADD = libpire.la
+
+BUILT_SOURCES = re_parser.h re_parser.cpp
+CLEANFILES    = re_parser.h re_parser.cpp
+
+AM_YFLAGS = -d
+

@@ -1,0 +1,41 @@
+
+OBJDIR = obj
+SRCDIR = pire
+
+PIRE_OBJS = \
+	$(OBJDIR)\classes.obj \
+	$(OBJDIR)\encoding.obj \
+	$(OBJDIR)\fsm.obj \
+	$(OBJDIR)\glue.obj \
+	$(OBJDIR)\re_lexer.obj \
+	$(OBJDIR)\re_parser.obj \
+	$(OBJDIR)\scanner_io.obj \
+	$(OBJDIR)\utf8.obj
+
+CXXFLAGS = -O2 -EHsc
+
+all: pire.lib pigrep.exe
+
+pire.lib: $(OBJDIR)\dir $(PIRE_OBJS)
+	lib /nologo /out:pire.lib $(PIRE_OBJS)
+
+pigrep.exe: $(OBJDIR)\pigrep.obj
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
+
+{$(SRCDIR)\}.cpp{$(OBJDIR)\}.obj:
+	$(CXX) -I$(SRCDIR) $(CXXFLAGS) /nologo /c /Fo$@ $<
+
+$(OBJDIR)\utf8.obj: $(SRCDIR)\stub\utf8.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ $**
+
+$(OBJDIR)\dir:
+	mkdir $(OBJDIR)
+	echo stamp >$(OBJDIR)\dir
+
+clean:
+	del $(PIRE_OBJS) pire.lib
+	del pigrep.exe $(OBJDIR)\pigrep.obj
+	del $(OBJDIR)\dir
+	rmdir $(OBJDIR)
+
+

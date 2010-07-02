@@ -1,0 +1,26 @@
+Source: pire
+Priority: extra
+Maintainer: Dmitry Prokoptsev <dprokoptsev@yandex-team.ru>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.7.3
+Section: libs
+Homepage: http://wiki.yandex-team.ru/DmitrijjProkopcev/pire
+
+Package: libpire
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Perl Incompatible Regular Expressions library
+ An extremely fast (but with limited functionality) regular expressions
+ implementation library, aimed at quickly matching input text against
+ a huge amount of regular expression patterns in a nearly-realtime tasks.
+
+Package: libpire-dev
+Section: libdevel
+Architecture: any
+Depends: libpire (= ${binary:Version})
+Description: Development environment for libpire
+ Contains the header files and static libraries, which are needed
+ when developing or compiling applications using libpire. 
+
+
