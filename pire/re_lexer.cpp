@@ -77,7 +77,7 @@ Lexer& Lexer::AddFeature(Feature* feature)
 
 Term Lexer::DoLex()
 {
-	static const char* controls = "|().*+?^$/\\";
+	static const char* controls = "|().*+?^$\\";
 	for (;;) {
 		UngetChar(GetChar());
 		wchar32 ch = PeekChar();
@@ -182,7 +182,7 @@ namespace {
 
 		Term Lex()
 		{
-			static const char* controls = "^[]-/\\";
+			static const char* controls = "^[]-\\";
 			static const char* controls2 = "*+{}()$?.&~";
 			wchar32 ch = CorrectChar(GetChar(), controls);
 			if (ch == '[' || ch == ']')

@@ -31,12 +31,12 @@ bool Matches2(const Scanner& scanner, const char* str)
 
 SIMPLE_UNIT_TEST(Inline)
 {
-	Pire::Scanner scanner = PIRE_REGEXP("http:\\/\\/([a-z0-9]+\\.)+[a-z]{2,4}\\/?", "is");
+	Pire::Scanner scanner = PIRE_REGEXP("http://([a-z0-9]+\\.)+[a-z]{2,4}/?", "is");
 	UNIT_ASSERT(Matches(scanner, "http://domain.vasya.ru/"));
 	UNIT_ASSERT(Matches(scanner, "prefix http://domain.vasya.ru/"));
 	UNIT_ASSERT(!Matches(scanner, "http://127.0.0.1/"));
 
-	Pire::Scanner scanner2 = PIRE_REGEXP("http:\\/\\/([a-z0-9]+\\.)+[a-z]{2,4}\\/?", "i");
+	Pire::Scanner scanner2 = PIRE_REGEXP("http://([a-z0-9]+\\.)+[a-z]{2,4}/?", "i");
 	UNIT_ASSERT(Matches2(scanner2, "http://domain.vasya.ru/"));
 	UNIT_ASSERT(!Matches2(scanner2, "prefix http://domain.vasya.ru/"));
 	UNIT_ASSERT(!Matches2(scanner2, "http://127.0.0.1/"));

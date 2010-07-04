@@ -74,7 +74,7 @@ SIMPLE_UNIT_TEST(Primitives)
 
 SIMPLE_UNIT_TEST(Composition)
 {
-	REGEXP("^\\/([^\\\\\\/]|\\\\.)*\\/[a-z]*$") {
+	REGEXP("^/([^\\\\/]|\\\\.)*/[a-z]*$") {
 		ACCEPTS("/regexp/i");
 		ACCEPTS("/regexp2/");
 		DENIES ("regexp");
@@ -192,7 +192,7 @@ SIMPLE_UNIT_TEST(Empty)
 
 SIMPLE_UNIT_TEST(Misc)
 {
-	REGEXP2("^[^\\s=\\/>]*$", "n") ACCEPTS("a");
+	REGEXP2("^[^\\s=/>]*$", "n") ACCEPTS("a");
 	REGEXP("\\t") ACCEPTS("\t");
 
 	SCANNER(ParseRegexp(".*") & ~ParseRegexp(".*http.*")) {
