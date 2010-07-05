@@ -18,6 +18,7 @@ namespace Pire {
 		class FsmDetermineTask;
 	}
 
+	/// A Flying Spaghetti Monster... no, just a Finite State Machine.
 	class Fsm {
 	public:		
 		typedef ybitset<MaxChar> Charset;
@@ -66,6 +67,9 @@ namespace Pire {
 
 		/// Creates an FSM which matches any suffix of any word current FSM matches.
 		void MakeSuffix();
+		
+		/// Creates an FSM which matches reversed strings matched by current FSM.
+		Fsm& Reverse();
 
 		/// Returns a set of states from which no final states are reachable
 		yset<size_t> DeadStates() const;

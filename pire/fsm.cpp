@@ -505,6 +505,37 @@ void Fsm::MakeSuffix()
 		if (i != initial)
 			Connect(initial, i);
 }
+	
+Fsm& Fsm::Reverse()
+{	
+	Fsm out;
+	out.Resize(Size() + 1);
+	out.letters = Letters();
+	
+	// Invert transitions
+	for (size_t from = 0; from < Size(); ++from)
+		for (TransitionRow::iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
+			for (StatesSet::iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
+				out.Connect(*j, from, i->first);
+		
+	// Invert initial and final states
+	out.SetFinal(initial, true);
+	for (FinalTable::iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
+		out.Connect(Size(), *i, Epsilon);
+	out.SetInitial(Size());
+	
+	// Invert outputs
+	for (Outputs::iterator i = outputs.begin(), ie = outputs.end(); i != ie; ++i)
+		for (Outputs::mapped_type::iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
+			out.SetOutput(j->first, i->first, j->second);
+	
+	// Preserve tags (although thier semantics are usually heavily broken at this point)
+	out.tags = tags;
+	
+	// Apply
+	Swap(out);
+	return *this;
+}
 
 yset<size_t> Fsm::DeadStates() const
 {

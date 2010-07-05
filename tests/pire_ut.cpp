@@ -210,6 +210,14 @@ SIMPLE_UNIT_TEST(Ranges)
 		DENIES("ab");
 	}
 }
+ 
+SIMPLE_UNIT_TEST(Reverse)
+{
+	SCANNER(ParseRegexp("abcdef").Reverse()) {
+		ACCEPTS("fedcba");
+		DENIES ("abcdef");
+	}
+}
 
 SIMPLE_UNIT_TEST(Serialization)
 {
