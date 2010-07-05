@@ -9,7 +9,7 @@
 
 namespace Pire {
 
-	inline static i64 SignExtend(i32 i) { return i; }
+	inline static ssize_t SignExtend(i32 i) { return i; }
 	template<class T>
 	class ScannerGlueCommon;
 	
@@ -33,6 +33,11 @@ protected:
 
 public:
 	typedef ui32        Transition;
+	// Please note that Transition size is hardcoded as 32 bits.
+	// This limits size of transition table to 4G, but compresses
+	// it twice compared to 64-bit transitions. In future Transition
+	// can be made a template parameter if this is a concern.
+	
 	typedef ui16        Letter;
 	typedef ui32        Action;
 	typedef ui8         Tag;
@@ -86,7 +91,7 @@ public:
 		return ymake_pair(b, e);
 	}
 
-/// Returns an initial state for this scanner
+	/// Returns an initial state for this scanner
 	void Initialize(State& state) const { state = m.initial; }
 
 	/// Handles one characters
@@ -94,7 +99,7 @@ public:
 	{
 		state &= ~FinalFlag;
 		size_t letterClass = m_letters[c];
-		i64 shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
+		ssize_t shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
 		state += shift;
 
 		return 0;
@@ -198,7 +203,7 @@ protected:
 		ui32 statesCount;
 		ui32 lettersCount;
 		ui32 regexpsCount;
-		ui64 initial;
+		size_t initial;
 		ui32 finalTableSize;
 	} m;
 

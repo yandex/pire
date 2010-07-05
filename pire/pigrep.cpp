@@ -50,8 +50,8 @@ int main(int argc, char** argv)
 		std::string str;
 		while (ReadLine(stdin, str)) {
 			PIRE_IFDEBUG(std::clog << "---run---" << std::endl);
-			if (surround && Pire::Runner(scanner).Begin().Run(str).End()
-				|| !surround && Pire::Runner(scanner).Run(str))
+			if ((surround && Pire::Runner(scanner).Begin().Run(str).End())
+				|| (!surround && Pire::Runner(scanner).Run(str)))
 			{
 				std::cout << str << std::endl;
 			}

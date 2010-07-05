@@ -12,7 +12,7 @@ private:
 	static const size_t STATE_ROW_SIZE = MaxChar + 1; // All characters + 1 element to store final state flag
 
 public:
-	typedef ui64        Transition;
+	typedef size_t      Transition;
 	typedef ui16        Letter;
 	typedef ui32        Action;
 	typedef ui8         Tag;
@@ -42,7 +42,7 @@ public:
 	/// Handles one characters
 	Action Next(State& state, Char c) const
 	{
-		i64 shift = reinterpret_cast<const Transition*>(state)[c];
+		Transition shift = reinterpret_cast<const Transition*>(state)[c];
 		state += shift;
 		return 0;
 	}
@@ -140,7 +140,7 @@ protected:
 		m_transitions = reinterpret_cast<Transition*>(ptr);
 	}
 
-	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/ = 0)
+	void SetJump(size_t oldState, Char c, size_t newState)
 	{
 		assert(m_buffer);
 		assert(oldState < m.statesCount);
@@ -183,7 +183,7 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm)
 				continue;
 			for (yvector<Char>::const_iterator l = i->second.second.begin(), le = i->second.second.end(); l != le; ++l)
 				for (Fsm::StatesSet::const_iterator to = tos.begin(), toEnd = tos.end(); to != toEnd; ++to)
-					SetJump(from, *l, *to, RemapAction(fsm.Output(from, *to)));
+					SetJump(from, *l, *to);
 		}
 }
 

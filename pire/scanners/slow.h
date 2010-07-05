@@ -25,7 +25,7 @@ namespace Pire {
 */
 class SlowScanner {
 public:
-	typedef ui64        Transition;
+	typedef size_t      Transition;
 	typedef ui16        Letter;
 	typedef ui32        Action;
 	typedef ui8         Tag;
