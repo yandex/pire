@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "defs.h"
 #include "stl.h"
 #include "align.h"
 #include "stub/defaults.h"
@@ -108,6 +109,23 @@ namespace Pire {
 	private:
 		const Scanner* m_sc;
 		typename Scanner::State m_st;
+	};
+
+	template<>
+	struct StDumper<Scanner> {
+		StDumper(const Scanner& sc, Scanner::State st): m_sc(&sc), m_st(st) {}
+		
+		void Dump(yostream& stream) const
+		{
+			stream << m_sc->StateIndex(m_st);
+			if (m_sc->Final(m_st))
+				stream << " [final]";
+			if (m_sc->Dead(m_st))
+				stream << " [dead]";
+		}
+	private:
+		const Scanner* m_sc;
+		Scanner::State m_st;
 	};
 	template<class Scanner> StDumper<Scanner> StDump(const Scanner& sc, typename Scanner::State st) { return StDumper<Scanner>(sc, st); }
 	template<class Scanner> yostream& operator << (yostream& stream, const StDumper<Scanner>& stdump) { stdump.Dump(stream); return stream; }
@@ -283,55 +301,52 @@ inline void Run(const Scanner& scanner, typename Scanner::State& state, const ch
 
 #endif
 
-/// Finds a first position where FSM jumps from a non-final state into a final
-/// one (if greedy), or from a final state info a non-final one (otherwise).
-template<class Scanner>
-inline const char* Scan(const Scanner& scanner, const char* begin, const char* end, bool greedy = false)
+/// Find a longest acceptable prefix of a given string.
+/// Returns its right boundary or NULL if there exists no acceptable prefix (even the empty string is rejected).
+inline const char* Scan(const Scanner& scanner, const char* begin, const char* end)
 {
-	typename Scanner::State state;
+	Scanner::State state;
 	scanner.Initialize(state);
-#ifdef PIRE_DEBUG
-	std::clog << "Running regexp on string " << std::string(begin, std::min(std::distance(begin, end), static_cast<ptrdiff_t>(100u))) << std::endl;
-	std::clog << "Initial state " << StDump(scanner, state) << std::endl;
-#endif
-	bool f = scanner.Final(state);
-	bool prevf = false;
-	for (; begin != end; ++begin) {
-		scanner.Next(state, *begin);
-#ifdef PIRE_DEBUG
-		std::clog << *begin << " => state " << StDump(scanner, state) << std::endl;
-#endif
-		prevf = f;
-		f = scanner.Final(state);
-		if (prevf != greedy && f == greedy)
-			return (greedy && (begin != end)) ? (begin + 1) : begin;
+	
+	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(begin, std::min(std::distance(begin, end), static_cast<ptrdiff_t>(100u))) << std::endl);
+	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
+
+	const char* pos = 0;
+	while (begin != end && !scanner.Dead(state)) {
+		if (scanner.Final(state))
+			pos = begin;
+		Step(scanner, state, *begin);
+		PIRE_IFDEBUG(std::clog << *begin << " => state " << StDump(scanner, state) << std::endl);
+		++begin;
 	}
-	return begin;
+	if (scanner.Final(state))
+		pos = begin;
+	return pos;
 }
 
-template<class Scanner>
-inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, const char* rend, bool greedy = false)
+/// The same as above, but scans string in reverse direction
+/// (consider using Fsm::Reverse() for using in this function).
+inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, const char* rend)
 {
-	typename Scanner::State state;
+	Scanner::State state;
 	scanner.Initialize(state);
-#ifdef PIRE_DEBUG
-	std::clog << "Running regexp on string " << std::string(rbegin - std::min(std::distance(rend, rbegin), static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << std::endl;
-	std::clog << "Initial state " << StDump(scanner, state) << std::endl;
-#endif
-	bool f = scanner.Final(state);
-	bool prevf = false;
-	for (; rbegin != rend; --rbegin) {
-		scanner.Next(state, *rbegin);
-#ifdef PIRE_DEBUG
-		std::clog << *rbegin << " => state " << StDump(scanner, state) << std::endl;
-#endif
-		prevf = f;
-		f = scanner.Final(state);
-		if (prevf != greedy && f == greedy)
-			return (greedy && (rbegin != rend)) ? (rbegin - 1) : rbegin;
+	
+	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(rbegin - std::min(std::distance(rend, rbegin), static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << std::endl);
+	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
+
+	const char* pos = 0;
+	while (rbegin != rend && !scanner.Dead(state)) {
+		if (scanner.Final(state))
+			pos = rbegin;
+		Step(scanner, state, *rbegin);
+		PIRE_IFDEBUG(std::clog << *rbegin << " => state " << StDump(scanner, state) << std::endl);
+		--rbegin;
 	}
-	return rbegin;
+	if (scanner.Final(state))
+		pos = rbegin;
+	return pos;
 }
+
 
 template<class Scanner>
 class RunHelper {

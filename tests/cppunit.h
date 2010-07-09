@@ -35,8 +35,8 @@ namespace Impl {
 	} s_registry_ ## N; \
 	void TestCase_ ## N::runTest()
 
-#define UNIT_ASSERT CPPUNIT_ASSERT
-#define UNIT_ASSERT_EQUAL CPPUNIT_ASSERT_EQUAL
+#define UNIT_ASSERT(x) CPPUNIT_ASSERT(x)
+#define UNIT_ASSERT_EQUAL(real,expected) CPPUNIT_ASSERT_EQUAL(expected,real)
 
 #endif
 

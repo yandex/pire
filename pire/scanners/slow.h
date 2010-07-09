@@ -30,8 +30,10 @@ public:
 	typedef ui32        Action;
 	typedef ui8         Tag;
 
-	static const ui8 FinalFlag = 1;
-	static const ui8 DeadFlag  = 0;
+	enum { 
+		FinalFlag = 1,
+		DeadFlag  = 0
+	};
 
 	struct State {
 		yvector<unsigned> states;

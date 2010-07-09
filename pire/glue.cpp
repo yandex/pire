@@ -32,11 +32,18 @@ public:
 		SetSc(new Scanner);
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
 		
+		// Prevent scanner from building final table
+		// (we'll build it ourselves)
+		std::fill(Sc().m_tags.begin(), Sc().m_tags.end(), Scanner::Tag(Scanner::TagSet));
+		
 		for (size_t state = 0; state != states.size(); ++state) {
 			Sc().m_finalIndex[state] = Sc().m_finalEnd - Sc().m_final;
 			Sc().m_finalEnd = Shift(Lhs().AcceptedRegexps(states[state].first), 0, Sc().m_finalEnd);
 			Sc().m_finalEnd = Shift(Rhs().AcceptedRegexps(states[state].second), Lhs().RegexpsCount(), Sc().m_finalEnd);
 			*Sc().m_finalEnd++ = static_cast<size_t>(-1);
+			
+			Sc().SetTag(state, ((Lhs().Final(states[state].first) || Rhs().Final(states[state].second)) ? Scanner::FinalFlag : 0)
+				| ((Lhs().Dead(states[state].first) && Rhs().Dead(states[state].second)) ? Scanner::DeadFlag : 0));
 		}
 	}
 	void Connect(size_t from, size_t to, Char letter) { Sc().SetJump(from, letter, to); }

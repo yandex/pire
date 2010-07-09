@@ -6,12 +6,6 @@
 #include "partition.h"
 #include "defs.h"
 
-#ifdef PIRE_DEBUG
-#define PIRE_IFDEBUG(x) x
-#else
-#define PIRE_IFDEBUG(x)
-#endif
-
 namespace Pire {
 
 	namespace Impl {
@@ -44,6 +38,7 @@ namespace Pire {
 		void AppendDot();
 
 		Fsm& Surround(); // returns *this
+		Fsm Surrounded() const { Fsm copy(*this); copy.Surround(); return copy; }
 
 		Fsm& operator += (const Fsm& rhs);
 		Fsm& operator |= (const Fsm& rhs);

@@ -34,8 +34,10 @@ public:
 	typedef ui8         Tag;
 
 	// Override in subclass, if neccessary
-	static const ui8 FinalFlag = 0;
-	static const ui8 DeadFlag  = 0;
+	enum { 
+		FinalFlag = 0,
+		DeadFlag  = 0
+	};
 
 	size_t Size() const { return m.statesCount; }
 

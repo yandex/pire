@@ -3,6 +3,12 @@
 
 namespace Pire {
 
+#ifdef PIRE_DEBUG
+#define PIRE_IFDEBUG(x) x
+#else
+#define PIRE_IFDEBUG(x)
+#endif
+
 	typedef unsigned short Char;
 	
 	enum {

@@ -19,12 +19,13 @@ namespace Pire {
 */
 class CapturingScanner: public LoadedScanner {
 public:
-	static const ui8 FinalFlag = 1;
-
-	enum { NoAction = 0};
-
-	static const Action BeginCapture =    0x00000001;
-	static const Action EndCapture =      0x00000002;
+	enum {
+		NoAction = 0,
+		BeginCapture = 1,
+		EndCapture   = 2,
+		
+		FinalFlag = 1
+	};
 
 	class State {
 	public:

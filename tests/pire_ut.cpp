@@ -218,6 +218,58 @@ SIMPLE_UNIT_TEST(Reverse)
 		DENIES ("abcdef");
 	}
 }
+ 
+SIMPLE_UNIT_TEST(Scan)
+{
+	static const char* pattern = "-->";
+	Pire::Fsm fsm = ParseRegexp(pattern, "n");
+	Pire::Scanner ngsc = (~Pire::Fsm::MakeFalse() + fsm).Compile<Pire::Scanner>();
+	Pire::Scanner gsc  = (~fsm.Surrounded() + fsm).Compile<Pire::Scanner>();
+	Pire::Scanner rsc  = fsm.Reverse().Compile<Pire::Scanner>();
+	
+	static const char* text = "1234567890 --> middle --> end";
+	const char* end = Pire::Scan(gsc, text, text + strlen(text));
+	const char* begin = Pire::ReversedScan(rsc, end - 1, text - 1);
+	++begin;
+
+	UNIT_ASSERT_EQUAL(end, text + 14);
+	UNIT_ASSERT_EQUAL(begin, text + 11);
+	
+	end = Pire::Scan(ngsc, text, text + strlen(text));
+	begin = Pire::ReversedScan(rsc, end - 1, text - 1);
+	++begin;
+	
+	UNIT_ASSERT_EQUAL(end, text + 25);
+	UNIT_ASSERT_EQUAL(begin, text + 22);
+}
+
+namespace {
+	ssize_t PrefixLen(const char* pattern, const char* str)
+	{
+		Pire::Scanner sc = Pire::Lexer(pattern).Parse().Compile<Pire::Scanner>();
+		const char* end = Pire::Scan(sc, str, str + strlen(str));
+		return end ? end - str : -1;
+	}
+}
+
+SIMPLE_UNIT_TEST(ScanBoundaries)
+{
+	UNIT_ASSERT_EQUAL(PrefixLen("fixed", "fixed prefix"), ssize_t(5));
+	UNIT_ASSERT_EQUAL(PrefixLen("fixed", "a fixed nonexistent prefix"), ssize_t(-1));
+	
+	UNIT_ASSERT_EQUAL(PrefixLen("a*", "aaabbb"), ssize_t(3));
+	UNIT_ASSERT_EQUAL(PrefixLen("a*", "bbbbbb"), ssize_t(0));
+	UNIT_ASSERT_EQUAL(PrefixLen("a*", "aaaaaa"), ssize_t(6));
+	UNIT_ASSERT_EQUAL(PrefixLen("a+", "bbbbbb"), ssize_t(-1));
+}
+
+SIMPLE_UNIT_TEST(ScanTermination)
+{
+	Pire::Scanner sc = Pire::Lexer("aaa").Parse().Compile<Pire::Scanner>();
+	// Scanning must terminate at first dead state. If it does not,
+	// we will pass through the end of our string and end up with segfault.
+	Pire::Scan(sc, "aaab", reinterpret_cast<const char*>(size_t(-1)));
+}
 
 SIMPLE_UNIT_TEST(Serialization)
 {

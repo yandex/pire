@@ -111,6 +111,7 @@ Die Die() {
 
 	Pire::Lexer lexer(args[0].c_str(), args[0].c_str() + args[0].size());
 	bool surround = false;
+	bool greedy = false;
 	if (args.size() > 1)
 		for (const char* option = args[1].c_str(); *option; ++option)
 			if (*option == 'i')
@@ -121,6 +122,8 @@ Die Die() {
 				surround = true;
 			else if (*option == 'a')
 				lexer.AddFeature(Pire::Features::AndNotSupport());
+			else if (*option == 'g')
+				greedy = true;
 			else
 				Die() << "unknown option " <<  *option << "";
 	Pire::Fsm fsm;
@@ -130,7 +133,11 @@ Die Die() {
 	catch (std::exception& e) {
 		Die() << "" << filename << ":" <<  line << ": " <<  e.what() << "";
 	}
-	if (surround)
+	if (greedy && surround)
+		Die() << "greedy and surround options are incompatible";
+	if (greedy)
+		fsm = ~fsm.Surrounded() + fsm;
+	else if (surround)
 		fsm.Surround();
 
 

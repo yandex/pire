@@ -14,11 +14,14 @@ namespace Impl {
 
 class CountingScanner: public LoadedScanner {
 public:
-	static const ui8 FinalFlag   = 0;
-	static const ui8 DeadFlag    = 1;
-	static const ui8 Matched     = 2;
-
-	enum { IncrementAction = 1, ResetAction = 2 };
+	enum {
+		IncrementAction = 1,
+		ResetAction = 2,
+	
+		FinalFlag = 0,
+		DeadFlag = 1,
+		Matched = 2
+	};
 
 	static const size_t OPTIMAL_RE_COUNT = 4;
 

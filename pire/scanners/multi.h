@@ -26,8 +26,12 @@ namespace Pire {
 */
 class Scanner {
 protected:
-	static const size_t FinalFlag = 1;
-	static const size_t DeadFlag  = 0;
+	enum {
+		 FinalFlag = 1,
+		 DeadFlag  = 2,
+		 Flags = FinalFlag | DeadFlag,
+		 TagSet = 0x80
+	};
 
 	static const size_t End = static_cast<size_t>(-1);
 
@@ -76,13 +80,15 @@ public:
 	}
 
 	/// Checks whether specified state is in any of the final sets
-	bool Final(const State& state) const {
-		return (state & FinalFlag) != 0;
-	}
+	bool Final(const State& state) const { return (state & FinalFlag) != 0;	}
+	
+	/// Checks whether specified state is 'dead' (i.e. scanner will never
+	/// reach any final state from current one)
+	bool Dead(const State& state) const { return (state & DeadFlag) != 0; }
 
 	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& state) const
 	{
-		size_t idx = ((state & ~FinalFlag) - reinterpret_cast<size_t>(m_transitions)) /
+		size_t idx = ((state & ~Flags) - reinterpret_cast<size_t>(m_transitions)) /
 			(m.lettersCount * sizeof(Transition));
 		const size_t* b = m_final + m_finalIndex[idx];
 		const size_t* e = b;
@@ -97,7 +103,7 @@ public:
 	/// Handles one characters
 	Action Next(State& state, Char c) const
 	{
-		state &= ~FinalFlag;
+		state &= ~Flags;
 		size_t letterClass = m_letters[c];
 		ssize_t shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
 		state += shift;
@@ -107,7 +113,7 @@ public:
 
 	void TakeAction(State&, Action) const {}
 
-	Scanner(const Scanner& s): m(s.m)
+	Scanner(const Scanner& s): m(s.m), m_tags(s.m_tags)
 	{
 		if (!s.m_buffer) {
 			// Empty or mmap()-ed scanner, just copy pointers
@@ -140,6 +146,7 @@ public:
 		DoSwap(m_finalEnd, s.m_finalEnd);
 		DoSwap(m_finalIndex, s.m_finalIndex);
 		DoSwap(m_transitions, s.m_transitions);
+		DoSwap(m_tags, s.m_tags);
 	}
 
 	Scanner& operator = (const Scanner& s) { Scanner(s).Swap(*this); return *this; }
@@ -179,7 +186,7 @@ public:
 
 	size_t StateIndex(State s) const
 	{
-		return ((s & ~FinalFlag) - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition));
+		return ((s & ~Flags) - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition));
 	}
 
 	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0);
@@ -215,6 +222,8 @@ protected:
 	size_t* m_finalIndex;
 
 	Transition* m_transitions;
+	
+	yvector<Tag> m_tags; // Not used during match. Actually tags are stored in lower bits of the state.
 
 	template<class Eq>
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
@@ -223,6 +232,7 @@ protected:
 		m.lettersCount = letters.Size();
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
+		m_tags.resize(states, 0);
 
 		m_buffer = new char[BufSize()];
 		memset(m_buffer, 0, BufSize());
@@ -255,7 +265,7 @@ protected:
 		assert(newState < m.statesCount);
 		m_transitions[oldState * m.lettersCount + m_letters[c]]
 			= ((newState - oldState) * m.lettersCount * sizeof(Transition))
-			| ((m_final[m_finalIndex[newState]] != End) ? FinalFlag : 0);
+			| (m_tags[newState] & Flags);
 	}
 
 	unsigned long RemapAction(unsigned long action) { return action; }
@@ -263,21 +273,23 @@ protected:
 	void SetInitial(size_t state)
 	{
 		assert(m_buffer);
-		m.initial
-			= reinterpret_cast<size_t>(m_transitions + state * m.lettersCount)
-			| ((m_final[m_finalIndex[state]] != End) ? FinalFlag : 0);
+		m.initial = reinterpret_cast<size_t>(m_transitions + state * m.lettersCount) | (m_tags[state] & Flags);
 	}
 
 	void SetTag(size_t state, size_t tag)
 	{
 		assert(m_buffer);
-		m_finalIndex[state] = m_finalEnd - m_final;
-		if (tag)
-			*m_finalEnd++ = 0;
-		*m_finalEnd++ = static_cast<size_t>(-1);
+		
+		if (!(m_tags[state] & TagSet)) {
+			m_finalIndex[state] = m_finalEnd - m_final;
+			if (tag & FinalFlag)
+				*m_finalEnd++ = 0;
+			*m_finalEnd++ = static_cast<size_t>(-1);
+		}
+		m_tags[state] = (tag & Flags) | TagSet;	
 
-		if (((m.initial & ~FinalFlag) - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition)) == state)
-			m.initial = (m.initial & ~FinalFlag) | (tag ? FinalFlag : 0);
+		if (((m.initial & ~Flags) - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition)) == state)
+			m.initial = (m.initial & ~Flags) | (tag & Flags);
 	}
 
 	size_t AcceptedRegexpsCount(size_t idx) const
