@@ -54,8 +54,16 @@ namespace Pire {
 		Fsm operator ~ ()               const { Fsm a(*this); return a.Complement(); }
 		Fsm operator * (size_t count);
 
-		/// Raw FSM construction. Connects two states with given transition
+		// === Raw FSM construction ===
+		
+		/// Connects two states with given transition
 		void Connect(size_t from, size_t to, Char c = Epsilon);
+		
+		/// Removes given character from the specified transition.
+		void Disconnect(size_t from, size_t to, Char c);
+		
+		/// Completely removes given transition
+		void Disconnect(size_t from, size_t to);
 
 		/// Creates an FSM which matches any suffix of any word current FSM matches.
 		void MakePrefix();
@@ -184,16 +192,21 @@ namespace Pire {
 		/// Output
 		typedef ymap< size_t, ymap<size_t, unsigned long> > Outputs;
 		Outputs outputs;
-
+		
 		typedef ymap<size_t, unsigned long> Tags;
 		Tags tags;
 
-		void ShortCutEpsilon(size_t from, size_t thru);
-		void MergeEpsilonConnection(size_t from, size_t to);
+		/// Heuristics hit: true iff this FSM is a union of two other FSMs
+		bool isAlternative;
+		
+		void ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps); ///< internal
+		void MergeEpsilonConnection(size_t from, size_t to); ///< internal
 
 		yset<size_t> TerminalStates() const;
 		
 		Char Translate(Char c) const;
+		
+		void ClearHints() { isAlternative = false; }
 		
 		friend class Impl::FsmDetermineTask;
 	};

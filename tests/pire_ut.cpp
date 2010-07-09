@@ -71,6 +71,45 @@ SIMPLE_UNIT_TEST(Primitives)
 		DENIES ("axye");
 	}
 }
+ 
+SIMPLE_UNIT_TEST(MassAlternatives)
+{
+	REGEXP("((abc|def)|ghi)|klm") {
+		ACCEPTS("abc");
+		ACCEPTS("def");
+		ACCEPTS("ghi");
+		ACCEPTS("klm");
+		DENIES ("aei");
+		DENIES ("klc");
+	}
+
+	REGEXP("(abc|def)|(ghi|klm)") {
+		ACCEPTS("abc");
+		ACCEPTS("def");
+		ACCEPTS("ghi");
+		ACCEPTS("klm");
+		DENIES ("aei");
+		DENIES ("klc");
+	}
+
+	REGEXP("abc|(def|(ghi|klm))") {
+		ACCEPTS("abc");
+		ACCEPTS("def");
+		ACCEPTS("ghi");
+		ACCEPTS("klm");
+		DENIES ("aei");
+		DENIES ("klc");
+	}
+
+	REGEXP("abc|(def|ghi)|klm") {
+		ACCEPTS("abc");
+		ACCEPTS("def");
+		ACCEPTS("ghi");
+		ACCEPTS("klm");
+		DENIES ("aei");
+		DENIES ("klc");
+	}
+}
 
 SIMPLE_UNIT_TEST(Composition)
 {

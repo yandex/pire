@@ -154,7 +154,8 @@ Fsm::Fsm():
 	initial(0),
 	letters(m_transitions),
 	m_sparsed(false),
-	determined(false)
+	determined(false),
+	isAlternative(false)
 {
 	m_final.insert(0);
 }
@@ -210,6 +211,7 @@ void Fsm::Swap(Fsm& fsm)
 	std::swap(determined, fsm.determined);
 	std::swap(outputs, fsm.outputs);
 	std::swap(tags, fsm.tags);
+	std::swap(isAlternative, fsm.isAlternative);
 }
 
 void Fsm::SetFinal(size_t state, bool final)
@@ -371,12 +373,29 @@ void Fsm::Import(const Fsm& rhs)
 void Fsm::Connect(size_t from, size_t to, Char c /* = Epsilon */)
 {
 	m_transitions[from][c].insert(to);
+	ClearHints();
 }
 
 void Fsm::ConnectFinal(size_t to, Char c /* = Epsilon */)
 {
 	for (FinalTable::iterator it = m_final.begin(), ie = m_final.end(); it != ie; ++it)
 		Connect(*it, to, c);
+	ClearHints();
+}
+
+void Fsm::Disconnect(size_t from, size_t to, Char c)
+{
+	TransitionRow::iterator i = m_transitions[from].find(c);
+	if (i != m_transitions[from].end())
+		i->second.erase(to);
+	ClearHints();
+}
+
+void Fsm::Disconnect(size_t from, size_t to)
+{
+	for (TransitionRow::iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
+		i->second.erase(to);
+	ClearHints();
 }
 
 unsigned long Fsm::Output(size_t from, size_t to) const
@@ -414,6 +433,7 @@ Fsm& Fsm::operator += (const Fsm& rhs)
 		SetFinal(*it + lhsSize, true);
 	determined = false;
 
+	ClearHints();
 	PIRE_IFDEBUG(std::clog << "=== After addition ===" << std::endl << *this << std::endl);
 
 	return *this;
@@ -424,16 +444,29 @@ Fsm& Fsm::operator |= (const Fsm& rhs)
 	size_t lhsSize = Size();
 
 	Import(rhs);
-	Resize(Size() + 1);
-
-	Connect(Size() - 1, initial);
-	Connect(Size() - 1, lhsSize + rhs.initial);
-	initial = Size() - 1;
-
 	for (FinalTable::iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
-		m_final.insert(*it + lhsSize);
-	determined = false;
+		m_final.insert(*it + lhsSize);	
+	
+	if (!isAlternative && !rhs.isAlternative) {
+		Resize(Size() + 1);
+		Connect(Size() - 1, initial);
+		Connect(Size() - 1, lhsSize + rhs.initial);
+		initial = Size() - 1;
+	} else if (isAlternative && !rhs.isAlternative) {
+		Connect(initial, lhsSize + rhs.initial, Epsilon);
+	} else if (!isAlternative && rhs.isAlternative) {
+		Connect(lhsSize + rhs.initial, initial, Epsilon);
+		initial = rhs.initial + lhsSize;
+	} else if (isAlternative && rhs.isAlternative) {
+		const StatesSet& tos = rhs.Destinations(rhs.initial, Epsilon);
+		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to) {
+			Connect(initial, *to + lhsSize, Epsilon);
+			Disconnect(rhs.initial + lhsSize, *to + lhsSize, Epsilon);
+		}
+	}
 
+	determined = false;
+	isAlternative = true;
 	return *this;
 }
 
@@ -497,6 +530,7 @@ void Fsm::MakePrefix()
 	for (size_t i = 0; i < Size(); ++i)
 		if (!m_transitions[i].empty())
 			m_final.insert(i);
+	ClearHints();
 }
 
 void Fsm::MakeSuffix()
@@ -504,6 +538,7 @@ void Fsm::MakeSuffix()
 	for (size_t i = 0; i < Size(); ++i)
 		if (i != initial)
 			Connect(initial, i);
+	ClearHints();
 }
 	
 Fsm& Fsm::Reverse()
@@ -606,6 +641,7 @@ void Fsm::RemoveDeadEnds()
 			for (TransitionRow::iterator k = j->begin(), ke = j->end(); k != ke; ++k)
 				k->second.erase(*i);
 	}
+	ClearHints();
 
 	PIRE_IFDEBUG(std::clog << "Result:" << std::endl << *this << std::endl);
 }
@@ -664,7 +700,8 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 // Assuming the epsilon transitions is possible from 'from' to 'thru',
 // finds all states which are Epsilon-reachable from 'thru' and connects
 // them directly to 'from' with Epsilon transition having proper output.
-void Fsm::ShortCutEpsilon(size_t from, size_t thru)
+// Updates inverse map of epsilon transitions as well.
+void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps)
 {
 	PIRE_IFDEBUG(std::clog << "In Fsm::ShortCutEpsilon(" << from << ", " << thru << ")\n");
 	const StatesSet& to = Destinations(thru, Epsilon);
@@ -673,6 +710,7 @@ void Fsm::ShortCutEpsilon(size_t from, size_t thru)
 	for (StatesSet::const_iterator toi = to.begin(), toe = to.end(); toi != toe; ++toi) {
 		PIRE_IFDEBUG(std::clog << "Epsilon connecting " << from << " --> " << thru << " --> " << *toi << "\n");
 		Connect(from, *toi, Epsilon);
+		inveps[*toi].insert(from);
 		if (outIt != outputs.end())
 			outIt->second[*toi] |= (fromThruOut | Output(thru, *toi));
 	}	
@@ -684,12 +722,21 @@ void Fsm::RemoveEpsilons()
 {
 	Unsparse();
 	
+	// Build inverse map of epsilon transitions
+	yvector< yset<size_t> > inveps(Size()); // We have to use yset<> here since we want it sorted
+	for (size_t from = 0; from != Size(); ++from) {
+		const StatesSet& tos = Destinations(from, Epsilon);
+		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to)
+			inveps[*to].insert(from);
+	}
+	
 	// Make a transitive closure of all epsilon transitions (Floyd-Warshall algorithm)
 	// (if there exists an epsilon-path between two states, epsilon-connect them directly)
 	for (size_t thru = 0; thru != Size(); ++thru)
-		for (size_t from = 0; from != Size(); ++from)
-			if (Connected(from, thru, Epsilon))
-				ShortCutEpsilon(from, thru);
+		for (StatesSet::iterator from = inveps[thru].begin(); from != inveps[thru].end(); ++from)
+			// inveps[thru] may alter during loop body, hence we cannot cache ivneps[thru].end()
+			if (*from != thru)
+				ShortCutEpsilon(*from, thru, inveps);
 	
 	PIRE_IFDEBUG(std::clog << "=== After epsilons shortcut\n" << *this << std::endl);
 	
@@ -708,6 +755,7 @@ void Fsm::RemoveEpsilons()
 		i->erase(Epsilon);
 	
 	Sparse();
+	ClearHints();
 }
 
 bool Fsm::LettersEquality::operator()(Char a, Char b) const
@@ -1041,6 +1089,7 @@ void Fsm::Minimize()
 		for (Outputs::value_type::second_type::iterator oit2 = oit->second.begin(), oie2 = oit->second.end(); oit2 != oie2; ++oit2)
 			outputs[last.Index(oit->first)].insert(std::make_pair(last.Index(oit2->first), oit2->second));
 
+	ClearHints();
 	PIRE_IFDEBUG(std::clog << "=== Minimized (" << Size() << " states) ===" << std::endl << *this << std::endl);
 }
 
@@ -1102,6 +1151,7 @@ void Fsm::Divert(size_t from, size_t to, size_t dest)
 		}
 	}
 
+	ClearHints();
 }
 
 
