@@ -1,3 +1,12 @@
+pire (0.0.2-1) unstable; urgency=low
+
+  * Slashes no longer require to be escaped.
+  * Implemented Fsm::Reverse().
+  * Scan() now searches longest acceptable prefix.
+  * Optimized compiling of a union of a huge amount of relatively small patterns.
+
+ -- Dmitry Prokoptsev <dprokoptsev@yandex-team.ru>  Sat, 09 Jul 2010 00:51:45 +0400
+
 pire (0.0.1-1) unstable; urgency=low
 
   * Initial release
