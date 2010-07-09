@@ -57,6 +57,7 @@ programs which use %pkgname.
 
 %files devel
 %_includedir/pire/
+%_bindir/*
 
 %files devel-static
 %_libdir/libpire.a
