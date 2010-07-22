@@ -444,7 +444,7 @@ Fsm& Fsm::operator |= (const Fsm& rhs)
 	size_t lhsSize = Size();
 
 	Import(rhs);
-	for (FinalTable::iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
+	for (FinalTable::const_iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
 		m_final.insert(*it + lhsSize);	
 	
 	if (!isAlternative && !rhs.isAlternative) {
@@ -555,7 +555,7 @@ Fsm& Fsm::Reverse()
 		
 	// Invert initial and final states
 	out.SetFinal(initial, true);
-	for (FinalTable::iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
+	for (FinalTable::const_iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
 		out.Connect(Size(), *i, Epsilon);
 	out.SetInitial(Size());
 	
@@ -797,7 +797,7 @@ void Fsm::Unsparse()
 yset<size_t> Fsm::TerminalStates() const
 {
 	yset<size_t> terminals;
-	for (FinalTable::iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit) {
+	for (FinalTable::const_iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit) {
 		bool ok = true;
 		for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
 			TransitionRow::const_iterator dests = m_transitions[*fit].find(lit->first);

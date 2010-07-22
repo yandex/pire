@@ -195,6 +195,11 @@ Fsm& ConvertToFSM(const Encoding& encoding, Any* any)
 
 }
 
+#if defined(PPP) && !defined(HAVE_CONFIG_H)
+// Workaround for some braindamaged byaccs which cannot decide what yyparse() should look like
+static int yyparse(void*, Pire::Lexer& rlex);
+#endif
+
 namespace Pire {
 	namespace Impl {
 		int yre_parse(Pire::Lexer& rlex) { return yyparse(0, rlex); }

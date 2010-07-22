@@ -18,7 +18,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 		dup.SetTag(i, Matched);
 	size_t oldsize = sep_re.Size();
 	sep_re.Import(dup);
-	for (Fsm::FinalTable::iterator i = sep_re.Finals().begin(), ie = sep_re.Finals().end(); i != ie; ++i)
+	for (Fsm::FinalTable::const_iterator i = sep_re.Finals().begin(), ie = sep_re.Finals().end(); i != ie; ++i)
 		if (*i < oldsize)
 			sep_re.Connect(*i, oldsize + *i);
 
