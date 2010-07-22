@@ -429,7 +429,7 @@ Fsm& Fsm::operator += (const Fsm& rhs)
 		}
 
 	ClearFinal();
-	for (FinalTable::iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
+	for (FinalTable::const_iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
 		SetFinal(*it + lhsSize, true);
 	determined = false;
 
@@ -555,7 +555,7 @@ Fsm& Fsm::Reverse()
 		
 	// Invert initial and final states
 	out.SetFinal(initial, true);
-	for (FinalTable::const_iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
+	for (FinalTable::iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
 		out.Connect(Size(), *i, Epsilon);
 	out.SetInitial(Size());
 	

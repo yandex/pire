@@ -1,13 +1,14 @@
 #ifndef PIRE_ALIGN_H
 #define PIRE_ALIGN_H
 
+#include "stl.h"
 #include "stub/saveload.h"
 
 namespace Pire {
 	
 	namespace Impl {
 		
-		inline void AlignSave(OutputStream* s, size_t size)
+		inline void AlignSave(yostream* s, size_t size)
 		{
 			size_t tail = ((size + (sizeof(void*)-1)) & ~(sizeof(void*)-1)) - size;
 			if (tail) {
@@ -16,7 +17,7 @@ namespace Pire {
 			}
 		}
 
-		inline void AlignLoad(InputStream* s, size_t size)
+		inline void AlignLoad(yistream* s, size_t size)
 		{
 			size_t tail = ((size + (sizeof(void*)-1)) & ~(sizeof(void*)-1)) - size;
 			if (tail) {
@@ -26,14 +27,14 @@ namespace Pire {
 		}
 		
 		template<class T>
-		inline void AlignedSaveArray(OutputStream* s, const T* array, size_t count)
+		inline void AlignedSaveArray(yostream* s, const T* array, size_t count)
 		{
 			SaveArray(s, array, count);
 			AlignSave(s, sizeof(*array) * count);
 		}
 
 		template<class T>
-		inline void AlignedLoadArray(InputStream* s, T* array, size_t count)
+		inline void AlignedLoadArray(yistream* s, T* array, size_t count)
 		{
 			LoadArray(s, array, count);
 			AlignLoad(s, sizeof(*array) * count);

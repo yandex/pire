@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "stl.h"
 #include "stub/saveload.h"
 #include "re_scanner.h"
 #include "align.h"
@@ -6,7 +7,7 @@
 
 namespace Pire {
 	
-void Scanner::Save(OutputStream* s) const
+void Scanner::Save(yostream* s) const
 {
 	Locals mc = m;
 	mc.initial -= reinterpret_cast<size_t>(m_transitions);
@@ -17,7 +18,7 @@ void Scanner::Save(OutputStream* s) const
 	Impl::AlignedSaveArray(s, m_buffer, BufSize());
 }
 
-void Scanner::Load(InputStream* s)
+void Scanner::Load(yistream* s)
 {
 	Scanner sc;
 	Impl::ValidateHeader(s, 1, sizeof(sc.m));
@@ -30,7 +31,7 @@ void Scanner::Load(InputStream* s)
 	Swap(sc);
 }
 
-void SimpleScanner::Save(OutputStream* s) const
+void SimpleScanner::Save(yostream* s) const
 {
 	assert(m_buffer);
 	SavePodType(s, Header(2, sizeof(m)));
@@ -42,7 +43,7 @@ void SimpleScanner::Save(OutputStream* s) const
 	Impl::AlignedSaveArray(s, m_buffer, BufSize());
 }
 
-void SimpleScanner::Load(InputStream* s)
+void SimpleScanner::Load(yistream* s)
 {
 	SimpleScanner sc;
 	Impl::ValidateHeader(s, 2, sizeof(sc.m));
@@ -55,7 +56,7 @@ void SimpleScanner::Load(InputStream* s)
 	Swap(sc);
 }
 
-void SlowScanner::Save(OutputStream* s) const
+void SlowScanner::Save(yostream* s) const
 {
 	assert(!m_vec.empty());
 	SavePodType(s, Header(3, sizeof(m)));
@@ -83,7 +84,7 @@ void SlowScanner::Save(OutputStream* s) const
 	Impl::AlignSave(s, size);
 }
 
-void SlowScanner::Load(InputStream* s)
+void SlowScanner::Load(yistream* s)
 {
 	SlowScanner sc;
 	Impl::ValidateHeader(s, 3, sizeof(sc.m));
@@ -118,7 +119,7 @@ void SlowScanner::Load(InputStream* s)
 	Swap(sc);
 }
 
-void LoadedScanner::Save(OutputStream* s) const
+void LoadedScanner::Save(yostream* s) const
 {
 	SavePodType(s, Header(4, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
@@ -133,7 +134,7 @@ void LoadedScanner::Save(OutputStream* s) const
 	Impl::AlignedSaveArray(s, m_tags, m.statesCount);
 }
 
-void LoadedScanner::Load(InputStream* s)
+void LoadedScanner::Load(yistream* s)
 {
 	LoadedScanner sc;
 	Impl::ValidateHeader(s, 4, sizeof(sc.m));

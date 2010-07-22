@@ -209,8 +209,8 @@ public:
 			free(*i);
 	}
 
-	void Save(OutputStream*) const;
-	void Load(InputStream*);
+	void Save(yostream*) const;
+	void Load(yistream*);
 
 #ifdef PIRE_DEBUG
 	const State& StateIndex(const State& s) const { return s; }

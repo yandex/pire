@@ -140,12 +140,12 @@ void yyerror(const char* str)
 
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr)
 {
-	std::vector<std::string> strings;
+	yvector<ystring> strings;
 
 	for (Term::Strings::const_iterator i = cr.first.begin(), ie = cr.first.end(); i != ie; ++i) {
-		std::string s;
+		ystring s;
 		for (Term::String::const_iterator j = i->begin(), je = i->end(); j != je; ++j) {
-			std::string c = encoding.ToLocal(*j);
+			ystring c = encoding.ToLocal(*j);
 			if (c.empty()) {
 				s.clear();
 				break;
@@ -196,7 +196,7 @@ Fsm& ConvertToFSM(const Encoding& encoding, Any* any)
 }
 
 #if defined(PPP) && !defined(HAVE_CONFIG_H)
-// Workaround for some braindamaged byaccs which cannot decide what yyparse() should look like
+// Workaround for some braindamaged byaccs which cannot decide what yyparse() should look like 
 static int yyparse(void*, Pire::Lexer& rlex);
 #endif
 

@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <iostream>
 #include <vector>
+#include "../stl.h"
 
 namespace Pire {
 
@@ -112,35 +113,33 @@ namespace Pire {
 	
 	}
 
-	typedef std::istream InputStream;
-	typedef std::ostream OutputStream;
 	typedef Impl::BasicAlignedInput<char> AlignedInput;
 	typedef Impl::BasicAlignedOutput<char> AlignedOutput;
 	template<class T>
-	void SavePodType(OutputStream* s, const T& t)
+	void SavePodType(yostream* s, const T& t)
 	{
 		s->write((char*) &t, sizeof(t));
 	}
 	
 	template<class T>
-	void LoadPodType(InputStream* s, T& t)
+	void LoadPodType(yistream* s, T& t)
 	{
 		s->read((char*) &t, sizeof(t));
 	}
 	template<class T>
-	void Save(OutputStream* s, const T& t) { t.Save(s);}
+	void Save(yostream* s, const T& t) { t.Save(s);}
 
 	template<class T>
-	void Load(InputStream* s, T& t) { t.Load(s);}
+	void Load(yistream* s, T& t) { t.Load(s);}
 
 	template<class T>
-	void SaveArray(OutputStream* s, const T* t, size_t len)
+	void SaveArray(yostream* s, const T* t, size_t len)
 	{
 		s->write((char*) t, len * sizeof(*t));
 	}
 
 	template<class T>
-	void LoadArray(InputStream* s, T* t, size_t len)
+	void LoadArray(yistream* s, T* t, size_t len)
 	{
 		s->read((char*) t, len * sizeof(*t));
 	}

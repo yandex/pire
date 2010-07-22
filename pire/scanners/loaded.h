@@ -109,8 +109,8 @@ public:
 		return (const void*) p;
 	}
 
-	void Save(OutputStream*) const;
-	void Load(InputStream*);
+	void Save(yostream*) const;
+	void Load(yistream*);
 
 protected:
 

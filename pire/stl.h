@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <iterator>
+#include <functional>
 
 typedef std::string ystring;
 #define yvector std::vector
@@ -23,6 +24,7 @@ typedef std::string ystring;
 #define yset std::set
 #define yauto_ptr std::auto_ptr
 #define ybitset std::bitset
+#define yistream std::istream
 #define yostream std::ostream
 #define ypair std::pair
 #define ymake_pair std::make_pair

@@ -142,7 +142,7 @@ private:
 template<class T, class Eq>
 yostream& operator << (yostream& stream, const Partition<T, Eq>& partition)
 {
-	stream << "Partition {" << std::endl;
+	stream << "Partition {\n";
 	for (typename Partition<T, Eq>::ConstIterator it = partition.Begin(), ie = partition.End(); it != ie; ++it) {
 		stream << "    Class " << it->second.first << " \"" << it->first << "\" { ";
 		bool first = false;
@@ -153,7 +153,7 @@ yostream& operator << (yostream& stream, const Partition<T, Eq>& partition)
 				first = true;
 			stream << *iit;
 		}
-		stream << " }" << std::endl;
+		stream << " }\n";
 	}
 	stream << "}";
 	return stream;

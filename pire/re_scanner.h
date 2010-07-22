@@ -83,7 +83,7 @@ namespace Pire {
 			hdr->Validate(type, hdrsize);
 		}
 		
-		inline void ValidateHeader(InputStream* s, ui32 type, size_t hdrsize)
+		inline void ValidateHeader(yistream* s, ui32 type, size_t hdrsize)
 		{
 			Header hdr(0, 0);
 			LoadPodType(s, hdr);

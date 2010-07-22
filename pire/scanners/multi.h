@@ -202,8 +202,8 @@ public:
 			+ m.lettersCount * m.statesCount * sizeof(Transition); // Transitions table
 	}
 
-	void Save(OutputStream*) const;
-	void Load(InputStream*);
+	void Save(yostream*) const;
+	void Load(yistream*);
 
 protected:
 	struct Locals {
