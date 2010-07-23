@@ -3,8 +3,8 @@
 
 
 #include <typeinfo>
-#include <utility>
-#include <stdexcept>
+
+#include "stl.h"
 
 class Any {
 
@@ -51,7 +51,7 @@ public:
 		if (h && IsA<T>())
 			return *reinterpret_cast<T*>(h->Ptr());
 		else
-			throw std::runtime_error("type mismatch");
+			throw Pire::Error("type mismatch");
 	}
 
 	template <class T>
@@ -60,7 +60,7 @@ public:
 		if (h && IsA<T>())
 			return *reinterpret_cast<const T*>(h->Ptr());
 		else
-			throw std::runtime_error("type mismatch");
+			throw Pire::Error("type mismatch");
 	}
 
 	void Swap(Any& a) throw () {

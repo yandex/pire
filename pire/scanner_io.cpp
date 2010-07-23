@@ -68,7 +68,7 @@ void SlowScanner::Save(yostream* s) const
 
 	size_t c = 0;
 	SavePodType<size_t>(s, 0);
-	for (std::vector< std::vector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i) {
+	for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i) {
 		size_t n = c + i->size();
 		SavePodType(s, n);
 		c = n;
@@ -76,7 +76,7 @@ void SlowScanner::Save(yostream* s) const
 	Impl::AlignSave(s, (m_vec.size() + 1) * sizeof(size_t));
 
 	size_t size = 0;
-	for (std::vector< std::vector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
+	for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
 		if (!i->empty()) {
 			SaveArray(s, &(*i)[0], i->size());
 			size += sizeof(unsigned) * i->size();
@@ -100,7 +100,7 @@ void SlowScanner::Load(yistream* s)
 
 	size_t c;
 	LoadPodType(s, c);
-	for (std::vector< std::vector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i) {
+	for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i) {
 		size_t n;
 		LoadPodType(s, n);
 		i->resize(n - c);
@@ -109,7 +109,7 @@ void SlowScanner::Load(yistream* s)
 	Impl::AlignLoad(s, (m_vec.size() + 1) * sizeof(size_t));
 
 	size_t size = 0;
-	for (std::vector< std::vector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
+	for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
 		if (!i->empty()) { 
 			LoadArray(s, &(*i)[0], i->size());
 			size += sizeof(unsigned) * i->size();

@@ -31,7 +31,7 @@ namespace {
 			GlyphClass& operator << (wchar32 c)
 			{
 				m_class->push_back(c);
-				m_map->insert(std::make_pair(c, m_class));
+				m_map->insert(ymake_pair(c, m_class));
 				return *this;
 			}
 		};

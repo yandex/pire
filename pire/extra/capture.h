@@ -41,7 +41,7 @@ public:
 		friend class CapturingScanner;
 
 #ifdef PIRE_DEBUG
-		friend std::ostream& operator << (std::ostream& s, const State& state)
+		friend yostream& operator << (yostream& s, const State& state)
 		{
 			s << state.m_state;
 			if (state.m_begin != State::npos || state.m_end != npos) {

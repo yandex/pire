@@ -46,11 +46,11 @@ enum {
 */
 class Term {
 public:
-	typedef std::vector<wchar32> String;
-	typedef std::set<String> Strings;
+	typedef yvector<wchar32> String;
+	typedef yset<String> Strings;
 
-	typedef std::pair<int, int> RepetitionCount;
-	typedef std::pair<Strings, bool> CharacterRange;
+	typedef ypair<int, int> RepetitionCount;
+	typedef ypair<Strings, bool> CharacterRange;
 	
 	struct DotTag {};
 	struct BeginTag {};
@@ -137,9 +137,9 @@ private:
 
 	void InstallDefaultFeatures();
 
-	std::deque<wchar32> m_input;
+	ydeque<wchar32> m_input;
 	const Pire::Encoding* m_encoding;
-	std::vector<Feature*> m_features;
+	yvector<Feature*> m_features;
 	Any m_retval;
 
 	friend class Feature;

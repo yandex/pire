@@ -24,12 +24,12 @@ namespace {
 				return (wchar32) *begin++;
 		}
 
-		std::string ToLocal(wchar32 ch) const
+		ystring ToLocal(wchar32 ch) const
 		{
 			if (ch < 0x80)
-				return std::string(1, (char) ch);
+				return ystring(1, (char) ch);
 			else
-				return std::string();
+				return ystring();
 		}
 
 		void AppendDot(Fsm& fsm) const { fsm.AppendDot(); }
@@ -38,13 +38,13 @@ namespace {
 	namespace UtfRanges {
 
 		static const size_t MaxLen = 4;
-		std::pair<size_t, size_t> First[MaxLen] = {
-			std::make_pair(0x01, 0x80),
-			std::make_pair(0xC0, 0xE0),
-			std::make_pair(0xE0, 0xF0),
-			std::make_pair(0xF0, 0xF8)
+		ypair<size_t, size_t> First[MaxLen] = {
+			ymake_pair(0x01, 0x80),
+			ymake_pair(0xC0, 0xE0),
+			ymake_pair(0xE0, 0xF0),
+			ymake_pair(0xF0, 0xF8)
 		};
-		std::pair<size_t, size_t> Next(0x80, 0xC0);
+		ypair<size_t, size_t> Next(0x80, 0xC0);
 	}
 
 static const Latin1 latin1;
@@ -62,9 +62,9 @@ static const Latin1 latin1;
 			return rune;
 		}
 
-		std::string ToLocal(wchar32 c) const
+		ystring ToLocal(wchar32 c) const
 		{
-			std::string ret(utf8_rune_len_by_ucs(c), ' ');
+			ystring ret(utf8_rune_len_by_ucs(c), ' ');
 			size_t len;
 			unsigned char* p = (unsigned char*) &*ret.begin();
 			if (utf8_put_rune(c, len, p, p + ret.size()) != RECODE_OK)

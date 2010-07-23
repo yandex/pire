@@ -1087,7 +1087,7 @@ void Fsm::Minimize()
 	// Restore outputs
 	for (Outputs::iterator oit = oldOutputs.begin(), oie = oldOutputs.end(); oit != oie; ++oit)
 		for (Outputs::value_type::second_type::iterator oit2 = oit->second.begin(), oie2 = oit->second.end(); oit2 != oie2; ++oit2)
-			outputs[last.Index(oit->first)].insert(std::make_pair(last.Index(oit2->first), oit2->second));
+			outputs[last.Index(oit->first)].insert(ymake_pair(last.Index(oit2->first), oit2->second));
 
 	ClearHints();
 	PIRE_IFDEBUG(std::clog << "=== Minimized (" << Size() << " states) ===" << std::endl << *this << std::endl);
@@ -1138,7 +1138,7 @@ void Fsm::Divert(size_t from, size_t to, size_t dest)
 		if (oi2 != oi->second.end()) {
 			unsigned long output = oi2->second;
 			oi->second.erase(oi2);
-			oi->second.insert(std::make_pair(dest, output));
+			oi->second.insert(ymake_pair(dest, output));
 		}
 	}
 

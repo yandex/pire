@@ -22,12 +22,12 @@ public:
 		: ScannerGlueCommon<Scanner>(lhs, rhs, LettersEquality<Scanner>(lhs.m_letters, rhs.m_letters))
 	{
 	}
-	void AcceptStates(const std::vector<State>& states)
+	void AcceptStates(const yvector<State>& states)
 	{
 		// Make up a new scanner and fill in the final table
 		
 		size_t finalTableSize = 0;
-		for (std::vector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
+		for (yvector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
 			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i->first)) + RangeLen(Rhs().AcceptedRegexps(i->second));
 		SetSc(new Scanner);
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
@@ -50,12 +50,12 @@ public:
 	
 private:    
 	template<class Iter>
-	size_t RangeLen(std::pair<Iter, Iter> range) const
+	size_t RangeLen(ypair<Iter, Iter> range) const
 	{
 		return std::distance(range.first, range.second);
 	}
 	template<class Iter, class OutIter>
-	OutIter Shift(std::pair<Iter, Iter> range, size_t shift, OutIter out) const
+	OutIter Shift(ypair<Iter, Iter> range, size_t shift, OutIter out) const
 	{
 		for (; range.first != range.second; ++range.first, ++out)
 			*out = *range.first + shift;

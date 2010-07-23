@@ -28,6 +28,7 @@ typedef std::string ystring;
 #define yostream std::ostream
 #define ypair std::pair
 #define ymake_pair std::make_pair
+#define ymax std::max
 
 namespace Pire {
 	template<class T>

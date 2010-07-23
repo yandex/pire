@@ -22,7 +22,7 @@ namespace Impl {
 		typename Scanner::Letter* m_rhs;
 	};
 	
-	typedef std::pair<Scanner::State, Scanner::State> GluedState;
+	typedef ypair<Scanner::State, Scanner::State> GluedState;
 }
 
 // This lookup table is used instead of std::map.
@@ -35,7 +35,7 @@ public:
 	static const size_t MaxSize = N;
 	typedef Impl::GluedState key_type;
 	typedef size_t mapped_type;
-	typedef std::pair<const Impl::GluedState, size_t> value_type;
+	typedef ypair<const Impl::GluedState, size_t> value_type;
 	typedef value_type* iterator;
 	typedef const value_type* const_iterator;
 
@@ -60,14 +60,14 @@ public:
 		return mFilled[ind] ? (mMap + ind) : end();
 	}
 
-	std::pair<iterator, bool> insert(const value_type& v) {
+	ypair<iterator, bool> insert(const value_type& v) {
 		size_t ind = Search(v.first);
 		if (!mFilled[ind]) {
 			new(mMap + ind) value_type(v);
 			mFilled[ind] = true;
-			return std::make_pair(mMap + ind, true);
+			return ymake_pair(mMap + ind, true);
 		} else
-			return std::make_pair(mMap + ind, false);
+			return ymake_pair(mMap + ind, false);
 	}
 
 private:
@@ -86,7 +86,7 @@ private:
 	}
 
 	value_type*   mMap;        // not using vector here to avoid initialization
-	std::vector<bool> mFilled;
+	yvector<bool> mFilled;
 
 // Noncopyable
 GluedStateLookupTable(const GluedStateLookupTable&);
@@ -98,7 +98,7 @@ class ScannerGlueCommon {
 public:
 	typedef Partition< Char, Impl::LettersEquality<Scanner> > LettersTbl;
 	
-	typedef std::pair<typename Scanner::InternalState, typename Scanner::InternalState> State;
+	typedef ypair<typename Scanner::InternalState, typename Scanner::InternalState> State;
 	ScannerGlueCommon(const Scanner& lhs, const Scanner& rhs, const LettersTbl& letters)
 		: m_lhs(lhs)
 		, m_rhs(rhs)

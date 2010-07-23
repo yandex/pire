@@ -135,7 +135,7 @@ int yylex(YYSTYPE* lval, Pire::Lexer& rlex)
 
 void yyerror(const char* str)
 {
-	throw Error((std::string("Regexp parse error: ") + std::string(str)));
+	throw Error((ystring("Regexp parse error: ") + ystring(str)));
 }
 
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr)

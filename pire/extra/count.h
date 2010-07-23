@@ -27,7 +27,7 @@ public:
 
 	class State {
 	public:
-		size_t Result(int i) const { return std::max(m_current[i], m_total[i]); }
+		size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
 	private:
 		InternalState m_state;
 		ui32 m_current[OPTIMAL_RE_COUNT];
@@ -36,7 +36,7 @@ public:
 		friend class CountingScanner;
 
 #ifdef PIRE_DEBUG
-		friend std::ostream& operator << (std::ostream& s, const State& state)
+		friend yostream& operator << (yostream& s, const State& state)
 		{
 			s << state.m_state << " ( ";
 			for (size_t i = 0; i < OPTIMAL_RE_COUNT; ++i)
@@ -107,7 +107,7 @@ private:
 	void Reset(State &s, size_t i) const
 	{
 		if (s.m_current[i]) {
-			s.m_total[i] = std::max(s.m_total[i], s.m_current[i]);
+			s.m_total[i] = ymax(s.m_total[i], s.m_current[i]);
 			s.m_current[i] = 0;
 		}
 	}

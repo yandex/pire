@@ -29,18 +29,18 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 	// Make a full Cartesian product of two sep_res
 	sep_re.Determine();
 	sep_re.Unsparse();
-	std::set<size_t> dead = sep_re.DeadStates();
+	yset<size_t> dead = sep_re.DeadStates();
 
 	PIRE_IFDEBUG(std::clog << "=== Original FSM ===" << std::endl << sep_re << ">>> " << sep_re.Size() << " states, dead: [" << Join(dead.begin(), dead.end(), ", ") << "]" << std::endl);
 
 	Fsm sq;
 
-	typedef std::pair<size_t, size_t> NewState;
-	std::vector<NewState> states;
-	std::map<NewState, size_t> invstates;
+	typedef ypair<size_t, size_t> NewState;
+	yvector<NewState> states;
+	ymap<NewState, size_t> invstates;
 
 	states.push_back(NewState(sep_re.Initial(), sep_re.Initial()));
-	invstates.insert(std::make_pair(states.back(), states.size() - 1));
+	invstates.insert(ymake_pair(states.back(), states.size() - 1));
 
 	// TODO: this loop reminds me a general determination task...
 	for (size_t curstate = 0; curstate < states.size(); ++curstate) {
@@ -67,7 +67,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 			NewState savedNs = ns;
 			unsigned long outputs = 0;
 
-			PIRE_IFDEBUG(std::string dbgout);
+			PIRE_IFDEBUG(ystring dbgout);
 			if (dead.find(ns.first) != dead.end()) {
 				PIRE_IFDEBUG(dbgout = ((sep_re.Tag(ns.first) & Matched) ? ", ++cur" : ", max <- cur"));
 				outputs = DeadFlag | (sep_re.Tag(ns.first) & Matched);
@@ -78,15 +78,15 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 
 			PIRE_IFDEBUG(if (ns != savedNs) std::clog << "Diverted transition to (" << savedNs.first << ", " << savedNs.second << ") on " << (char) letter << " to (" << ns.first << ", " << ns.second << ")" << dbgout << std::endl);
 
-			std::map<NewState, size_t>::iterator nsi = invstates.find(ns);
+			ymap<NewState, size_t>::iterator nsi = invstates.find(ns);
 			if (nsi == invstates.end()) {
 				PIRE_IFDEBUG(std::clog << "New state " << states.size() << " = (" << ns.first << ", " << ns.second << ")" << std::endl);
 				states.push_back(ns);
-				nsi = invstates.insert(std::make_pair(states.back(), states.size() - 1)).first;
+				nsi = invstates.insert(ymake_pair(states.back(), states.size() - 1)).first;
 				sq.Resize(states.size());
 			}
 
-			for (std::vector<Char>::const_iterator li = lit->second.second.begin(), le = lit->second.second.end(); li != le; ++li)
+			for (yvector<Char>::const_iterator li = lit->second.second.begin(), le = lit->second.second.end(); li != le; ++li)
 			sq.Connect(curstate, nsi->second, *li);
 			if (outputs)
 				sq.SetOutput(curstate, nsi->second, outputs);
@@ -105,14 +105,14 @@ namespace Impl {
 
 class CountingScannerGlueTask: public ScannerGlueCommon<CountingScanner> {
 public:
-	typedef std::map<State, size_t> InvStates;
+	typedef ymap<State, size_t> InvStates;
 	
 	CountingScannerGlueTask(const CountingScanner& lhs, const CountingScanner& rhs)
 		: ScannerGlueCommon<CountingScanner>(lhs, rhs, LettersEquality<CountingScanner>(lhs.m_letters, rhs.m_letters))
 	{
 	}
 	
-	void AcceptStates(const std::vector<State>& states)
+	void AcceptStates(const yvector<State>& states)
 	{
 		States = states;
 		SetSc(new CountingScanner);
@@ -129,7 +129,7 @@ public:
 	}
 			
 private:
-	std::vector<State> States;
+	yvector<State> States;
 	CountingScanner::Action Action(const CountingScanner& sc, CountingScanner::InternalState state, Char letter) const
 	{
 		return sc.m_actions[sc.StateIdx(state) * sc.m.lettersCount + sc.m_letters[letter]];

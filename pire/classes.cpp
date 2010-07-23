@@ -13,8 +13,8 @@ namespace {
 		class CharClass {
 		public:
 			CharClass() {}
-			explicit CharClass(wchar32 ch) { m_bounds.push_back(std::make_pair(ch, ch)); }
-			CharClass(wchar32 lower, wchar32 upper) { m_bounds.push_back(std::make_pair(lower, upper)); }
+			explicit CharClass(wchar32 ch) { m_bounds.push_back(ymake_pair(ch, ch)); }
+			CharClass(wchar32 lower, wchar32 upper) { m_bounds.push_back(ymake_pair(lower, upper)); }
 
 			CharClass& operator |= (const CharClass& cc)
 			{
@@ -31,15 +31,15 @@ namespace {
 
 			std::set<wchar32> ToSet() const
 			{
-				std::set<wchar32> ret;
-				for (std::vector<std::pair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
+				yset<wchar32> ret;
+				for (yvector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
 					for (wchar32 c = it->first; c <= it->second; ++c)
 						ret.insert(c);
 				return ret;
 			}
 
 		private:
-			std::vector<std::pair<wchar32, wchar32> > m_bounds;
+			yvector<ypair<wchar32, wchar32> > m_bounds;
 		};
 
 	public:
@@ -48,9 +48,9 @@ namespace {
 			return (m_classes.find(to_lower(wc & ~ControlMask)) != m_classes.end());
 		}
 
-		std::set<wchar32> Get(wchar32 wc) const
+		yset<wchar32> Get(wchar32 wc) const
 		{
-			std::map<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
+			ymap<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
 			if (it == m_classes.end())
 				throw Error("Unknown character class");
 			return it->second.ToSet();
@@ -78,7 +78,7 @@ namespace {
 			m_classes['t'] = CharClass('\t');
 		}
 
-		std::map<wchar32, CharClass> m_classes;
+		ymap<wchar32, CharClass> m_classes;
 	};
 
 	class CharClassesImpl: public Feature {
@@ -102,8 +102,8 @@ namespace {
 						else
 							pos = true;
 
-						std::set<wchar32> klass = m_table->Get((*i)[0]);
-						for (std::set<wchar32>::iterator j = klass.begin(), je = klass.end(); j != je; ++j)
+						yset<wchar32> klass = m_table->Get((*i)[0]);
+						for (yset<wchar32>::iterator j = klass.begin(), je = klass.end(); j != je; ++j)
 							altered.insert(Term::String(1, *j));
 					} else
 						altered.insert(*i);
