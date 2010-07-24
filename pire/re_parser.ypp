@@ -14,6 +14,7 @@
 #include "fsm.h"
 #include "re_lexer.h"
 #include "any.h"
+#include "stl.h"
 
 #define YYSTYPE Any*
 #define YYSTYPE_IS_TRIVIAL 0
@@ -50,7 +51,7 @@ regexp
 	: alternative
 		{
 			ConvertToFSM(rlex.Encoding(), $1);
-			std::swap(rlex.Retval(), *$1);
+			DoSwap(rlex.Retval(), *$1);
 			delete $1;
 		}
 	;

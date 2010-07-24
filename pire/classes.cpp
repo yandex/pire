@@ -29,7 +29,7 @@ namespace {
 				return r;
 			}
 
-			std::set<wchar32> ToSet() const
+			yset<wchar32> ToSet() const
 			{
 				yset<wchar32> ret;
 				for (yvector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)

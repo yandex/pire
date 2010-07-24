@@ -8,13 +8,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-void Run(const Pire::Scanner& scanner, Pire::Scanner::State& state, const std::string& data)
+void Run(const Pire::Scanner& scanner, Pire::Scanner::State& state, const ystring& data)
 {
 	PIRE_IFDEBUG(std::clog << "---run---" << std::endl);
 	Pire::Run(scanner, state, data.c_str(), data.c_str() + data.size());
 }
 
-bool ReadLine(FILE* f, std::string& str)
+bool ReadLine(FILE* f, ystring& str)
 {
 	int ch;
 	str.clear();
@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 {
 	try {
 		if (argc < 2)
-			throw std::runtime_error("Usage: pigrep <regexp> <options>");
+			throw Pire::Error("Usage: pigrep <regexp> <options>");
 		Pire::Lexer lexer(argv[1], argv[1] + strlen(argv[1]));
 		bool surround = false;
 		if (argc >= 3)
@@ -41,13 +41,13 @@ int main(int argc, char** argv)
 				else if (*option == 'a')
 					lexer.AddFeature(Pire::Features::AndNotSupport());
 				else
-					throw std::runtime_error("Unknown option");
+					throw Pire::Error("Unknown option");
 		Pire::Fsm fsm = lexer.Parse();
 		if (surround)
 			fsm.Surround();
 		Pire::Scanner scanner(fsm);
 
-		std::string str;
+		ystring str;
 		while (ReadLine(stdin, str)) {
 			PIRE_IFDEBUG(std::clog << "---run---" << std::endl);
 			if ((surround && Pire::Runner(scanner).Begin().Run(str).End())

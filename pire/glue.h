@@ -8,7 +8,7 @@
 namespace Pire {
 namespace Impl {
 	template <class Scanner>
-	class LettersEquality: public std::binary_function<Char, Char, bool> {
+	class LettersEquality: public ybinary_function<Char, Char, bool> {
 	public:
 		LettersEquality(typename Scanner::Letter* lhs, typename Scanner::Letter* rhs): m_lhs(lhs), m_rhs(rhs) {}
 

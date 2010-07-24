@@ -3,7 +3,7 @@
 
 
 #include "stub/defaults.h"
-#include <string>
+#include "stl.h"
 
 namespace Pire {
 
@@ -14,7 +14,7 @@ public:
 	virtual ~Encoding() {}
 
 	virtual wchar32 FromLocal(const char*& begin, const char* end) const = 0;
-	virtual std::string ToLocal(wchar32 c) const = 0;
+	virtual ystring ToLocal(wchar32 c) const = 0;
 	virtual void AppendDot(Fsm&) const = 0;
 
 	template<class OutputIter>

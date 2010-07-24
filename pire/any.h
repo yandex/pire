@@ -64,7 +64,7 @@ public:
 	}
 
 	void Swap(Any& a) throw () {
-		std::swap(h, a.h);
+		Pire::DoSwap(h, a.h);
 	}
 
 private:

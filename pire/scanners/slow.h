@@ -191,7 +191,7 @@ public:
 		alloc(m_finals, m.statesCount);
 
 		// Build letter translation table
-		fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
+		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
 		for (Fsm::LettersTbl::ConstIterator it = fsm.Letters().Begin(), ie = fsm.Letters().End(); it != ie; ++it)
 			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
 				m_letters[*it2] = it->second.first;

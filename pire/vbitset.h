@@ -36,7 +36,7 @@ public:
 	void Swap(BitSet& s)
 	{
 		m_data.swap(s.m_data);
-		std::swap(m_size, s.m_size);
+		Pire::DoSwap(m_size, s.m_size);
 	}
 
 	/// Sets the specified bit to 1.

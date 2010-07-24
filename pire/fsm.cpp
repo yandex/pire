@@ -204,14 +204,14 @@ size_t Fsm::Resize(size_t newSize)
 
 void Fsm::Swap(Fsm& fsm)
 {
-	std::swap(m_transitions, fsm.m_transitions);
-	std::swap(initial, fsm.initial);
-	std::swap(m_final, fsm.m_final);
-	std::swap(letters, fsm.letters);
-	std::swap(determined, fsm.determined);
-	std::swap(outputs, fsm.outputs);
-	std::swap(tags, fsm.tags);
-	std::swap(isAlternative, fsm.isAlternative);
+	DoSwap(m_transitions, fsm.m_transitions);
+	DoSwap(initial, fsm.initial);
+	DoSwap(m_final, fsm.m_final);
+	DoSwap(letters, fsm.letters);
+	DoSwap(determined, fsm.determined);
+	DoSwap(outputs, fsm.outputs);
+	DoSwap(tags, fsm.tags);
+	DoSwap(isAlternative, fsm.isAlternative);
 }
 
 void Fsm::SetFinal(size_t state, bool final)
@@ -266,7 +266,7 @@ void Fsm::AppendStrings(const yvector<ystring>& strings)
 	// NB: since each FSM contains at least one state,
 	// state #0 cannot appear in LTRs. Thus we can use this
 	// criteria to test whether a transition has been created or not.
-	typedef std::pair<size_t, char> Transition;
+	typedef ypair<size_t, char> Transition;
 	ymap<char, size_t> startLtr;
 	ymap<Transition, size_t> ltr;
 
@@ -293,11 +293,11 @@ void Fsm::AppendStrings(const yvector<ystring>& strings)
 			// All other letters except last one
 			size_t state = firstJump;
 			for (ystring::const_iterator cit = str.begin() + 1, cie = str.end() - 1; cit != cie; ++cit) {
-				size_t& newState = ltr[std::make_pair(state, *cit)];
+				size_t& newState = ltr[ymake_pair(state, *cit)];
 				if (!newState) {
 					newState = Resize(Size() + 1);
 					Connect(state, newState, static_cast<unsigned char>(*cit));
-					determined = determined && (usedTransitions.find(std::make_pair(state, *cit)) != usedTransitions.end());
+					determined = determined && (usedTransitions.find(ymake_pair(state, *cit)) != usedTransitions.end());
 				}
 				state = newState;
 			}
@@ -305,7 +305,7 @@ void Fsm::AppendStrings(const yvector<ystring>& strings)
 			// The last letter: connect the current state to end
 			unsigned char last = static_cast<unsigned char>(*(str.end() - 1));
 			Connect(state, end, last);
-			determined = determined && (usedTransitions.find(std::make_pair(state, last)) != usedTransitions.end());
+			determined = determined && (usedTransitions.find(ymake_pair(state, last)) != usedTransitions.end());
 
 		} else {
 			// The single letter: connect all the previously final states to end
@@ -333,7 +333,7 @@ void Fsm::Import(const Fsm& rhs)
 				continue;
 			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
 				if (*cit != lit->first)
-					outer->insert(std::make_pair(*cit, targets->second));
+					outer->insert(ymake_pair(*cit, targets->second));
 		}
 	}
 
@@ -343,7 +343,7 @@ void Fsm::Import(const Fsm& rhs)
 			yset<size_t> targets;
 			std::transform(inner->second.begin(), inner->second.end(), std::inserter(targets, targets.begin()),
 				std::bind2nd(std::plus<size_t>(), oldsize));
-			dest->insert(std::make_pair(inner->first, targets));
+			dest->insert(ymake_pair(inner->first, targets));
 		}
 
 		for (LettersTbl::ConstIterator lit = rhs.letters.Begin(), lie = rhs.letters.End(); lit != lie; ++lit) {
@@ -352,7 +352,7 @@ void Fsm::Import(const Fsm& rhs)
 				continue;
 			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
 				if (*cit != lit->first)
-					dest->insert(std::make_pair(*cit, targets->second));
+					dest->insert(ymake_pair(*cit, targets->second));
 		}
 	}
 
@@ -360,12 +360,12 @@ void Fsm::Import(const Fsm& rhs)
 	for (Outputs::const_iterator oit = rhs.outputs.begin(), oie = rhs.outputs.end(); oit != oie; ++oit) {
 		Outputs::value_type::second_type& dest = outputs[oit->first + oldsize];
 		for (Outputs::value_type::second_type::const_iterator rit = oit->second.begin(), rie = oit->second.end(); rit != rie; ++rit)
-			dest.insert(std::make_pair(rit->first + oldsize, rit->second));
+			dest.insert(ymake_pair(rit->first + oldsize, rit->second));
 	}
 
 	// Import tags
 	for (Tags::const_iterator it = rhs.tags.begin(), ie = rhs.tags.end(); it != ie; ++it)
-		tags.insert(std::make_pair(it->first + oldsize, it->second));
+		tags.insert(ymake_pair(it->first + oldsize, it->second));
 
 	letters = LettersTbl(LettersEquality(m_transitions));
 }
@@ -425,7 +425,7 @@ Fsm& Fsm::operator += (const Fsm& rhs)
 	if (out != rhs.outputs.end())
 		for (Outputs::value_type::second_type::const_iterator it = out->second.begin(), ie = out->second.end(); it != ie; ++it) {
 			for (FinalTable::iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit)
-				outputs[*fit].insert(std::make_pair(it->first + lhsSize, it->second));
+				outputs[*fit].insert(ymake_pair(it->first + lhsSize, it->second));
 		}
 
 	ClearFinal();
@@ -672,7 +672,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 			std::copy(it->second.begin(), it->second.end(), std::inserter(connStates, connStates.end()));
 
 			// For each of these states add an output equal to the Epsilon-connection output
-			for (std::set<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
+			for (yset<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
 				outputs[from][*newConnSt] |= frEpsOutput;
 			}
 		}
@@ -955,7 +955,7 @@ typedef yvector<size_t> DeterminedTransitions;
 // Mapping of states into partitions in minimization algorithm.
 typedef yvector<size_t> StateClassMap;
 
-struct MinimizeEquality: public std::binary_function<size_t, size_t, bool> {
+struct MinimizeEquality: public ybinary_function<size_t, size_t, bool> {
 public:
 
 	MinimizeEquality(const DeterminedTransitions& tbl, const yvector<Char>& letters, const StateClassMap* clMap):

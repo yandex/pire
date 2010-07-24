@@ -1,12 +1,12 @@
 #include <ctype.h>
 #include "stub/utf8.h"
-#include <map>
 #include "stub/singleton.h"
 #include <stdexcept>
 #include <assert.h>
 #include "re_parser.h"
 #include "re_lexer.h"
 #include "fsm.h"
+#include "stl.h"
 
 namespace Pire {
 
@@ -59,7 +59,7 @@ void Lexer::UngetChar(wchar32 c)
 }
 
 namespace {
-	class CompareFeaturesByPriority: public std::binary_function<Feature*, Feature*, bool> {
+	class CompareFeaturesByPriority: public ybinary_function<Feature*, Feature*, bool> {
 	public:
 		bool operator()(Feature* a, Feature* b) const
 		{
@@ -71,7 +71,7 @@ namespace {
 Lexer& Lexer::AddFeature(Feature* feature)
 {
 	feature->m_lexer = this;
-	m_features.insert(std::lower_bound(m_features.begin(), m_features.end(), feature, CompareFeaturesByPriority()), feature);
+	m_features.insert(LowerBound(m_features.begin(), m_features.end(), feature, CompareFeaturesByPriority()), feature);
 	return *this;
 }
 

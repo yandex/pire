@@ -29,13 +29,19 @@ typedef std::string ystring;
 #define ypair std::pair
 #define ymake_pair std::make_pair
 #define ymax std::max
+#define ybinary_function std::binary_function
 
 namespace Pire {
 	template<class T>
-	void DoSwap(T& a, T& b) { std::swap(a, b); }
+	static inline void DoSwap(T& a, T& b) { std::swap(a, b); }
 
 	template<class Iter, class T>
-	void fill(Iter begin, Iter end, T t) { std::fill(begin, end, t); }
+	static inline void Fill(Iter begin, Iter end, T t) { std::fill(begin, end, t); }
+	
+	template <class I, class T, class C>
+	static inline I LowerBound(I f, I l, const T& v, C c) {
+	    return std::lower_bound(f, l, v, c);
+	}
 
 	class Error: public std::runtime_error {
 	public:

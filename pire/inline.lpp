@@ -7,10 +7,11 @@
 #include "stub/lexical_cast.h"
 #include "stub/saveload.h"
 #include "stub/memstreams.h"
+#include "stl.h"
 #include <pire.h>
-std::string filename = "";
+ystring filename = "";
 int line = 1;
-std::vector<std::string> args;
+yvector<ystring> args;
 
 
 class Die {
@@ -32,7 +33,7 @@ public:
 		exit(1);
 	}
 private:
-	std::string Msg;
+	ystring Msg;
 };
 Die Die() {
 	return Die();
@@ -70,9 +71,9 @@ Die Die() {
 \n                       { ++line; putc('\n', yyout); }
 
 
-<INITIAL>"PIRE_REGEXP"[:space:]*"(" { BEGIN(Regexp); args.clear(); args.push_back(std::string()); }
+<INITIAL>"PIRE_REGEXP"[:space:]*"(" { BEGIN(Regexp); args.clear(); args.push_back(ystring()); }
 <Regexp>"\""([^\"]|\\.)*"\"" {
-	std::string& s = args.back();
+	ystring& s = args.back();
 	const char* p;
 	for (p = yytext + 1; *p && p[1]; ++p) {
 		if (*p == '\\') {
@@ -89,12 +90,12 @@ Die Die() {
 				const char* beg = p;
 				while (isdigit(*p))
 					++p;
-				s.push_back(strtol(std::string(beg, p).c_str(), 0, 8));
+				s.push_back(strtol(ystring(beg, p).c_str(), 0, 8));
 			} else if (*p == 'x') {
 				const char* beg = p;
 				while (isdigit(*p) || (*p > 'a' && *p <= 'f') || (*p > 'A' && *p < 'F'))
 					++p;
-				s.push_back(strtol(std::string(beg, p).c_str(), 0, 16));
+				s.push_back(strtol(ystring(beg, p).c_str(), 0, 16));
 			} else
 				Die() << "unknown escape sequence (\\" <<  *p << ")";
 		} else
@@ -105,7 +106,7 @@ Die Die() {
 }
 <Regexp>[ \t]            {}
 <Regexp>\n               { ++line; }
-<Regexp>","              { args.push_back(std::string()); }
+<Regexp>","              { args.push_back(ystring()); }
 <Regexp>")" {
 
 
@@ -183,7 +184,7 @@ int main(int argc, char** argv)
 			argv += 2, argc -= 2;
 		}
 		if (argc == 2)
-			filename = std::string(argv[1]);
+			filename = ystring(argv[1]);
 		else if (argc > 2)
 			Die() << "usage: pire_inline [-o outfile] [infile]";
 	    
