@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+namespace Pire {
+
 #ifdef _DEBUG
 #define VBITSET_CHECK_SIZE(x) CheckSize(x)
 #else
@@ -36,7 +38,7 @@ public:
 	void Swap(BitSet& s)
 	{
 		m_data.swap(s.m_data);
-		Pire::DoSwap(m_size, s.m_size);
+		DoSwap(m_size, s.m_size);
 	}
 
 	/// Sets the specified bit to 1.
@@ -85,9 +87,11 @@ private:
 		if (size < m_size)
 			return size;
 		else
-			throw Pire::Error("BitSet: subscript out of range");
+			throw Error("BitSet: subscript out of range");
 	}
 #endif
 };
+
+}
 
 #endif

@@ -6,6 +6,8 @@
 
 #include "stl.h"
 
+namespace Pire {
+
 class Any {
 
 public:
@@ -64,7 +66,7 @@ public:
 	}
 
 	void Swap(Any& a) throw () {
-		Pire::DoSwap(h, a.h);
+		DoSwap(h, a.h);
 	}
 
 private:
@@ -103,8 +105,10 @@ private:
 	AbstractHolder* h;
 };
 
+}
+
 namespace std {
-	inline void swap(Any& a, Any& b) {
+	inline void swap(Pire::Any& a, Pire::Any& b) {
 		a.Swap(b);
 	}
 }
