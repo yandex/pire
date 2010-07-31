@@ -11,6 +11,7 @@ namespace Pire {
 
 	typedef unsigned short Char;
 	
+	namespace SpecialChar {
 	enum {
 		Epsilon = 257,
 		BeginMark = 258,
@@ -22,6 +23,9 @@ namespace Pire {
 		// Size of letter transition tables, must be a multiple of the machine word size
 		MaxChar = (MaxCharUnaligned + (sizeof(void*)-1)) & ~(sizeof(void*)-1)
 	};
+	}
+	
+	using namespace SpecialChar;
 
 }
 

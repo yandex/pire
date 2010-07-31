@@ -16,11 +16,15 @@
 
 namespace Pire {
 
+namespace Consts {
 enum { Inf = -1 };
 
 static const wchar32 Control     = 0xF000;
 static const wchar32 ControlMask = 0xFF00;
 static const wchar32 End         = Control | 0xFF;
+};
+
+using namespace Consts;
 
 namespace TokenTypes {
 enum {
@@ -51,7 +55,7 @@ public:
 
 	typedef ypair<int, int> RepetitionCount;
 	typedef ypair<Strings, bool> CharacterRange;
-	
+
 	struct DotTag {};
 	struct BeginTag {};
 	struct EndTag {};
@@ -84,7 +88,7 @@ public:
 	Lexer()
 		: m_encoding(&Encodings::Latin1())
 	{ InstallDefaultFeatures(); }
-	
+
 	explicit Lexer(const char* str)
 		: m_encoding(&Encodings::Latin1())
 	{
@@ -97,7 +101,7 @@ public:
 		InstallDefaultFeatures();
 		Assign(t.begin(), t.end());
 	}
-	
+
 	template<class Iter> Lexer(Iter begin, Iter end)
 		: m_encoding(&Encodings::Latin1())
 	{
@@ -111,7 +115,7 @@ public:
 		m_input.clear();
 		std::copy(begin, end, std::back_inserter(m_input));
 	}
-	
+
 	/// The main lexer function. Extracts and returns the next term in input sequence.
 	Term Lex();
 	/// Installs an additional lexer feature.
@@ -123,7 +127,7 @@ public:
 	Any& Retval() { return m_retval; }
 
 	Fsm Parse();
-	
+
 	void Parenthesized(Fsm& fsm);
 
 private:
@@ -158,7 +162,7 @@ public:
 	/// Precedence of features. The higher the priority, the eariler
 	/// will Lex() be called, and the later will Alter() and Parenthesized() be called.
 	virtual int Priority() const { return 50; }
-	
+
 	/// Lexer will call this function to check whether the feature
 	/// wants to handle the next part of the input sequence in its
 	/// specific way. If it does not, features Lex() will not be called.
@@ -166,7 +170,7 @@ public:
 	/// Should eat up some part of the input sequence, handle it
 	/// somehow and produce a terminal.
 	virtual Term Lex() { return Term(0); }
-	
+
 	/// This function recieves a shiny new terminal, and the feature
 	/// has a chance to hack it somehow if it wants.
 	virtual void Alter(Term&) {}
@@ -174,7 +178,7 @@ public:
 	/// has a chance to hack it somehow if it wants (its the way to implement
 	/// those perl-style (?@#$%:..) clauses).
 	virtual void Parenthesized(Fsm&) {}
-	
+
 protected:
 	// These functions are exposed versions of the corresponding lexer functions.
 	const Pire::Encoding& Encoding() const { return m_lexer->Encoding(); }
@@ -191,7 +195,7 @@ private:
 namespace Features {
 	/// Disables case sensitivity
 	Feature* CaseInsensitive();
-	
+
 	/**
 	* Adds two more operations:
 	*  (pattern1)&(pattern2) -- matches those strings which match both /pattern1/ and /pattern2/;

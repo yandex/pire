@@ -35,12 +35,12 @@ public:
 private:
 	ystring Msg;
 };
-Die Die() {
+Die DieHelper() {
 	return Die();
 }
 
 
-#define YY_FATAL_ERROR(msg) Die() << msg
+#define YY_FATAL_ERROR(msg) DieHelper() << msg
 %}
 %x Regexp
 %%
@@ -145,18 +145,19 @@ Die Die() {
 	BufferOutput buf;
 	AlignedOutput stream(&buf);
 	Save(&stream, fsm.Compile<Pire::Scanner>());
+	BufferGetter<BufferOutput> bg(buf);
 
 
 	fprintf(yyout, "Pire::MmappedScanner<Pire::Scanner>( // %s \n    \"", args[0].c_str());
 	size_t pos = 5;
-	for (Buffer::Iterator i = buf.Buf().Begin(), ie = buf.Buf().End(); i != ie; ++i) {
+	for (BufferIterator i = bg.Buf().Begin(), ie = bg.Buf().End(); i != ie; ++i) {
 		pos += fprintf(yyout, "\\x%02X", static_cast<unsigned char>(*i));
 		if (pos >= 78) {
 			fprintf(yyout, "\"\n    \"");
 			pos = 5;
 		}
 	}
-	fprintf(yyout, "\", %u)\n#line %d \"%s\"\n", (unsigned int) buf.Buf().Size(), line, filename.c_str());
+	fprintf(yyout, "\", %u)\n#line %d \"%s\"\n", (unsigned int) bg.Buf().Size(), line, filename.c_str());
 	BEGIN(INITIAL);
 }
 <INITIAL>.               { putc(*yytext, yyout); }

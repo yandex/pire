@@ -22,17 +22,17 @@
 #endif
 
 namespace Pire {
-	
+
 	struct Header {
 		ui32 Magic;
 		ui32 Version;
 		ui32 PtrSize;
 		ui32 Type;
 		size_t HdrSize;
-		
+
 		static const ui32 MAGIC = 0x45524950;   // "PIRE" on litte-endian
 		static const ui32 RE_VERSION = 1;       // Should be incremented each time when the format of serialized scanner changes
-		
+
 		explicit Header(ui32 type, size_t hdrsize)
 			: Magic(MAGIC)
 			, Version(RE_VERSION)
@@ -40,7 +40,7 @@ namespace Pire {
 			, Type(type)
 			, HdrSize(hdrsize)
 		{}
-		
+
 		void Validate(ui32 type, size_t hdrsize) const
 		{
 			if (Magic != MAGIC || PtrSize != sizeof(void*))
@@ -51,7 +51,7 @@ namespace Pire {
 				throw Error("Serialized regexp incompatible with your system");
 		}
 	};
-	
+
 	namespace Impl {
 		inline const void* AdvancePtr(const size_t*& ptr, size_t& size, size_t delta)
 		{
@@ -59,7 +59,7 @@ namespace Pire {
 			size -= delta;
 			return (const void*) ptr;
 		}
-		
+
 		template<class T>
 		inline void MapPtr(T*& field, size_t count, const size_t*& p, size_t& size)
 		{
@@ -69,20 +69,20 @@ namespace Pire {
 			Impl::AdvancePtr(p, size, count * sizeof(*field));
 			Impl::AlignPtr(p, size);
 		}
-		
+
 		inline void CheckAlign(const void* ptr)
 		{
 			if ((size_t) ptr & (sizeof(void*)-1))
 				throw Error("Tried to mmap scanner at misaligned address");
 		}
-		
+
 		inline void ValidateHeader(const size_t*& ptr, size_t& size, ui32 type, size_t hdrsize)
 		{
 			const Header* hdr;
 			MapPtr(hdr, 1, ptr, size);
 			hdr->Validate(type, hdrsize);
 		}
-		
+
 		inline void ValidateHeader(yistream* s, ui32 type, size_t hdrsize)
 		{
 			Header hdr(0, 0);
@@ -114,7 +114,7 @@ namespace Pire {
 	template<>
 	struct StDumper<Scanner> {
 		StDumper(const Scanner& sc, Scanner::State st): m_sc(&sc), m_st(st) {}
-		
+
 		void Dump(yostream& stream) const
 		{
 			stream << m_sc->StateIndex(m_st);
@@ -139,6 +139,7 @@ template<class Scanner>
 FORCED_INLINE
 void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 {
+	assert(ch < MaxCharUnaligned);
 	typename Scanner::Action a = scanner.Next(state, ch);
 	scanner.TakeAction(state, a);
 }
@@ -150,7 +151,7 @@ namespace Impl {
 	inline size_t ToLittleEndian(size_t val) { return val; }
 #else
 #error TODO: Please implement Pire::Impl::ToLittleEndian()
-#endif        
+#endif
 
 	template<class Scanner1, class Scanner2>
 	class ScannerPair {
@@ -294,7 +295,7 @@ inline void Run(const Scanner& scanner, typename Scanner::State& state, const ch
 	std::clog << "Initial state " << StDump(scanner, state) << std::endl;
 
 	for (; begin != end; ++begin) {
-		Step(scanner, state, (unsigned char) *begin);
+		Step(scanner, state, (unsigned char)*begin);
 		std::clog << *begin << " => state " << StDump(scanner, state) << std::endl;
 	}
 }
@@ -307,7 +308,7 @@ inline const char* Scan(const Scanner& scanner, const char* begin, const char* e
 {
 	Scanner::State state;
 	scanner.Initialize(state);
-	
+
 	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(begin, std::min(std::distance(begin, end), static_cast<ptrdiff_t>(100u))) << std::endl);
 	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
 
@@ -315,7 +316,7 @@ inline const char* Scan(const Scanner& scanner, const char* begin, const char* e
 	while (begin != end && !scanner.Dead(state)) {
 		if (scanner.Final(state))
 			pos = begin;
-		Step(scanner, state, *begin);
+		Step(scanner, state, (unsigned char)*begin);
 		PIRE_IFDEBUG(std::clog << *begin << " => state " << StDump(scanner, state) << std::endl);
 		++begin;
 	}
@@ -330,7 +331,7 @@ inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, cons
 {
 	Scanner::State state;
 	scanner.Initialize(state);
-	
+
 	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(rbegin - std::min(std::distance(rend, rbegin), static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << std::endl);
 	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
 
@@ -338,7 +339,7 @@ inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, cons
 	while (rbegin != rend && !scanner.Dead(state)) {
 		if (scanner.Final(state))
 			pos = rbegin;
-		Step(scanner, state, *rbegin);
+		Step(scanner, state, (unsigned char)*rbegin);
 		PIRE_IFDEBUG(std::clog << *rbegin << " => state " << StDump(scanner, state) << std::endl);
 		--rbegin;
 	}
@@ -353,19 +354,19 @@ class RunHelper {
 public:
 	RunHelper(const Scanner& sc, typename Scanner::State st): Sc(&sc), St(st) {}
 	explicit RunHelper(const Scanner& sc): Sc(&sc) { Sc->Initialize(St); }
-		
+
 	RunHelper<Scanner>& Step(Char letter) { Pire::Step(*Sc, St, letter); return *this; }
 	RunHelper<Scanner>& Run(const char* begin, const char* end) { Pire::Run(*Sc, St, begin, end); return *this; }
 	RunHelper<Scanner>& Run(const char* str, size_t size) { return Run(str, str + size); }
 	RunHelper<Scanner>& Run(const ystring& str) { return Run(str.c_str(), str.c_str() + str.size()); }
 	RunHelper<Scanner>& Begin() { return Step(BeginMark); }
 	RunHelper<Scanner>& End() { return Step(EndMark); }
-	
+
 	const typename Scanner::State& State() const { return St; }
 	struct Tag {};
 	operator const Tag*() const { return Sc->Final(St) ? (const Tag*) this : 0; }
 	bool operator ! () const { return !Sc->Final(St); }
-	
+
 private:
 	const Scanner* Sc;
 	typename Scanner::State St;
