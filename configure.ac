@@ -43,5 +43,5 @@ AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [Make Pire dump all cons
 AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 
-AC_CONFIG_FILES([Makefile pire/Makefile tests/Makefile pkg/Makefile])
+AC_CONFIG_FILES([Makefile pire/Makefile tests/Makefile pkg/Makefile samples/Makefile samples/bench/Makefile])
 AC_OUTPUT
