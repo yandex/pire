@@ -8,7 +8,7 @@
 #include "stub/noncopyable.h"
 #include "stub/utf8.h"
 #include "re_lexer.h"
-#include "stl.h"
+#include "stub/stl.h"
 
 namespace Pire {
 

@@ -25,13 +25,13 @@ libpire_la_SOURCES = \
 	re_lexer.h \
 	re_scanner.h \
 	scanner_io.cpp \
-	stl.h \
 	vbitset.h \
 	re_parser.ypp \
 	scanners/loaded.h \
 	scanners/multi.h \
 	scanners/slow.h \
 	scanners/simple.h \
+	stub/stl.h \
 	stub/lexical_cast.h \
 	stub/saveload.h \
 	stub/singleton.h \
@@ -69,7 +69,6 @@ pire_hdr_HEADERS = \
 	re_lexer.h \
 	re_parser.h \
 	re_scanner.h \
-	stl.h \
 	vbitset.h
 
 if ENABLE_EXTRA
@@ -89,6 +88,7 @@ pire_scanners_HEADERS = \
 
 pire_stubdir = $(includedir)/pire/stub
 pire_stub_HEADERS = \
+	stub/stl.h \
 	stub/defaults.h \
 	stub/singleton.h \
 	stub/saveload.h \

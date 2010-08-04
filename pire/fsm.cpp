@@ -6,11 +6,7 @@
 #include <numeric>
 #include <queue>
 #include <assert.h>
-#include <map>
-#include <set>
-#include <vector>
 #include <utility>
-#include <string>
 #include "fsm.h"
 #include "vbitset.h"
 #include "partition.h"

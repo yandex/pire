@@ -2,7 +2,7 @@
 #define PIRE_SCANNERS_MULTI_H
 
 
-#include "../stl.h"
+#include "../stub/stl.h"
 #include "../fsm.h"
 #include "../partition.h"
 #include "../stub/saveload.h"

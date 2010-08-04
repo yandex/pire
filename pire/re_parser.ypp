@@ -14,7 +14,7 @@
 #include "fsm.h"
 #include "re_lexer.h"
 #include "any.h"
-#include "stl.h"
+#include "stub/stl.h"
 
 #define YYSTYPE Any*
 #define YYSTYPE_IS_TRIVIAL 0

@@ -1,9 +1,7 @@
 #include <utility>
 #include <functional>
 #include <algorithm>
-#include <vector>
-#include <map>
-#include <map>
+#include "stub/stl.h"
 #include "stub/noncopyable.h"
 #include "re_scanner.h"
 #include "partition.h"

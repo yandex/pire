@@ -1,7 +1,7 @@
 #ifndef PIRE_ALIGN_H
 #define PIRE_ALIGN_H
 
-#include "stl.h"
+#include "stub/stl.h"
 #include "stub/saveload.h"
 
 namespace Pire {

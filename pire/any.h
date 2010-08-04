@@ -4,7 +4,7 @@
 
 #include <typeinfo>
 
-#include "stl.h"
+#include "stub/stl.h"
 
 namespace Pire {
 

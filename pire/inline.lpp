@@ -7,7 +7,7 @@
 #include "stub/lexical_cast.h"
 #include "stub/saveload.h"
 #include "stub/memstreams.h"
-#include "stl.h"
+#include "stub/stl.h"
 #include <pire.h>
 ystring filename = "";
 int line = 1;

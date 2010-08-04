@@ -2,7 +2,7 @@
 #define PIRE_VBITSET_H
 
 
-#include "stl.h"
+#include "stub/stl.h"
 #include <assert.h>
 #include <string.h>
 

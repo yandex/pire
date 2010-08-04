@@ -2,7 +2,7 @@
 #define PIRE_SCANNERS_SIMPLE_H
 
 
-#include "../stl.h"
+#include "../stub/stl.h"
 #include "../stub/defaults.h"
 #include "../stub/saveload.h"
 

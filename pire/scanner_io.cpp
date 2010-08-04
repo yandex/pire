@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "stl.h"
+#include "stub/stl.h"
 #include "stub/saveload.h"
 #include "re_scanner.h"
 #include "align.h"

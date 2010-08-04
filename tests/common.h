@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <pire.h>
-#include <stl.h>
+#include <stub/stl.h>
 #include <stub/defaults.h>
 #include <stub/lexical_cast.h>
 #include "cppunit.h"

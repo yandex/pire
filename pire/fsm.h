@@ -2,7 +2,7 @@
 #define PIRE_FSM_H
 
 
-#include "stl.h"
+#include "stub/stl.h"
 #include "partition.h"
 #include "defs.h"
 

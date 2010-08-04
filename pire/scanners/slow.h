@@ -2,7 +2,7 @@
 #define PIRE_SCANNERS_SLOW_H
 
 
-#include "../stl.h"
+#include "../stub/stl.h"
 #include "../partition.h"
 #include "../vbitset.h"
 #include "../fsm.h"

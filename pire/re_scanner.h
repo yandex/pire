@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "defs.h"
-#include "stl.h"
+#include "stub/stl.h"
 #include "align.h"
 #include "stub/defaults.h"
 

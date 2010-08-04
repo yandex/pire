@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <iostream>
 #include <vector>
-#include "../stl.h"
+#include "stl.h"
 
 namespace Pire {
 

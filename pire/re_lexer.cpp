@@ -6,7 +6,7 @@
 #include "re_parser.h"
 #include "re_lexer.h"
 #include "fsm.h"
-#include "stl.h"
+#include "stub/stl.h"
 
 namespace Pire {
 

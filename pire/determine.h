@@ -1,7 +1,7 @@
 #ifndef PIRE_DETERMINE_H
 #define PIRE_DETERMINE_H
 
-#include "stl.h"
+#include "stub/stl.h"
 #include "partition.h"
 
 namespace Pire {
