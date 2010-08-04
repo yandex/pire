@@ -323,7 +323,7 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::SimpleScanner simple;
 	Pire::SlowScanner slow;
 
-	MemoryInput rbuf(wbuf.Buf().Data(), wbuf.Buf().Size());
+	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 	Load(&rbuf, fast);
 	Load(&rbuf, simple);
 	Load(&rbuf, slow);
@@ -341,8 +341,8 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::Scanner fast2;
 	Pire::SimpleScanner simple2;
 	Pire::SlowScanner slow2;
-	const void* ptr = wbuf.Buf().Data();
-	const void* end = (const void*) ((const char*) ptr + wbuf.Buf().Size());
+	const void* ptr = wbuf.Buffer().Data();
+	const void* end = (const void*) ((const char*) ptr + wbuf.Buffer().Size());
 	
 	ptr = fast2.Mmap(ptr, (const char*) end - (const char*) ptr);
 	ptr = simple2.Mmap(ptr, (const char*) end - (const char*) ptr);
@@ -359,19 +359,19 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(!Matches(simple2, "regxp"));
 	UNIT_ASSERT(!Matches(simple2, "regexp t"));
 	
-	ptr = (const void*) ((const char*) wbuf.Buf().Data() + 1);
+	ptr = (const void*) ((const char*) wbuf.Buffer().Data() + 1);
 	try {
-		fast2.Mmap(ptr, wbuf.Buf().Size());
+		fast2.Mmap(ptr, wbuf.Buffer().Size());
 		UNIT_ASSERT(!"FastScanner failed to check for misaligned mmaping");
 	}
 	catch (Pire::Error&) {}
 	try {
-		simple2.Mmap(ptr, wbuf.Buf().Size());
+		simple2.Mmap(ptr, wbuf.Buffer().Size());
 		UNIT_ASSERT(!"SimpleScanner failed to check for misaligned mmaping");
 	}
 	catch (Pire::Error&) {}
 	try {
-		slow2.Mmap(ptr, wbuf.Buf().Size());
+		slow2.Mmap(ptr, wbuf.Buffer().Size());
 		UNIT_ASSERT(!"SlowScanner failed to check for misaligned mmaping");
 	}
 	catch (Pire::Error&) {}

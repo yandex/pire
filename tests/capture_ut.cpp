@@ -102,7 +102,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		BufferOutput wbuf;
 		::Save(&wbuf, scanner2);
 
-		MemoryInput rbuf(wbuf.Buf().Data(), wbuf.Buf().Size());
+		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		CapturingScanner scanner;
 		::Load(&rbuf, scanner);
 
@@ -119,8 +119,8 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		UNIT_ASSERT(!state.Captured());
 
 		CapturingScanner scanner3;
-		const void* tail = scanner3.Mmap(&wbuf.Buf().Data()[0], wbuf.Buf().Size());
-		UNIT_ASSERT_EQUAL(tail, (const void*) (&wbuf.Buf().Data()[0] + wbuf.Buf().Size()));
+		const void* tail = scanner3.Mmap(&wbuf.Buffer().Data()[0], wbuf.Buffer().Size());
+		UNIT_ASSERT_EQUAL(tail, (const void*) (&wbuf.Buffer().Data()[0] + wbuf.Buffer().Size()));
 
 		str = "google_id = 'abcde';";
 		state = RunRegexp(scanner3, str);

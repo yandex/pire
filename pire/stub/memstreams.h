@@ -7,9 +7,9 @@
 
 namespace Pire {
 	
-	class Buffer {
+	class MemBuffer {
 	public:
-		Buffer(const std::vector<char>& buf): m_buf(&buf) {}
+		MemBuffer(const std::vector<char>& buf): m_buf(&buf) {}
 		const char* Data() const { return m_buf->empty() ? 0 : &(*m_buf)[0]; }
 		size_t Size() const { return m_buf->size(); }
 		typedef std::vector<char>::const_iterator Iterator;
@@ -18,11 +18,15 @@ namespace Pire {
 	private:
 		const std::vector<char>* m_buf;
 	};
+    
+	typedef MemBuffer::Iterator BufferIterator; // For compatibility with Arcadia
+    
+
 	class BufferOutput: public std::ostream {
 	private:
 		class StreamBuf: public std::basic_streambuf<char> {
 		public:
-			Buffer Buf() const { return Buffer(buf); }
+			MemBuffer Buf() const { return MemBuffer(buf); }
 		protected:
 			typedef std::char_traits<char> Traits;
 
@@ -40,14 +44,17 @@ namespace Pire {
 		private:
 			std::vector<char> buf;
 		};
+
 		StreamBuf m_rdbuf;
 		
 	public:
 		BufferOutput() { rdbuf(&m_rdbuf); }
-		Buffer Buf() const { return m_rdbuf.Buf(); }
+		MemBuffer Buffer() const { return m_rdbuf.Buf(); }
 	};
+    
 	class MemoryInput: public std::istream {
 	private:
+        
 		class StreamBuf: public std::basic_streambuf<char> {
 		public:
 			StreamBuf(const char* data, size_t size)
@@ -66,6 +73,7 @@ namespace Pire {
 			}
 		};
 		StreamBuf m_rdbuf;
+        
 	public:
 		MemoryInput(const char* data, size_t size): m_rdbuf(data, size)
 		{
