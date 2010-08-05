@@ -603,7 +603,7 @@ yset<size_t> Fsm::DeadStates() const
 		const StatesSet& connections = (inverted.m_transitions[to])[0];
 		for (StatesSet::const_iterator fr = connections.begin(), fre = connections.end(); fr != fre; ++fr) {
 			// Enqueue the state for further traversal if it hasnt been already checked
-			if (unchecked[*fr]) {
+			if (unchecked[*fr] && useless[*fr]) {
 				useless[*fr] = false;
 				queue.push_back(*fr);
 			}
