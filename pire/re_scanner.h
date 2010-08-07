@@ -309,7 +309,7 @@ inline const char* Scan(const Scanner& scanner, const char* begin, const char* e
 	Scanner::State state;
 	scanner.Initialize(state);
 
-	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(begin, std::min(std::distance(begin, end), static_cast<ptrdiff_t>(100u))) << std::endl);
+	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(begin, std::min<size_t>(std::distance(begin, end), 100u)) << std::endl);
 	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
 
 	const char* pos = 0;

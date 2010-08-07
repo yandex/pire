@@ -5,6 +5,11 @@
 #include "../glue.h"
 
 namespace Pire {
+	
+namespace {
+	Pire::Fsm FsmForDot() { Pire::Fsm f; f.AppendDot(); return f; }
+	Pire::Fsm FsmForChar(Pire::Char c) { Pire::Fsm f; f.AppendSpecial(c); return f; }
+}
 
 CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 {
@@ -22,9 +27,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 		if (*i < oldsize)
 			sep_re.Connect(*i, oldsize + *i);
 
-	Fsm dot;
-	dot.AppendDot();
-	sep_re |= dot;
+	sep_re |= (FsmForDot() | FsmForChar(Pire::BeginMark) | FsmForChar(Pire::EndMark));
 
 	// Make a full Cartesian product of two sep_res
 	sep_re.Determine();
@@ -53,7 +56,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 		PIRE_IFDEBUG(std::clog << "State " << curstate << " = (" << states[curstate].first << ", " << states[curstate].second << ")" << std::endl);
 		for (Fsm::LettersTbl::ConstIterator lit = sep_re.Letters().Begin(), lie = sep_re.Letters().End(); lit != lie; ++lit) {
 
-			unsigned char letter = static_cast<unsigned char>(lit->first);
+			Char letter = lit->first;
 
 			const Fsm::StatesSet& mr = sep_re.Destinations(states[curstate].first, letter);
 			const Fsm::StatesSet& br = sep_re.Destinations(states[curstate].second, letter);

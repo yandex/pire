@@ -58,4 +58,19 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		UNIT_ASSERT_EQUAL(st.Result(0), size_t(4));
 		UNIT_ASSERT_EQUAL(st.Result(1), size_t(2));
 	}
+	
+	SIMPLE_UNIT_TEST(CountBoundaries)
+	{
+		const Pire::Encoding& enc = Pire::Encodings::Utf8();
+		Pire::CountingScanner sc(MkFsm("^[a-z]+$", enc), MkFsm("(.|^|$)*", enc));
+		const char* strings[] = { "abcdef", "abc def", "defcba", "xyz abc", "a", "123" };
+		Pire::CountingScanner::State st;
+		sc.Initialize(st);
+		for (size_t i = 0; i < sizeof(strings) / sizeof(*strings); ++i) {
+			Pire::Step(sc, st, Pire::BeginMark);
+			Pire::Run(sc, st, strings[i], strings[i] + strlen(strings[i]));
+			Pire::Step(sc, st, Pire::EndMark);
+		}
+		UNIT_ASSERT_EQUAL(st.Result(0), size_t(3));
+	}
 }
