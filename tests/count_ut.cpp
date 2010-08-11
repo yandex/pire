@@ -22,24 +22,28 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		return lex.Parse();
 	}
 	
-	Pire::CountingScanner::State Run(const Pire::CountingScanner& scanner, const char* text, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
+	Pire::CountingScanner::State Run(const Pire::CountingScanner& scanner, const char* text, size_t len =-1, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
 	{
+		if (len == -1) len = strlen(text);
 		Pire::CountingScanner::State state;
 		scanner.Initialize(state);
 		Pire::Step(scanner, state, Pire::BeginMark);
-		Pire::Run(scanner, state, text, text + strlen(text));
+		Pire::Run(scanner, state, text, text + len);
 		Pire::Step(scanner, state, Pire::EndMark);
 		return state;
 	}
 
-	size_t Count(const char* regexp, const char* separator, const char* text, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
+	size_t Count(const char* regexp, const char* separator, const char* text, size_t len = -1, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
 	{
-		return Run(Pire::CountingScanner(MkFsm(regexp, encoding), MkFsm(separator, encoding)), text, encoding).Result(0);
+		return Run(Pire::CountingScanner(MkFsm(regexp, encoding), MkFsm(separator, encoding)), text, len, encoding).Result(0);
 	}
 
 	SIMPLE_UNIT_TEST(Count)
 	{
 		UNIT_ASSERT_EQUAL(Count("[a-z]+", "\\s",  "abc def, abc def ghi, abc"), size_t(3));
+		char aaa[] = "abc def\0 abc\0 def ghi, abc";
+		UNIT_ASSERT_EQUAL(Count("[a-z]+", ".*", aaa, sizeof(aaa), Pire::Encodings::Latin1()), size_t(6));
+		UNIT_ASSERT_EQUAL(Count("[a-z]+", ".*", aaa, sizeof(aaa)), size_t(6));
 		UNIT_ASSERT_EQUAL(Count("\\w", "", "abc abcdef abcd abcdefgh ac"), size_t(8));
 		UNIT_ASSERT_EQUAL(Count("http", ".*", "http://aaa, http://bbb, something in the middle, http://ccc, end"), size_t(3));
 		UNIT_ASSERT_EQUAL(Count("[\320\220-\320\257\320\260-\321\217]+", "\\s+", " \320\257\320\275\320\264\320\265\320\272\321\201      \320\237\320\276\320\262\320\265\321\200\320\275\321\203\321\202\321\214  \320\222\320\276\320\271\321\202\320\270\302\240\320\262\302\240\320\277\320\276\321\207\321\202\321\203                       \302\251\302\240" "1997\342\200\224" "2008 \302\253\320\257\320\275\320\264\320\265\320\272\321\201\302\273    \320\224\320\270\320\267\320\260\320\271\320\275\302\240\342\200\224\302\240\320\241\321\202\321\203\320\264\320\270\321\217 \320\220\321\200\321\202\320\265\320\274\320\270\321\217\302\240\320\233\320\265\320\261\320\265\320\264\320\265\320\262\320\260\012\012"), size_t(5));

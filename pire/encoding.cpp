@@ -39,7 +39,7 @@ namespace {
 
 		static const size_t MaxLen = 4;
 		ypair<size_t, size_t> First[MaxLen] = {
-			ymake_pair(0x01, 0x80),
+			ymake_pair(0x00, 0x80),
 			ymake_pair(0xC0, 0xE0),
 			ymake_pair(0xE0, 0xF0),
 			ymake_pair(0xF0, 0xF8)
