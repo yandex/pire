@@ -430,7 +430,7 @@ Fsm& Fsm::operator += (const Fsm& rhs)
 	determined = false;
 
 	ClearHints();
-	PIRE_IFDEBUG(std::clog << "=== After addition ===" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== After addition ===" << Endl << *this << Endl);
 
 	return *this;
 }
@@ -478,7 +478,7 @@ Fsm& Fsm::operator &= (const Fsm& rhs)
 
 Fsm& Fsm::Iterate()
 {
-	PIRE_IFDEBUG(std::clog << "Iterating:" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Iterating:" << Endl << *this << Endl);
 	Resize(Size() + 2);
 
 	Connect(Size() - 2, Size() - 1);
@@ -492,7 +492,7 @@ Fsm& Fsm::Iterate()
 
 	determined = false;
 
-	PIRE_IFDEBUG(std::clog << "Iterated:" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Iterated:" << Endl << *this << Endl);
 	return *this;
 }
 
@@ -626,12 +626,12 @@ yset<size_t> Fsm::DeadStates() const
 
 void Fsm::RemoveDeadEnds()
 {
-	PIRE_IFDEBUG(std::clog << "Removing dead ends on:" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Removing dead ends on:" << Endl << *this << Endl);
 
 	yset<size_t> dead = DeadStates();
 	// Erase all useless states
 	for (yset<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
-		PIRE_IFDEBUG(std::clog << "Removing useless state " << *i << std::endl);
+		PIRE_IFDEBUG(Cdbg << "Removing useless state " << *i << Endl);
 		m_transitions[*i].clear();
 		for (TransitionTable::iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j)
 			for (TransitionRow::iterator k = j->begin(), ke = j->end(); k != ke; ++k)
@@ -639,7 +639,7 @@ void Fsm::RemoveDeadEnds()
 	}
 	ClearHints();
 
-	PIRE_IFDEBUG(std::clog << "Result:" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Result:" << Endl << *this << Endl);
 }
 
 // This method is one step of Epsilon-connection removal algorithm.
@@ -699,12 +699,12 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 // Updates inverse map of epsilon transitions as well.
 void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps)
 {
-	PIRE_IFDEBUG(std::clog << "In Fsm::ShortCutEpsilon(" << from << ", " << thru << ")\n");
+	PIRE_IFDEBUG(Cdbg << "In Fsm::ShortCutEpsilon(" << from << ", " << thru << ")\n");
 	const StatesSet& to = Destinations(thru, Epsilon);
 	Outputs::iterator outIt = outputs.find(from);
 	unsigned long fromThruOut = Output(from, thru);
 	for (StatesSet::const_iterator toi = to.begin(), toe = to.end(); toi != toe; ++toi) {
-		PIRE_IFDEBUG(std::clog << "Epsilon connecting " << from << " --> " << thru << " --> " << *toi << "\n");
+		PIRE_IFDEBUG(Cdbg << "Epsilon connecting " << from << " --> " << thru << " --> " << *toi << "\n");
 		Connect(from, *toi, Epsilon);
 		inveps[*toi].insert(from);
 		if (outIt != outputs.end())
@@ -734,7 +734,7 @@ void Fsm::RemoveEpsilons()
 			if (*from != thru)
 				ShortCutEpsilon(*from, thru, inveps);
 	
-	PIRE_IFDEBUG(std::clog << "=== After epsilons shortcut\n" << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== After epsilons shortcut\n" << *this << Endl);
 	
 	// Iterate through all epsilon-connected state pairs, merging states together
 	for (size_t from = 0; from != Size(); ++from) {
@@ -744,7 +744,7 @@ void Fsm::RemoveEpsilons()
 				MergeEpsilonConnection(from, *toi); // it's a NOP if to == from, so don't waste time
 	}
 	
-	PIRE_IFDEBUG(std::clog << "=== After epsilons merged\n" << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== After epsilons merged\n" << *this << Endl);
 	
 	// Drop all epsilon transitions
 	for (TransitionTable::iterator i = m_transitions.begin(), ie = m_transitions.end(); i != ie; ++i)
@@ -776,7 +776,7 @@ void Fsm::Sparse()
 			letters.Append(letter);
 
 	m_sparsed = true;
-	PIRE_IFDEBUG(std::clog << "Letter classes = " << letters << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Letter classes = " << letters << Endl);
 }
 
 void Fsm::Unsparse()
@@ -816,7 +816,7 @@ public:
 		: mFsm(fsm)
 		, mTerminals(fsm.TerminalStates())
 	{
-		PIRE_IFDEBUG(std::clog << "Terminal states: [" << Join(mTerminals.begin(), mTerminals.end(), ", ") << "]" << std::endl);
+		PIRE_IFDEBUG(Cdbg << "Terminal states: [" << Join(mTerminals.begin(), mTerminals.end(), ", ") << "]" << Endl);
 	}
 	const LettersTbl& Letters() const { return mFsm.letters; }
 	
@@ -840,8 +840,8 @@ std::copy(part.begin(), part.end(), std::back_inserter(next));
 
 		std::sort(next.begin(), next.end());
 		next.erase(std::unique(next.begin(), next.end()), next.end());
-		PIRE_IFDEBUG(std::clog << "Returning transition [" << Join(state.begin(), state.end(), ", ") << "] --" << letter
-<< "--> [" << Join(next.begin(), next.end(), ", ") << "]" << std::endl);
+		PIRE_IFDEBUG(Cdbg << "Returning transition [" << Join(state.begin(), state.end(), ", ") << "] --" << letter
+<< "--> [" << Join(next.begin(), next.end(), ", ") << "]" << Endl);
 		return next;
 	}
 	
@@ -853,7 +853,7 @@ std::copy(part.begin(), part.end(), std::back_inserter(next));
 		mNewFsm.letters = Letters();
 		mNewFsm.m_final.clear();
 		for (size_t ns = 0; ns < states.size(); ++ns) {
-			PIRE_IFDEBUG(std::clog << "State " << ns << " = [" << Join(states[ns].begin(), states[ns].end(), ", ") << "]" << std::endl);
+			PIRE_IFDEBUG(Cdbg << "State " << ns << " = [" << Join(states[ns].begin(), states[ns].end(), ", ") << "]" << Endl);
 			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j) {
 				
 				// If it was a terminal state, connect it to itself
@@ -861,13 +861,13 @@ std::copy(part.begin(), part.end(), std::back_inserter(next));
 					for (LettersTbl::ConstIterator letterIt = Letters().Begin(), letterEnd = Letters().End(); letterIt != letterEnd; ++letterIt)
 						mNewFsm.Connect(ns, ns, letterIt->first);
 					mNewTerminals.insert(ns);
-					PIRE_IFDEBUG(std::clog << "State " << ns << " becomes terminal because of old state " << *j << std::endl);
+					PIRE_IFDEBUG(Cdbg << "State " << ns << " becomes terminal because of old state " << *j << Endl);
 				}
 			}
 			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j) {
 				// If any state containing in our one is marked final, mark the new state final as well
 				if (mFsm.IsFinal(*j)) {
-					PIRE_IFDEBUG(std::clog << "State " << ns << " becomes final because of old state " << *j << std::endl);
+					PIRE_IFDEBUG(Cdbg << "State " << ns << " becomes final because of old state " << *j << Endl);
 					mNewFsm.SetFinal(ns, true);
 					if (mFsm.tags.empty())
 						// Weve got no tags and already know that the state is final,
@@ -878,7 +878,7 @@ std::copy(part.begin(), part.end(), std::back_inserter(next));
 				// Bitwise OR all tags in states
 				Fsm::Tags::const_iterator ti = mFsm.tags.find(*j);
 				if (ti != mFsm.tags.end()) {
-					PIRE_IFDEBUG(std::clog << "State " << ns << " carries tag " << ti->second << " because of old state " << *j << std::endl);
+					PIRE_IFDEBUG(Cdbg << "State " << ns << " carries tag " << ti->second << " because of old state " << *j << Endl);
 					mNewFsm.tags[ns] |= ti->second;
 				}
 			}
@@ -902,12 +902,12 @@ std::copy(part.begin(), part.end(), std::back_inserter(next));
 				}
 			}
 		}
-		PIRE_IFDEBUG(std::clog << "New terminals = [" << Join(mNewTerminals.begin(), mNewTerminals.end(), ",") << "]" << std::endl);
+		PIRE_IFDEBUG(Cdbg << "New terminals = [" << Join(mNewTerminals.begin(), mNewTerminals.end(), ",") << "]" << Endl);
 	}
 	
 	void Connect(size_t from, size_t to, Char letter)
 	{
-		PIRE_IFDEBUG(std::clog << "Connecting " << from << " --" << letter << "--> " << to << std::endl);
+		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
 		assert(mNewTerminals.find(from) == mNewTerminals.end());
 		mNewFsm.Connect(from, to, letter);
 	}
@@ -930,15 +930,15 @@ bool Fsm::Determine(size_t maxsize /* = 0 */)
 	if (determined)
 		return true;
 
-	PIRE_IFDEBUG(std::clog << "=== Initial ===" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== Initial ===" << Endl << *this << Endl);
 	
 	RemoveEpsilons();
-	PIRE_IFDEBUG(std::clog << "=== After all epsilons removed" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== After all epsilons removed" << Endl << *this << Endl);
 	
 	Impl::FsmDetermineTask task(*this);
 	if (Pire::Impl::Determine(task, maxsize ? maxsize : MaxSize)) {
 		task.Output().Swap(*this);
-		PIRE_IFDEBUG(std::clog << "=== Determined ===" << std::endl << *this << std::endl);
+		PIRE_IFDEBUG(Cdbg << "=== Determined ===" << Endl << *this << Endl);
 		return true;
 	} else
 		return false;
@@ -1008,7 +1008,7 @@ void Fsm::Minimize()
 	// Minimization algorithm is only applicable to a determined FSM.
 	assert(determined);
 
-	PIRE_IFDEBUG(std::clog << "=== Minimizing ===" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== Minimizing ===" << Endl << *this << Endl);
 
 	DeterminedTransitions detTran(Size() * MaxChar);
 	for (TransitionTable::const_iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j) {
@@ -1029,7 +1029,7 @@ void Fsm::Minimize()
 
 	StateClasses last(MinimizeEquality(detTran, distinctLetters, m_final));
 
-	PIRE_IFDEBUG(std::clog << "Initial finals: { " << Join(m_final.begin(), m_final.end(), ", ") << " }" << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Initial finals: { " << Join(m_final.begin(), m_final.end(), ", ") << " }" << Endl);
 	// Make an initial states partition
 	for (size_t state = 0; state < Size(); ++state)
 		last.Append(state);
@@ -1039,7 +1039,7 @@ void Fsm::Minimize()
 	PIRE_IFDEBUG(unsigned cnt = 0);
 	// Iteratively split states into equality classes
 	while (UpdateStateClassMap(stateClassMap, last)) {
-		PIRE_IFDEBUG(std::clog << "Stage " << cnt++ << ": state classes = " << last << std::endl);
+		PIRE_IFDEBUG(Cdbg << "Stage " << cnt++ << ": state classes = " << last << Endl);
 		last.Split(MinimizeEquality(detTran, distinctLetters, &stateClassMap));
 	}
 
@@ -1053,29 +1053,29 @@ void Fsm::Minimize()
 	outputs.swap(oldOutputs);
 	tags.swap(oldTags);
 	Resize(last.Size());
-	PIRE_IFDEBUG(std::clog << "[min] Resizing FSM to " << last.Size() << " states" << std::endl);
+	PIRE_IFDEBUG(Cdbg << "[min] Resizing FSM to " << last.Size() << " states" << Endl);
 
 	// Union equality classes into new states
 	size_t fromIdx = 0;
 	for (TransitionTable::iterator from = oldTransitions.begin(), fromEnd = oldTransitions.end(); from != fromEnd; ++from, ++fromIdx) {
 		size_t dest = last.Index(fromIdx);
-		PIRE_IFDEBUG(std::clog << "[min] State " << fromIdx << " becomes state " << dest << std::endl);
+		PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
 		for (TransitionRow::iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
 			assert(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
-			PIRE_IFDEBUG(std::clog << "[min] connecting " << dest << " --" << CharDump(letter->first) << "--> "
-				<< last.Index(*letter->second.begin()) << std::endl);
+			PIRE_IFDEBUG(Cdbg << "[min] connecting " << dest << " --" << CharDump(letter->first) << "--> "
+				<< last.Index(*letter->second.begin()) << Endl);
 			Connect(dest, last.Index(*letter->second.begin()), letter->first);
 		}
 		if (oldFinal.find(fromIdx) != oldFinal.end()) {
 			SetFinal(dest, true);
-			PIRE_IFDEBUG(std::clog << "[min] New state " << dest << " becomes final because of old state " << fromIdx << std::endl);
+			PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " becomes final because of old state " << fromIdx << Endl);
 		}
 
 		// Append tags
 		Tags::iterator ti = oldTags.find(fromIdx);
 		if (ti != oldTags.end()) {
 			tags[dest] |= ti->second;
-			PIRE_IFDEBUG(std::clog << "[min] New state " << dest << " carries tag " << ti->second << " because of old state " << fromIdx << std::endl);
+			PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " carries tag " << ti->second << " because of old state " << fromIdx << Endl);
 		}
 	}
 	initial = last.Representative(initial);
@@ -1086,7 +1086,7 @@ void Fsm::Minimize()
 			outputs[last.Index(oit->first)].insert(ymake_pair(last.Index(oit2->first), oit2->second));
 
 	ClearHints();
-	PIRE_IFDEBUG(std::clog << "=== Minimized (" << Size() << " states) ===" << std::endl << *this << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== Minimized (" << Size() << " states) ===" << Endl << *this << Endl);
 }
 
 Fsm& Fsm::Canonize(size_t maxSize /* = 0 */)

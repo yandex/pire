@@ -291,12 +291,12 @@ inline void Run<SlowScanner>(const SlowScanner& scanner, SlowScanner::State& sta
 template<class Scanner>
 inline void Run(const Scanner& scanner, typename Scanner::State& state, const char* begin, const char* end)
 {
-	std::clog << "Running regexp on string " << std::string(begin, std::min(std::distance(begin, end), static_cast<ptrdiff_t>(100u))) << std::endl;
-	std::clog << "Initial state " << StDump(scanner, state) << std::endl;
+	Cdbg << "Running regexp on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl;
+	Cdbg << "Initial state " << StDump(scanner, state) << Endl;
 
 	for (; begin != end; ++begin) {
 		Step(scanner, state, (unsigned char)*begin);
-		std::clog << *begin << " => state " << StDump(scanner, state) << std::endl;
+		Cdbg << *begin << " => state " << StDump(scanner, state) << Endl;
 	}
 }
 
@@ -309,15 +309,15 @@ inline const char* Scan(const Scanner& scanner, const char* begin, const char* e
 	Scanner::State state;
 	scanner.Initialize(state);
 
-	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(begin, std::min<size_t>(std::distance(begin, end), 100u)) << std::endl);
-	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
+ 	PIRE_IFDEBUG(Cdbg << "Running regexp on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
+	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
 	const char* pos = 0;
 	while (begin != end && !scanner.Dead(state)) {
 		if (scanner.Final(state))
 			pos = begin;
 		Step(scanner, state, (unsigned char)*begin);
-		PIRE_IFDEBUG(std::clog << *begin << " => state " << StDump(scanner, state) << std::endl);
+		PIRE_IFDEBUG(Cdbg << *begin << " => state " << StDump(scanner, state) << Endl);
 		++begin;
 	}
 	if (scanner.Final(state))
@@ -332,15 +332,15 @@ inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, cons
 	Scanner::State state;
 	scanner.Initialize(state);
 
-	PIRE_IFDEBUG(std::clog << "Running regexp on string " << std::string(rbegin - std::min(std::distance(rend, rbegin), static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << std::endl);
-	PIRE_IFDEBUG(std::clog << "Initial state " << StDump(scanner, state) << std::endl);
+	PIRE_IFDEBUG(Cdbg << "Running regexp on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
+	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
 	const char* pos = 0;
 	while (rbegin != rend && !scanner.Dead(state)) {
 		if (scanner.Final(state))
 			pos = rbegin;
 		Step(scanner, state, (unsigned char)*rbegin);
-		PIRE_IFDEBUG(std::clog << *rbegin << " => state " << StDump(scanner, state) << std::endl);
+		PIRE_IFDEBUG(Cdbg << *rbegin << " => state " << StDump(scanner, state) << Endl);
 		--rbegin;
 	}
 	if (scanner.Final(state))

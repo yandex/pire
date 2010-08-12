@@ -29,7 +29,10 @@ typedef std::string ystring;
 #define ypair std::pair
 #define ymake_pair std::make_pair
 #define ymax std::max
+#define ymin std::min
 #define ybinary_function std::binary_function
+#define Cdbg std::clog
+#define Endl std::endl
 
 namespace Pire {
 	template<class T>

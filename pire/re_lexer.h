@@ -158,7 +158,6 @@ private:
 */
 class Feature {
 public:
-	virtual ~Feature() {}
 	/// Precedence of features. The higher the priority, the eariler
 	/// will Lex() be called, and the later will Alter() and Parenthesized() be called.
 	virtual int Priority() const { return 50; }
@@ -179,7 +178,13 @@ public:
 	/// those perl-style (?@#$%:..) clauses).
 	virtual void Parenthesized(Fsm&) {}
 
+	/// Used by Lexer to be able to control the lifetime of features added from
+	/// outside
+	virtual void Destroy() { delete this; }
+
 protected:
+	virtual ~Feature() = 0;
+
 	// These functions are exposed versions of the corresponding lexer functions.
 	const Pire::Encoding& Encoding() const { return m_lexer->Encoding(); }
 	wchar32 GetChar() { return m_lexer->GetChar(); }
@@ -187,10 +192,13 @@ protected:
 	void UngetChar(wchar32 c) { m_lexer->UngetChar(c); }
 	wchar32 CorrectChar(wchar32 c, const char* controls);
 	void Error(const char* msg) { m_lexer->Error(msg); }
+
 private:
 	friend class Lexer;
 	Lexer* m_lexer;
 };
+
+inline Feature::~Feature() {}
 
 namespace Features {
 	/// Disables case sensitivity
