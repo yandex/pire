@@ -10,7 +10,7 @@
 
 void Run(const Pire::Scanner& scanner, Pire::Scanner::State& state, const ystring& data)
 {
-	PIRE_IFDEBUG(std::clog << "---run---" << std::endl);
+	PIRE_IFDEBUG(Cdbg << "---run---" << Endl);
 	Pire::Run(scanner, state, data.c_str(), data.c_str() + data.size());
 }
 
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 
 		ystring str;
 		while (ReadLine(stdin, str)) {
-			PIRE_IFDEBUG(std::clog << "---run---" << std::endl);
+			PIRE_IFDEBUG(Cdbg << "---run---" << Endl);
 			if ((surround && Pire::Runner(scanner).Begin().Run(str).End())
 				|| (!surround && Pire::Runner(scanner).Run(str)))
 			{

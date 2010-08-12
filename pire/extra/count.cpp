@@ -34,7 +34,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 	sep_re.Unsparse();
 	yset<size_t> dead = sep_re.DeadStates();
 
-	PIRE_IFDEBUG(std::clog << "=== Original FSM ===" << std::endl << sep_re << ">>> " << sep_re.Size() << " states, dead: [" << Join(dead.begin(), dead.end(), ", ") << "]" << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== Original FSM ===" << Endl << sep_re << ">>> " << sep_re.Size() << " states, dead: [" << Join(dead.begin(), dead.end(), ", ") << "]" << Endl);
 
 	Fsm sq;
 
@@ -53,7 +53,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 			sq.SetTag(curstate, tag);
 		sq.SetFinal(curstate, sep_re.IsFinal(states[curstate].first));
 
-		PIRE_IFDEBUG(std::clog << "State " << curstate << " = (" << states[curstate].first << ", " << states[curstate].second << ")" << std::endl);
+		PIRE_IFDEBUG(Cdbg << "State " << curstate << " = (" << states[curstate].first << ", " << states[curstate].second << ")" << Endl);
 		for (Fsm::LettersTbl::ConstIterator lit = sep_re.Letters().Begin(), lie = sep_re.Letters().End(); lit != lie; ++lit) {
 
 			Char letter = lit->first;
@@ -79,11 +79,11 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 			if (sep_re.IsFinal(ns.first) || (sep_re.IsFinal(ns.second) && !(sep_re.Tag(ns.first) & Matched)))
 				ns.second = sep_re.Initial();
 
-			PIRE_IFDEBUG(if (ns != savedNs) std::clog << "Diverted transition to (" << savedNs.first << ", " << savedNs.second << ") on " << (char) letter << " to (" << ns.first << ", " << ns.second << ")" << dbgout << std::endl);
+			PIRE_IFDEBUG(if (ns != savedNs) Cdbg << "Diverted transition to (" << savedNs.first << ", " << savedNs.second << ") on " << (char) letter << " to (" << ns.first << ", " << ns.second << ")" << dbgout << Endl);
 
 			ymap<NewState, size_t>::iterator nsi = invstates.find(ns);
 			if (nsi == invstates.end()) {
-				PIRE_IFDEBUG(std::clog << "New state " << states.size() << " = (" << ns.first << ", " << ns.second << ")" << std::endl);
+				PIRE_IFDEBUG(Cdbg << "New state " << states.size() << " = (" << ns.first << ", " << ns.second << ")" << Endl);
 				states.push_back(ns);
 				nsi = invstates.insert(ymake_pair(states.back(), states.size() - 1)).first;
 				sq.Resize(states.size());
@@ -98,7 +98,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 
 	sq.Determine();
 
-	PIRE_IFDEBUG(std::clog << "=== FSM ===" << std::endl << sq << std::endl);
+	PIRE_IFDEBUG(Cdbg << "=== FSM ===" << Endl << sq << Endl);
 	Init(sq.Size(), sq.Letters(), sq.Initial(), 1);
 	BuildScanner(sq, *this);
 }
