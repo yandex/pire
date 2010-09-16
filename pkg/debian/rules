@@ -39,6 +39,7 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
+	dh_makeshlibs
 	dh_shlibdeps
 	dh_gencontrol
 	dh_md5sums
