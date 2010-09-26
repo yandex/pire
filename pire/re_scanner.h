@@ -304,12 +304,12 @@ inline void Run(const Scanner& scanner, typename Scanner::State& state, const ch
 
 /// Find a longest acceptable prefix of a given string.
 /// Returns its right boundary or NULL if there exists no acceptable prefix (even the empty string is rejected).
-inline const char* Scan(const Scanner& scanner, const char* begin, const char* end)
+inline const char* LongestPrefix(const Scanner& scanner, const char* begin, const char* end)
 {
 	Scanner::State state;
 	scanner.Initialize(state);
 
- 	PIRE_IFDEBUG(Cdbg << "Running regexp on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
+ 	PIRE_IFDEBUG(Cdbg << "Running LongestPrefix on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
 	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
 	const char* pos = 0;
@@ -327,12 +327,12 @@ inline const char* Scan(const Scanner& scanner, const char* begin, const char* e
 
 /// The same as above, but scans string in reverse direction
 /// (consider using Fsm::Reverse() for using in this function).
-inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, const char* rend)
+inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, const char* rend)
 {
 	Scanner::State state;
 	scanner.Initialize(state);
 
-	PIRE_IFDEBUG(Cdbg << "Running regexp on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
+	PIRE_IFDEBUG(Cdbg << "Running LongestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
 	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
 	const char* pos = 0;
@@ -346,6 +346,39 @@ inline const char* ReversedScan(const Scanner& scanner, const char* rbegin, cons
 	if (scanner.Final(state))
 		pos = rbegin;
 	return pos;
+}
+
+/// Finds a first position where FSM jumps from a non-final state into a final
+/// one (i.e. finds shortest acceptable prefixx)
+inline const char* ShortestPrefix(const Scanner& scanner, const char* begin, const char* end)
+{
+	Pire::Scanner::State state;
+	scanner.Initialize(state);
+
+	PIRE_IFDEBUG(Cdbg << "Running ShortestPrefix on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
+	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
+
+	for (; begin != end && !scanner.Final(state); ++begin) {
+		scanner.Next(state, (unsigned char)*begin);
+		PIRE_IFDEBUG(Cdbg << *begin << " => state " << StDump(scanner, state) << Endl);
+	}
+	return scanner.Final(state) ? begin : 0;
+}
+
+/// The same as above, but scans string in reverse direction
+inline const char* ShortestSuffix(const Scanner& scanner, const char* rbegin, const char* rend)
+{
+	Pire::Scanner::State state;
+	scanner.Initialize(state);
+
+	PIRE_IFDEBUG(Cdbg << "Running ShortestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
+	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
+
+	for (; rbegin != rend && !scanner.Final(state); --rbegin) {
+		scanner.Next(state, (unsigned char)*rbegin);
+		PIRE_IFDEBUG(Cdbg << *rbegin << " => state " << StDump(scanner, state) << Endl);
+	}
+	return scanner.Final(state) ? rbegin : 0;
 }
 
 

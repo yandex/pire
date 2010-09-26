@@ -71,7 +71,7 @@ SIMPLE_UNIT_TEST(Primitives)
 		DENIES ("axye");
 	}
 }
- 
+
 SIMPLE_UNIT_TEST(MassAlternatives)
 {
 	REGEXP("((abc|def)|ghi)|klm") {
@@ -211,7 +211,7 @@ SIMPLE_UNIT_TEST(AndNot)
 		DENIES ("<456>");
 		DENIES ("<abc>");
 	}
-	
+
 	REGEXP2("[0-9]+\\&1+", "a") {
 		DENIES("111");
 		ACCEPTS("123&111");
@@ -249,7 +249,7 @@ SIMPLE_UNIT_TEST(Ranges)
 		DENIES("ab");
 	}
 }
- 
+
 SIMPLE_UNIT_TEST(Reverse)
 {
 	SCANNER(ParseRegexp("abcdef").Reverse()) {
@@ -257,49 +257,79 @@ SIMPLE_UNIT_TEST(Reverse)
 		DENIES ("abcdef");
 	}
 }
- 
-SIMPLE_UNIT_TEST(Scan)
+
+SIMPLE_UNIT_TEST(PrefixSuffix)
 {
 	static const char* pattern = "-->";
 	Pire::Fsm fsm = ParseRegexp(pattern, "n");
 	Pire::Scanner ngsc = (~Pire::Fsm::MakeFalse() + fsm).Compile<Pire::Scanner>();
 	Pire::Scanner gsc  = (~fsm.Surrounded() + fsm).Compile<Pire::Scanner>();
 	Pire::Scanner rsc  = fsm.Reverse().Compile<Pire::Scanner>();
-	
+
 	static const char* text = "1234567890 --> middle --> end";
-	const char* end = Pire::Scan(gsc, text, text + strlen(text));
-	const char* begin = Pire::ReversedScan(rsc, end - 1, text - 1);
+	const char* end = Pire::LongestPrefix(gsc, text, text + strlen(text));
+	const char* begin = Pire::LongestSuffix(rsc, end - 1, text - 1);
 	++begin;
 
 	UNIT_ASSERT_EQUAL(end, text + 14);
 	UNIT_ASSERT_EQUAL(begin, text + 11);
-	
-	end = Pire::Scan(ngsc, text, text + strlen(text));
-	begin = Pire::ReversedScan(rsc, end - 1, text - 1);
+
+	end = Pire::LongestPrefix(ngsc, text, text + strlen(text));
+	begin = Pire::LongestSuffix(rsc, end - 1, text - 1);
 	++begin;
-	
+
 	UNIT_ASSERT_EQUAL(end, text + 25);
 	UNIT_ASSERT_EQUAL(begin, text + 22);
+
+	end = Pire::ShortestPrefix(gsc, text, text + strlen(text));
+	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1);
+	++begin;
+
+	UNIT_ASSERT_EQUAL(end, text + 14);
+	UNIT_ASSERT_EQUAL(begin, text + 11);
+
+	end = Pire::ShortestPrefix(ngsc, text, text + strlen(text));
+	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1);
+	++begin;
+
+	UNIT_ASSERT_EQUAL(end, text + 14);
+	UNIT_ASSERT_EQUAL(begin, text + 11);
 }
 
 namespace {
-	ssize_t PrefixLen(const char* pattern, const char* str)
+	ssize_t LongestPrefixLen(const char* pattern, const char* str)
 	{
 		Pire::Scanner sc = Pire::Lexer(pattern).Parse().Compile<Pire::Scanner>();
-		const char* end = Pire::Scan(sc, str, str + strlen(str));
+		const char* end = Pire::LongestPrefix(sc, str, str + strlen(str));
+		return end ? end - str : -1;
+	}
+
+	ssize_t ShortestPrefixLen(const char* pattern, const char* str)
+	{
+		Pire::Scanner sc = Pire::Lexer(pattern).Parse().Compile<Pire::Scanner>();
+		const char* end = Pire::ShortestPrefix(sc, str, str + strlen(str));
 		return end ? end - str : -1;
 	}
 }
 
 SIMPLE_UNIT_TEST(ScanBoundaries)
 {
-	UNIT_ASSERT_EQUAL(PrefixLen("fixed", "fixed prefix"), ssize_t(5));
-	UNIT_ASSERT_EQUAL(PrefixLen("fixed", "a fixed nonexistent prefix"), ssize_t(-1));
-	
-	UNIT_ASSERT_EQUAL(PrefixLen("a*", "aaabbb"), ssize_t(3));
-	UNIT_ASSERT_EQUAL(PrefixLen("a*", "bbbbbb"), ssize_t(0));
-	UNIT_ASSERT_EQUAL(PrefixLen("a*", "aaaaaa"), ssize_t(6));
-	UNIT_ASSERT_EQUAL(PrefixLen("a+", "bbbbbb"), ssize_t(-1));
+	UNIT_ASSERT_EQUAL(LongestPrefixLen("fixed", "fixed prefix"), ssize_t(5));
+	UNIT_ASSERT_EQUAL(LongestPrefixLen("fixed", "a fixed nonexistent prefix"), ssize_t(-1));
+
+	UNIT_ASSERT_EQUAL(LongestPrefixLen("a*", "aaabbb"), ssize_t(3));
+	UNIT_ASSERT_EQUAL(LongestPrefixLen("a*", "bbbbbb"), ssize_t(0));
+	UNIT_ASSERT_EQUAL(LongestPrefixLen("a*", "aaaaaa"), ssize_t(6));
+	UNIT_ASSERT_EQUAL(LongestPrefixLen("a+", "bbbbbb"), ssize_t(-1));
+
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen("fixed", "fixed prefix"), ssize_t(5));
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen("fixed", "a fixed nonexistent prefix"), ssize_t(-1));
+
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen("a*", "aaabbb"), ssize_t(0));
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen("aa*", "aaabbb"), ssize_t(1));
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen("a*a", "aaaaaa"), ssize_t(1));
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen(".*a", "bbbba"), ssize_t(5));
+	UNIT_ASSERT_EQUAL(ShortestPrefixLen("a+", "bbbbbb"), ssize_t(-1));
 }
 
 SIMPLE_UNIT_TEST(ScanTermination)
@@ -307,7 +337,7 @@ SIMPLE_UNIT_TEST(ScanTermination)
 	Pire::Scanner sc = Pire::Lexer("aaa").Parse().Compile<Pire::Scanner>();
 	// Scanning must terminate at first dead state. If it does not,
 	// we will pass through the end of our string and end up with segfault.
-	Pire::Scan(sc, "aaab", reinterpret_cast<const char*>(size_t(-1)));
+	Pire::LongestPrefix(sc, "aaab", reinterpret_cast<const char*>(size_t(-1)));
 }
 
 SIMPLE_UNIT_TEST(Serialization)
@@ -343,12 +373,12 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::SlowScanner slow2;
 	const void* ptr = wbuf.Buffer().Data();
 	const void* end = (const void*) ((const char*) ptr + wbuf.Buffer().Size());
-	
+
 	ptr = fast2.Mmap(ptr, (const char*) end - (const char*) ptr);
 	ptr = simple2.Mmap(ptr, (const char*) end - (const char*) ptr);
 	ptr = slow2.Mmap(ptr, (const char*) end - (const char*) ptr);
 	UNIT_ASSERT_EQUAL(ptr, end);
-	
+
 	UNIT_ASSERT(Matches(fast2, "regexp"));
 	UNIT_ASSERT(!Matches(fast2, "regxp"));
 	UNIT_ASSERT(!Matches(fast2, "regexp t"));
@@ -358,7 +388,7 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(Matches(simple2, "regexp"));
 	UNIT_ASSERT(!Matches(simple2, "regxp"));
 	UNIT_ASSERT(!Matches(simple2, "regexp t"));
-	
+
 	ptr = (const void*) ((const char*) wbuf.Buffer().Data() + 1);
 	try {
 		fast2.Mmap(ptr, wbuf.Buffer().Size());
