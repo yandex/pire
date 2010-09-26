@@ -8,7 +8,6 @@
 #endif
 
 #include <assert.h>
-#include <string>
 #include <stdexcept>
 
 #include "fsm.h"

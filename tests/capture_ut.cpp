@@ -2,7 +2,7 @@
 #include <stub/saveload.h>
 #include <stub/utf8.h>
 #include <stub/memstreams.h>
-#include <cppunit.h>
+#include "stub/cppunit.h"
 #include <pire.h>
 #include <extra.h>
 #include <string.h>
@@ -37,12 +37,12 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		return state;
 	}
 
-	std::string Captured(const State& state, const char* str)
+	ystring Captured(const State& state, const char* str)
 	{
 		if (state.Captured())
-			return std::string(str + state.Begin() - 1, str + state.End() - 1);
+			return ystring(str + state.Begin() - 1, str + state.End() - 1);
 		else
-			return std::string();
+			return ystring();
 	}
 
 	SIMPLE_UNIT_TEST(Trivial)
@@ -54,12 +54,12 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		str = "google_id = 'abcde';";
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("abcde"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("abcde"));
 
 		str = "var google_id = 'abcde'; eval(google_id);";
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("abcde"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("abcde"));
 
 		str = "google_id != 'abcde';";
 		state = RunRegexp(scanner, str);
@@ -75,12 +75,12 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		str = "google_id = 'abcde'; google_id = 'xyz';";
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("abcde"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("abcde"));
 
 		str = "var google_id = 'abc de'; google_id = 'xyz';";
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("xyz"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("xyz"));
 	}
 
 	SIMPLE_UNIT_TEST(NegatedTerminator)
@@ -92,7 +92,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		str = "=12345;";
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("12345"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("12345"));
 	}
 
 	SIMPLE_UNIT_TEST(Serialization)
@@ -112,7 +112,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		str = "google_id = 'abcde';";
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("abcde"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("abcde"));
 
 		str = "google_id != 'abcde';";
 		state = RunRegexp(scanner, str);
@@ -125,7 +125,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		str = "google_id = 'abcde';";
 		state = RunRegexp(scanner3, str);
 		UNIT_ASSERT(state.Captured());
-		UNIT_ASSERT_EQUAL(Captured(state, str), std::string("abcde"));
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("abcde"));
 
 		str = "google_id != 'abcde';";
 		state = RunRegexp(scanner3, str);

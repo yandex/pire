@@ -6,7 +6,7 @@
 #include <stub/stl.h>
 #include <stub/defaults.h>
 #include <stub/lexical_cast.h>
-#include "cppunit.h"
+#include "stub/cppunit.h"
 
 using namespace Pire;
 
@@ -17,7 +17,7 @@ using namespace Pire;
 inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pire::Encoding** enc = 0)
 {
 	Pire::Lexer lexer;
-	yvector<Pire::wchar32> ucs4;
+	yvector<wchar32> ucs4;
 
 	bool surround = true;
 	for (; *options; ++options) {

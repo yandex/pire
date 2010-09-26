@@ -1,5 +1,5 @@
 #include <stub/hacks.h>
-#include <cppunit.h>
+#include "stub/cppunit.h"
 #include <pire.h>
 #include <iostream>
 #include <string.h>
@@ -7,7 +7,7 @@
 SIMPLE_UNIT_TEST_SUITE(TestPireInline) {
 
 template<class Scanner>
-typename Scanner::State RunRegexp(const Scanner& scanner, const char* str, const Pire::Encoding& encoding = Pire::Encodings::Latin1())
+typename Scanner::State RunRegexp(const Scanner& scanner, const char* str)
 {
 	typename Scanner::State state;
 	scanner.Initialize(state);
@@ -18,9 +18,9 @@ typename Scanner::State RunRegexp(const Scanner& scanner, const char* str, const
 }
 
 template<class Scanner>
-bool Matches(const Scanner& scanner, const char* str, const Pire::Encoding& encoding = Pire::Encodings::Latin1())
+bool Matches(const Scanner& scanner, const char* str)
 {
-	return scanner.Final(RunRegexp(scanner, str, encoding));
+	return scanner.Final(RunRegexp(scanner, str));
 }
 
 template<class Scanner>

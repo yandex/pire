@@ -17,7 +17,7 @@ namespace Impl {
 		struct Registration { \
 			Registration() \
 			{ \
-				s_suite = new CppUnit::TestSuite(std::string(#N)); \
+				s_suite = new CppUnit::TestSuite(ystring(#N)); \
 				::Impl::globalSuite()->addTest(s_suite); \
 			} \
 		} s_registry; \
@@ -27,7 +27,7 @@ namespace Impl {
 #define SIMPLE_UNIT_TEST(N) \
 	class TestCase_ ## N: public CppUnit::TestCase { \
 	public: \
-		TestCase_ ## N(): CppUnit::TestCase(std::string(#N)) {} \
+		TestCase_ ## N(): CppUnit::TestCase(ystring(#N)) {} \
 		void runTest(); \
 	}; \
 	struct TestRegistration_ ## N { \

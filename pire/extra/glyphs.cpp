@@ -4,11 +4,11 @@
 #include <set>
 #include <vector>
 #include <utility>
-#include "stub/singleton.h"
-#include "stub/noncopyable.h"
-#include "stub/utf8.h"
+#include "../stub/singleton.h"
+#include "../stub/noncopyable.h"
+#include "../stub/utf8.h"
 #include "re_lexer.h"
-#include "stub/stl.h"
+#include "../stub/stl.h"
 
 namespace Pire {
 

@@ -2,7 +2,7 @@
 #include <stub/defaults.h>
 #include <stub/saveload.h>
 #include <stub/memstreams.h>
-#include <cppunit.h>
+#include "stub/cppunit.h"
 #include <stdexcept>
 #include "common.h"
 
@@ -163,7 +163,7 @@ SIMPLE_UNIT_TEST(Repetition)
 
 	REGEXP("x.{3,10}$") {
 		for (size_t size = 0; size < 20; ++size) {
-			std::string str = std::string(size*2, 'b') + "x" + std::string(size, 'e');
+			ystring str = ystring(size*2, 'b') + "x" + ystring(size, 'e');
 			if (size >= 3 && size <= 10)
 				ACCEPTS(str.c_str());
 			else
@@ -385,7 +385,7 @@ SIMPLE_UNIT_TEST(Glue)
 	Pire::Scanner glued = Pire::Scanner::Glue(sc1, sc2);
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(2));
 
-	std::pair<const size_t*, const size_t*> res;
+	ypair<const size_t*, const size_t*> res;
 
 	res = glued.AcceptedRegexps(RunRegexp(glued, "aaa"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));

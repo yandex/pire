@@ -8,8 +8,8 @@ endif
 check_PROGRAMS = pire_test
 
 pire_test_SOURCES = \
-	cppunit.cpp \
-	cppunit.h \
+	stub/cppunit.cpp \
+	stub/cppunit.h \
 	common.h \
 	pire_ut.cpp
 

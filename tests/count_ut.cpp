@@ -2,7 +2,7 @@
 #include <stub/saveload.h>
 #include <stub/utf8.h>
 #include <stub/memstreams.h>
-#include <cppunit.h>
+#include "stub/cppunit.h"
 #include <pire.h>
 #include <extra.h>
 #include <string.h>
@@ -16,15 +16,15 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		Pire::Lexer lex;
 		lex.SetEncoding(encoding);
-		std::vector<wchar32> ucs4;
+		yvector<wchar32> ucs4;
 		encoding.FromLocal(regexp, regexp + strlen(regexp), std::back_inserter(ucs4));
 		lex.Assign(ucs4.begin(), ucs4.end());
 		return lex.Parse();
 	}
 	
-	Pire::CountingScanner::State Run(const Pire::CountingScanner& scanner, const char* text, size_t len =-1, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
+	Pire::CountingScanner::State Run(const Pire::CountingScanner& scanner, const char* text, size_t len =-1)
 	{
-		if (len == -1) len = strlen(text);
+		if (len == (size_t)-1) len = strlen(text);
 		Pire::CountingScanner::State state;
 		scanner.Initialize(state);
 		Pire::Step(scanner, state, Pire::BeginMark);
@@ -35,7 +35,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 
 	size_t Count(const char* regexp, const char* separator, const char* text, size_t len = -1, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
 	{
-		return Run(Pire::CountingScanner(MkFsm(regexp, encoding), MkFsm(separator, encoding)), text, len, encoding).Result(0);
+		return Run(Pire::CountingScanner(MkFsm(regexp, encoding), MkFsm(separator, encoding)), text, len).Result(0);
 	}
 
 	SIMPLE_UNIT_TEST(Count)

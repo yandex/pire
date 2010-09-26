@@ -1,13 +1,13 @@
 #include <pire.h>
 #include <extra/glyphs.h>
-#include "cppunit.h"
+#include "stub/cppunit.h"
 #include "common.h"
 
 SIMPLE_UNIT_TEST_SUITE(Glyphs) {
 
 	Pire::Fsm ParseFsm(const char* regexp)
 	{
-		std::vector<Pire::wchar32> ucs4;
+		yvector<Pire::wchar32> ucs4;
 		Pire::Encodings::Utf8().FromLocal(regexp, regexp + strlen(regexp), std::back_inserter(ucs4));
 		return Pire::Lexer(ucs4).SetEncoding(Pire::Encodings::Utf8()).AddFeature(Pire::Features::GlueSimilarGlyphs()).Parse().Surround();
 	}
