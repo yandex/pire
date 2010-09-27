@@ -139,7 +139,7 @@ template<class Scanner>
 FORCED_INLINE
 void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 {
-	assert(ch < MaxCharUnaligned);
+	YASSERT(ch < MaxCharUnaligned);
 	typename Scanner::Action a = scanner.Next(state, ch);
 	scanner.TakeAction(state, a);
 }
@@ -200,7 +200,7 @@ namespace Impl {
 	template<class Scanner>
 	inline void RunChunk(const Scanner& scanner, typename Scanner::State& state, size_t chunk, size_t size)
 	{
-		assert(size < 8);
+		YASSERT(size < 8);
 
 		if (size & 4) {
 			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
@@ -222,7 +222,7 @@ namespace Impl {
 template<class Scanner>
 inline void Run(const Scanner& scanner, typename Scanner::State& state, const char* begin, const char* end)
 {
-	assert(sizeof(void*) <= 8);
+	YASSERT(sizeof(void*) <= 8);
 
 	const size_t* head = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(begin)) & ~(sizeof(void*)-1));
 	const size_t* tail = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(end)) & ~(sizeof(void*)-1));

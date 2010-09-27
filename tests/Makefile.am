@@ -3,6 +3,8 @@ if WITH_UNITTESTS
 AM_CXXFLAGS = -Wall
 if ENABLE_DEBUG
 AM_CXXFLAGS += -DPIRE_DEBUG
+else
+AM_CXXFLAGS += -DNDEBUG
 endif
 
 check_PROGRAMS = pire_test

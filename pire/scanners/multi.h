@@ -260,9 +260,9 @@ protected:
 
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/ = 0)
 	{
-		assert(m_buffer);
-		assert(oldState < m.statesCount);
-		assert(newState < m.statesCount);
+		YASSERT(m_buffer);
+		YASSERT(oldState < m.statesCount);
+		YASSERT(newState < m.statesCount);
 		m_transitions[oldState * m.lettersCount + m_letters[c]]
 			= ((newState - oldState) * m.lettersCount * sizeof(Transition))
 			| (m_tags[newState] & Flags);
@@ -272,13 +272,13 @@ protected:
 
 	void SetInitial(size_t state)
 	{
-		assert(m_buffer);
+		YASSERT(m_buffer);
 		m.initial = reinterpret_cast<size_t>(m_transitions + state * m.lettersCount) | (m_tags[state] & Flags);
 	}
 
 	void SetTag(size_t state, size_t tag)
 	{
-		assert(m_buffer);
+		YASSERT(m_buffer);
 		
 		if (!(m_tags[state] & TagSet)) {
 			m_finalIndex[state] = m_finalEnd - m_final;

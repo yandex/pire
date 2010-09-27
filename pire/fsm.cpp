@@ -5,7 +5,6 @@
 #include <iterator>
 #include <numeric>
 #include <queue>
-#include <assert.h>
 #include <utility>
 #include "fsm.h"
 #include "vbitset.h"
@@ -56,7 +55,7 @@ void Fsm::DumpState(yostream& s, size_t state) const
 		for (StatesSet::const_iterator sit = rit->second.begin(), sie = rit->second.end(); sit != sie; ++sit) {
 			if (*sit >= Size()) {
 				std::cerr << "WTF?! Transition from " << state << " on letter " << rit->first << " leads to non-existing state " << *sit << "\n";
-				assert(false);
+				YASSERT(false);
 			}
 			if (Letters().Contains(rit->first)) {
 				const yvector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
@@ -908,7 +907,7 @@ std::copy(part.begin(), part.end(), std::back_inserter(next));
 	void Connect(size_t from, size_t to, Char letter)
 	{
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
-		assert(mNewTerminals.find(from) == mNewTerminals.end());
+		YASSERT(mNewTerminals.find(from) == mNewTerminals.end());
 		mNewFsm.Connect(from, to, letter);
 	}
 	typedef bool Result;
@@ -991,7 +990,7 @@ private:
 // TODO: Think how to update only changed states
 bool UpdateStateClassMap(StateClassMap& clMap, const Partition<size_t, MinimizeEquality>& stPartition)
 {
-	assert(clMap.size() != 0);
+	YASSERT(clMap.size() != 0);
 	bool changed = false;
 	for (size_t st = 0; st < clMap.size(); st++) {
 		size_t cl = stPartition.Representative(st);
@@ -1006,14 +1005,14 @@ bool UpdateStateClassMap(StateClassMap& clMap, const Partition<size_t, MinimizeE
 void Fsm::Minimize()
 {
 	// Minimization algorithm is only applicable to a determined FSM.
-	assert(determined);
+	YASSERT(determined);
 
 	PIRE_IFDEBUG(Cdbg << "=== Minimizing ===" << Endl << *this << Endl);
 
 	DeterminedTransitions detTran(Size() * MaxChar);
 	for (TransitionTable::const_iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j) {
 		for (TransitionRow::const_iterator k = j->begin(), ke = j->end(); k != ke; ++k) {
-			assert(k->second.size() == 1);
+			YASSERT(k->second.size() == 1);
 			detTran[(j - m_transitions.begin()) * MaxChar + k->first] = *(k->second.begin());
 		}
 	}
@@ -1061,7 +1060,7 @@ void Fsm::Minimize()
 		size_t dest = last.Index(fromIdx);
 		PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
 		for (TransitionRow::iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
-			assert(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
+			YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
 			PIRE_IFDEBUG(Cdbg << "[min] connecting " << dest << " --" << CharDump(letter->first) << "--> "
 				<< last.Index(*letter->second.begin()) << Endl);
 			Connect(dest, last.Index(*letter->second.begin()), letter->first);

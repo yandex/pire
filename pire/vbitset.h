@@ -3,7 +3,6 @@
 
 
 #include "stub/stl.h"
-#include <assert.h>
 #include <string.h>
 
 namespace Pire {

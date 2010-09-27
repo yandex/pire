@@ -15,6 +15,9 @@
 #include <stdexcept>
 #include <iterator>
 #include <functional>
+#include <assert.h>
+
+#define YASSERT(e) assert(e)
 
 typedef std::string ystring;
 #define yvector std::vector
@@ -53,5 +56,6 @@ namespace Pire {
 	};
 
 }
+
 
 #endif

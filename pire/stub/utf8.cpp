@@ -1,9 +1,8 @@
 #include <string.h>
-#include <assert.h>
 #include "defaults.h"
 #include "singleton.h"
+#include "stl.h"
 
-#define YASSERT assert
 #define DECLARE_NOCOPY(klass) private: klass(const klass&); klass& operator = (const klass&);
 
 namespace Pire {

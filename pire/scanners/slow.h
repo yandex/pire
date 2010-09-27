@@ -241,9 +241,9 @@ private:
 	
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/)
 	{
-		assert(!m_vec.empty());
-		assert(oldState < m.statesCount);
-		assert(newState < m.statesCount);
+		YASSERT(!m_vec.empty());
+		YASSERT(oldState < m.statesCount);
+		YASSERT(newState < m.statesCount);
 
 		size_t idx = oldState * m.lettersCount + m_letters[c];
 		m_vec[idx].push_back(newState);

@@ -1,6 +1,5 @@
 #include <stdexcept>
 #include <utility>
-#include <assert.h>
 #include "stub/defaults.h"
 #include "stub/utf8.h"
 #include "stub/singleton.h"
@@ -68,7 +67,7 @@ static const Latin1 latin1;
 			size_t len;
 			unsigned char* p = (unsigned char*) &*ret.begin();
 			if (utf8_put_rune(c, len, p, p + ret.size()) != RECODE_OK)
-				assert(!"Pire::UTF8::toLocal(): Internal error");
+				YASSERT(!"Pire::UTF8::toLocal(): Internal error");
 			return ret;
 		}
 

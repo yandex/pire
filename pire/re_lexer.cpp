@@ -2,7 +2,6 @@
 #include "stub/utf8.h"
 #include "stub/singleton.h"
 #include <stdexcept>
-#include <assert.h>
 #include "re_parser.h"
 #include "re_lexer.h"
 #include "fsm.h"

@@ -2,7 +2,6 @@
 #define PIRE_SCANNERS_LOADED_H
 
 
-#include <assert.h>
 #include "../partition.h"
 #include "../re_scanner.h"
 #include "../stub/saveload.h"
@@ -189,9 +188,9 @@ protected:
 
 	void SetJump(size_t oldState, Char c, size_t newState, Action action)
 	{
-		assert(m_buffer);
-		assert(oldState < m.statesCount);
-		assert(newState < m.statesCount);
+		YASSERT(m_buffer);
+		YASSERT(oldState < m.statesCount);
+		YASSERT(newState < m.statesCount);
 
 		size_t shift = (newState - oldState) * m.lettersCount * sizeof(*m_jumps);
 
@@ -203,8 +202,8 @@ protected:
 
 	Action RemapAction(Action action) { return action; }
 
-	void SetInitial(size_t state) { assert(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
-	void SetTag(size_t state, Tag tag) { assert(m_buffer); m_tags[state] = tag; }
+	void SetInitial(size_t state) { YASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
+	void SetTag(size_t state, Tag tag) { YASSERT(m_buffer); m_tags[state] = tag; }
 
 	size_t StateIdx(InternalState s) const
 	{

@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "stub/stl.h"
 #include "stub/saveload.h"
 #include "re_scanner.h"
@@ -33,7 +32,7 @@ void Scanner::Load(yistream* s)
 
 void SimpleScanner::Save(yostream* s) const
 {
-	assert(m_buffer);
+	YASSERT(m_buffer);
 	SavePodType(s, Header(2, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	Locals mc = m;
@@ -58,7 +57,7 @@ void SimpleScanner::Load(yistream* s)
 
 void SlowScanner::Save(yostream* s) const
 {
-	assert(!m_vec.empty());
+	YASSERT(!m_vec.empty());
 	SavePodType(s, Header(3, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	SavePodType(s, m);
