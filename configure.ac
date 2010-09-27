@@ -40,8 +40,10 @@ fi
 # Optional features
 AC_ARG_ENABLE([extra], AS_HELP_STRING([--enable-extra], [Add extra functionality (capturing scanner, etc...)]))
 AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [Make Pire dump all constructed FSMs to std::clog (useless unless debugging Pire)]))
+AC_ARG_ENABLE([checked], AS_HELP_STRING([--enable-checked], [Enable asserts]))
 AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
+AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
 
 AC_CONFIG_FILES([Makefile pire/Makefile tests/Makefile pkg/Makefile samples/Makefile samples/bench/Makefile])
 AC_OUTPUT

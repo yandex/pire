@@ -17,7 +17,11 @@
 #include <functional>
 #include <assert.h>
 
+#ifdef PIRE_CHECKED
 #define YASSERT(e) assert(e)
+#else
+#define YASSERT(e)
+#endif
 
 typedef std::string ystring;
 #define yvector std::vector
