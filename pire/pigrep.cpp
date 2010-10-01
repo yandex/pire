@@ -8,13 +8,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-void Run(const Pire::Scanner& scanner, Pire::Scanner::State& state, const ystring& data)
+void Run(const Pire::Scanner& scanner, Pire::Scanner::State& state, const Pire::ystring& data)
 {
 	PIRE_IFDEBUG(Cdbg << "---run---" << Endl);
 	Pire::Run(scanner, state, data.c_str(), data.c_str() + data.size());
 }
 
-bool ReadLine(FILE* f, ystring& str)
+bool ReadLine(FILE* f, Pire::ystring& str)
 {
 	int ch;
 	str.clear();
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 			fsm.Surround();
 		Pire::Scanner scanner(fsm);
 
-		ystring str;
+		Pire::ystring str;
 		while (ReadLine(stdin, str)) {
 			PIRE_IFDEBUG(Cdbg << "---run---" << Endl);
 			if ((surround && Pire::Runner(scanner).Begin().Run(str).End())

@@ -6,5 +6,5 @@ int main(int argc, char **argv)
 {
 	CppUnit::TextUi::TestRunner runner;
 	runner.addTest(Impl::globalSuite());
-	return runner.run(ystring((argc >= 2) ? argv[1] : ""), false, true, true) ? 0 : 1;
+	return runner.run(Pire::ystring((argc >= 2) ? argv[1] : ""), false, true, true) ? 0 : 1;
 }
