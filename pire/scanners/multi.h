@@ -309,7 +309,52 @@ protected:
 };
 
 
-}
+/**
+* A faster version of compiled multiregexp.
+* The speedup is achieved by not saving the flags in the transition table and hence
+* not needing to clear those flags when calculating offsets on each step of the scanner.
+*/
+class FastScanner : public Scanner {
+public:
+	FastScanner()
+		: Scanner()
+	{}
 
+	explicit FastScanner(const Scanner& s)
+		: Scanner(s)
+	{
+		ClearFinalFlag();
+	}
+
+	FastScanner& operator = (const Scanner& s)
+	{
+		FastScanner(s).Swap(*this);
+		ClearFinalFlag();
+		return *this;
+	}
+
+	/// Handles one characters
+	FORCED_INLINE
+	Action Next(State& state, Char c) const
+	{
+		size_t letterClass = m_letters[static_cast<size_t>(c)];
+		i64 shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
+		state += shift;
+
+		return 0;
+	}
+
+private:
+	// Optimization for tiny_mu - final flag in the state is never checked there
+	void ClearFinalFlag()
+	{
+		m.initial &= ~FinalFlag;
+
+		for (size_t tran = 0; tran < m.statesCount * m.lettersCount; ++tran)
+			m_transitions[tran] &= ~FinalFlag;
+	}
+};
+
+}
 
 #endif

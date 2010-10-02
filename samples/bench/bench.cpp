@@ -107,8 +107,8 @@ private:
 	size_t m_len;
 };
 
-template<>
-class Tester<Pire::Scanner>: public ITester {
+template<class Scanner>
+class MultiTester: public ITester {
 public:
 	void Compile(const Fsms& fsms)
 	{
@@ -120,7 +120,7 @@ public:
 				sc = Pire::Scanner::Glue(sc, tsc);
 		}
 	}
-    
+
 	void Run(const char* begin, const char* end)
 	{
 		Pire::Scanner::State st = RunScanner(sc, begin, end);
@@ -130,9 +130,8 @@ public:
 			std::cerr << " " << *accepted.first;
 		std::cerr << std::endl;
 	}
-    
 private:
-	Pire::Scanner sc;
+	Scanner sc;
 };
 
 template<>
@@ -152,14 +151,16 @@ public:
 
 void Main(int argc, char** argv)
 {
-	std::runtime_error usage("Usage: bench {--fast|--simple|--slow|--null} file regexp [regexp2 [regexp3...]]");
+	std::runtime_error usage("Usage: bench {--multi|--fastmulti|--simple|--slow|--null} file regexp [regexp2 [regexp3...]]");
 	if (argc < 4)
 		throw usage;
     
 	std::auto_ptr<ITester> tester;
-	std::string type(argv[1]);
-	if (type == "--fast")
-		tester.reset(new Tester<Pire::Scanner>);
+	std::string type(argv[1]);                                            
+	if (type == "--multi")
+		tester.reset(new MultiTester<Pire::Scanner>);
+	else if (type == "--fastmulti")
+		tester.reset(new MultiTester<Pire::FastScanner>);
 	else if (type == "--simple")
 		tester.reset(new Tester<Pire::SimpleScanner>);
 	else if (type == "--slow")
