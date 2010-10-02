@@ -1,56 +1,38 @@
-#include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <sys/time.h>
 #include <iostream>
 #include <stdexcept>
 #include <pire/pire.h>
 
-class NullScanner {
-public:
-	typedef int State;
-	typedef int Action;
-    
-	void Initialize(State&) const {}
-	Action Next(State&, Pire::Char) const { return 0; }
-	void TakeAction(State&, Action) const {}
-	bool Final(const State&) const { return false; }
-	unsigned StateIndex(const State&) const { return 0; }
-};
+class NullScanner;
 
 template<class Scanner>
-typename Scanner::State RunScanner(const Scanner& scanner, FILE* f)
+typename Scanner::State RunScanner(const Scanner& scanner, const char* begin, const char* end)
 {
-	typename Scanner::State state;
-	scanner.Initialize(state);
-	Pire::Step(scanner, state, Pire::BeginMark);
-    
-	std::vector<char> buf(4096);
-	size_t size, total = 0;
-	while ((size = fread(&buf[0], 1, buf.size(), f)) != 0) {
-		Pire::Run(scanner, state, &buf[0], &buf[0] + size);
-		total += size;
-	}
-	if (ferror(f))
-		throw std::runtime_error("Cannot read input stream");
-    
-	Pire::Step(scanner, state, Pire::EndMark);
-	std::cerr << total << " bytes processed" << std::endl;
-	return state;
+	Pire::RunHelper<Scanner> runner(scanner);
+	runner.Begin().Run(begin, end).End();
+	return runner.State();
 }
 
 class Timer {
 public:
-	Timer(const std::string& msg): m_msg(msg) { gettimeofday(&m_tv, 0); }
+	Timer(const std::string& msg, size_t sz): m_msg(msg), m_sz(sz) { gettimeofday(&m_tv, 0); }
     
 	~Timer()
 	{
 		struct timeval end;
 		gettimeofday(&end, 0);
-		std::cerr << m_msg << ": " << (end.tv_sec - m_tv.tv_sec) * 1000000 + (end.tv_usec - m_tv.tv_usec) << " us" << std::endl;
+		long long usec = (end.tv_sec - m_tv.tv_sec) * 1000000 + (end.tv_usec - m_tv.tv_usec);
+		float bw = m_sz *1.0 / usec;
+		std::cerr << m_msg << ": " << usec << " us\t" << bw << " MB/sec" <<  std::endl;
 	}
     
 private:
 	std::string m_msg;
 	struct timeval m_tv;
+	size_t m_sz;
 };
 
 typedef std::vector<Pire::Fsm> Fsms;
@@ -59,7 +41,7 @@ class ITester {
 public:
 	virtual ~ITester() {}
 	virtual void Compile(const Fsms& fsms) = 0;
-	virtual void Run(FILE* f) = 0;
+	virtual void Run(const char* begin, const char* end) = 0;
 };
 
 template<class Scanner>
@@ -72,9 +54,9 @@ public:
 		sc = Pire::Fsm(fsms[0]).Compile<Scanner>();
 	}
     
-	void Run(FILE* f)
+	void Run(const char* begin, const char* end)
 	{
-		typename Scanner::State st = RunScanner(sc, f);
+		typename Scanner::State st = RunScanner(sc, begin, end);
 		if (sc.Final(st))
 			std::cerr << "Match" << std::endl;
 		else
@@ -83,6 +65,46 @@ public:
     
 private:
 	Scanner sc;
+};
+
+class FileMmap {
+public:
+	explicit FileMmap(const char *name)
+		: m_fd(0)
+		, m_mmap(0)
+		, m_len(0)
+	{
+		int fd = open(name, O_RDONLY);
+		if (!fd)
+			throw std::runtime_error("open failed");
+		m_fd = fd;
+		struct stat fileStat;
+		int err = fstat(m_fd, &fileStat);
+		if (err)
+			throw std::runtime_error("fstat failed");
+		m_len = fileStat.st_size;
+		m_mmap = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
+		if (m_mmap == MAP_FAILED)
+			throw std::runtime_error("mmap failed");
+	}
+	~FileMmap() { Close(); }
+	size_t Size() const { return m_len; }
+	const char* Begin() const { return m_mmap; }
+	const char* End() const { return m_mmap + m_len; }
+
+private:
+	void Close()
+	{
+		if (m_fd)
+			close(m_fd);
+		m_fd = 0;
+		m_mmap = 0;
+		m_len = 0;
+	}
+
+	int m_fd;
+	const char* m_mmap;
+	size_t m_len;
 };
 
 template<>
@@ -99,9 +121,9 @@ public:
 		}
 	}
     
-	void Run(FILE* f)
+	void Run(const char* begin, const char* end)
 	{
-		Pire::Scanner::State st = RunScanner(sc, f);
+		Pire::Scanner::State st = RunScanner(sc, begin, end);
 		std::pair<const size_t*, const size_t*> accepted = sc.AcceptedRegexps(st);
 		std::cerr << "Accepted regexps:";
 		for (; accepted.first != accepted.second; ++accepted.first)
@@ -117,16 +139,21 @@ template<>
 class Tester<NullScanner>: public ITester {
 public:
 	void Compile(const Fsms&) {}
-	void Run(FILE* f) { RunScanner(sc, f); }
-    
-private:
-	NullScanner sc;
+	// Just estimates memory throughput
+	void Run(const char* begin, const char* end)
+	{
+		size_t c = 0;
+		const size_t *b = (const size_t*)begin;
+		const size_t *e = (const size_t*)end;
+		while (b < e) { c ^= *b++; }
+		std::clog << c << std::endl;
+	}
 };
 
 void Main(int argc, char** argv)
 {
-	std::runtime_error usage("Usage: bench {--fast|--simple|--slow|--null} regexp [regexp2 [regexp3...]]");
-	if (argc < 3)
+	std::runtime_error usage("Usage: bench {--fast|--simple|--slow|--null} file regexp [regexp2 [regexp3...]]");
+	if (argc < 4)
 		throw usage;
     
 	std::auto_ptr<ITester> tester;
@@ -141,16 +168,24 @@ void Main(int argc, char** argv)
 		tester.reset(new Tester<NullScanner>);
 	else
 		throw usage;
-    
+
+	const char *fname = argv[2];
+
 	std::vector<Pire::Fsm> fsms;
-	for (argc -= 2, argv += 2; argc; --argc, ++argv) {
+	for (argc -= 3, argv += 3; argc; --argc, ++argv) {
 		fsms.push_back(Pire::Lexer(std::string(*argv)).Parse().Surround());
 	}
     
 	tester->Compile(fsms);
     
-	Timer timer(std::string(type.begin() + 2, type.end()));
-	tester->Run(stdin);
+	FileMmap fmap(fname);
+
+	// Run the benchmark multiple times
+	for (int i = 0; i < 3; ++i)
+	{
+		Timer timer(std::string(type.begin() + 2, type.end()), fmap.Size());
+		tester->Run(fmap.Begin(), fmap.End());
+	}
 }
 
 int main(int argc, char** argv)
