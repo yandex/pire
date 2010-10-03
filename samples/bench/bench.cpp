@@ -6,8 +6,6 @@
 #include <stdexcept>
 #include <pire/pire.h>
 
-class NullScanner;
-
 template<class Scanner>
 typename Scanner::State RunScanner(const Scanner& scanner, const char* begin, const char* end)
 {
@@ -74,18 +72,23 @@ public:
 		, m_mmap(0)
 		, m_len(0)
 	{
-		int fd = open(name, O_RDONLY);
-		if (!fd)
-			throw std::runtime_error("open failed");
-		m_fd = fd;
-		struct stat fileStat;
-		int err = fstat(m_fd, &fileStat);
-		if (err)
-			throw std::runtime_error("fstat failed");
-		m_len = fileStat.st_size;
-		m_mmap = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
-		if (m_mmap == MAP_FAILED)
-			throw std::runtime_error("mmap failed");
+		try {
+			int fd = open(name, O_RDONLY);
+			if (!fd)
+				throw std::runtime_error("open failed");
+			m_fd = fd;
+			struct stat fileStat;
+			int err = fstat(m_fd, &fileStat);
+			if (err)
+				throw std::runtime_error("fstat failed");
+			m_len = fileStat.st_size;
+			m_mmap = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
+			if (m_mmap == MAP_FAILED)
+				throw std::runtime_error("mmap failed");
+		} catch (...) {
+			Close();
+			throw;
+		}
 	}
 	~FileMmap() { Close(); }
 	size_t Size() const { return m_len; }
@@ -134,8 +137,7 @@ private:
 	Scanner sc;
 };
 
-template<>
-class Tester<NullScanner>: public ITester {
+class MemTester: public ITester {
 public:
 	void Compile(const Fsms&) {}
 	// Just estimates memory throughput
@@ -166,7 +168,7 @@ void Main(int argc, char** argv)
 	else if (type == "--slow")
 		tester.reset(new Tester<Pire::SlowScanner>);
 	else if (type == "--null")
-		tester.reset(new Tester<NullScanner>);
+		tester.reset(new MemTester);
 	else
 		throw usage;
 
