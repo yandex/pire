@@ -153,7 +153,7 @@ public:
 
 void Main(int argc, char** argv)
 {
-	std::runtime_error usage("Usage: bench {--multi|--fastmulti|--simple|--slow|--null} file regexp [regexp2 [regexp3...]]");
+	std::runtime_error usage("Usage: bench {--multi|--simple|--slow|--null} file regexp [regexp2 [regexp3...]]");
 	if (argc < 4)
 		throw usage;
     
