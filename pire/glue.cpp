@@ -32,7 +32,8 @@ public:
 		
 		// Prevent scanner from building final table
 		// (we'll build it ourselves)
-		Fill(Sc().m_tags.begin(), Sc().m_tags.end(), Scanner::Tag(Scanner::TagSet));
+		for (size_t i = 0; i != Sc().Size(); ++i)
+			Sc().m_transitions[i * Sc().m.lettersCount] = Scanner::TagSet; 
 		
 		for (size_t state = 0; state != states.size(); ++state) {
 			Sc().m_finalIndex[state] = Sc().m_finalEnd - Sc().m_final;

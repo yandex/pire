@@ -413,38 +413,25 @@ SIMPLE_UNIT_TEST(Glue)
 	Pire::Scanner sc1 = ParseRegexp("aaa").Compile<Pire::Scanner>();
 	Pire::Scanner sc2 = ParseRegexp("bbb").Compile<Pire::Scanner>();
 	Pire::Scanner glued = Pire::Scanner::Glue(sc1, sc2);
-	Pire::FastScanner gluedFast = Pire::FastScanner(glued);
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(2));
 
-	ypair<const size_t*, const size_t*> res, resFast;
+	ypair<const size_t*, const size_t*> res;
                                                                                                                           
 	res = glued.AcceptedRegexps(RunRegexp(glued, "aaa"));
-	resFast = gluedFast.AcceptedRegexps(RunRegexp(gluedFast, "aaa"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(*res.first, size_t(0));
-	UNIT_ASSERT_EQUAL(resFast.second - resFast.first, ssize_t(1));
-	UNIT_ASSERT_EQUAL(*resFast.first, size_t(0));
                                                                                                                           
 	res = glued.AcceptedRegexps(RunRegexp(glued, "bbb"));
-	resFast = gluedFast.AcceptedRegexps(RunRegexp(gluedFast, "bbb"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(*res.first, size_t(1));
-	UNIT_ASSERT_EQUAL(resFast.second - resFast.first, ssize_t(1));
-	UNIT_ASSERT_EQUAL(*resFast.first, size_t(1));
 
 	res = glued.AcceptedRegexps(RunRegexp(glued, "aaabbb"));
-	resFast = gluedFast.AcceptedRegexps(RunRegexp(gluedFast, "aaabbb"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(2));
 	UNIT_ASSERT_EQUAL(res.first[0], size_t(0));
 	UNIT_ASSERT_EQUAL(res.first[1], size_t(1));
-	UNIT_ASSERT_EQUAL(resFast.second - resFast.first, ssize_t(2));
-	UNIT_ASSERT_EQUAL(resFast.first[0], size_t(0));
-	UNIT_ASSERT_EQUAL(resFast.first[1], size_t(1));
 
 	res = glued.AcceptedRegexps(RunRegexp(glued, "ccc"));
-	resFast = gluedFast.AcceptedRegexps(RunRegexp(gluedFast, "ccc"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(0));
-	UNIT_ASSERT_EQUAL(resFast.second - resFast.first, ssize_t(0));
 
 	Pire::Scanner sc3 = ParseRegexp("ccc").Compile<Pire::Scanner>();
 	glued = Pire::Scanner::Glue(sc3, glued);

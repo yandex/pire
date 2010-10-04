@@ -161,8 +161,6 @@ void Main(int argc, char** argv)
 	std::string type(argv[1]);                                            
 	if (type == "--multi")
 		tester.reset(new MultiTester<Pire::Scanner>);
-	else if (type == "--fastmulti")
-		tester.reset(new MultiTester<Pire::FastScanner>);
 	else if (type == "--simple")
 		tester.reset(new Tester<Pire::SimpleScanner>);
 	else if (type == "--slow")

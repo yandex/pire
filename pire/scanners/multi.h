@@ -76,19 +76,19 @@ public:
 		return m.regexpsCount;
 	}
 	size_t LettersCount() const {
-		return m.lettersCount;
+		return m.lettersCount - 1;
 	}
 
 	/// Checks whether specified state is in any of the final sets
-	bool Final(const State& state) const { return (state & FinalFlag) != 0;	}
+	bool Final(const State& state) const { return (*reinterpret_cast<const Transition*>(state) & FinalFlag) != 0; }
 	
 	/// Checks whether specified state is 'dead' (i.e. scanner will never
 	/// reach any final state from current one)
-	bool Dead(const State& state) const { return (state & DeadFlag) != 0; }
+	bool Dead(const State& state) const { return (*reinterpret_cast<const Transition*>(state) & DeadFlag) != 0; }
 
 	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& state) const
 	{
-		size_t idx = ((state & ~Flags) - reinterpret_cast<size_t>(m_transitions)) /
+		size_t idx = (state - reinterpret_cast<size_t>(m_transitions)) /
 			(m.lettersCount * sizeof(Transition));
 		const size_t* b = m_final + m_finalIndex[idx];
 		const size_t* e = b;
@@ -103,7 +103,6 @@ public:
 	/// Handles one characters
 	Action Next(State& state, Char c) const
 	{
-		state &= ~Flags;
 		size_t letterClass = m_letters[c];
 		ssize_t shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
 		state += shift;
@@ -113,7 +112,7 @@ public:
 
 	void TakeAction(State&, Action) const {}
 
-	Scanner(const Scanner& s): m(s.m), m_tags(s.m_tags)
+	Scanner(const Scanner& s): m(s.m)
 	{
 		if (!s.m_buffer) {
 			// Empty or mmap()-ed scanner, just copy pointers
@@ -146,7 +145,6 @@ public:
 		DoSwap(m_finalEnd, s.m_finalEnd);
 		DoSwap(m_finalIndex, s.m_finalIndex);
 		DoSwap(m_transitions, s.m_transitions);
-		DoSwap(m_tags, s.m_tags);
 	}
 
 	Scanner& operator = (const Scanner& s) { Scanner(s).Swap(*this); return *this; }
@@ -186,7 +184,7 @@ public:
 
 	size_t StateIndex(State s) const
 	{
-		return ((s & ~Flags) - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition));
+		return (s - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition));
 	}
 
 	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0);
@@ -223,16 +221,13 @@ protected:
 
 	Transition* m_transitions;
 	
-	yvector<Tag> m_tags; // Not used during match. Actually tags are stored in lower bits of the state.
-
 	template<class Eq>
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
 	{
 		m.statesCount = states;
-		m.lettersCount = letters.Size();
+		m.lettersCount = letters.Size() + 1;
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
-		m_tags.resize(states, 0);
 
 		m_buffer = new char[BufSize()];
 		memset(m_buffer, 0, BufSize());
@@ -244,7 +239,7 @@ protected:
 		// Build letter translation table
 		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
 			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first;
+				m_letters[*it2] = it->second.first + 1; // First item of the transition row stores state flags, hence +1
 	}
 
 	/*
@@ -264,8 +259,7 @@ protected:
 		YASSERT(oldState < m.statesCount);
 		YASSERT(newState < m.statesCount);
 		m_transitions[oldState * m.lettersCount + m_letters[c]]
-			= ((newState - oldState) * m.lettersCount * sizeof(Transition))
-			| (m_tags[newState] & Flags);
+			= ((newState - oldState) * m.lettersCount * sizeof(Transition));
 	}
 
 	unsigned long RemapAction(unsigned long action) { return action; }
@@ -273,23 +267,22 @@ protected:
 	void SetInitial(size_t state)
 	{
 		YASSERT(m_buffer);
-		m.initial = reinterpret_cast<size_t>(m_transitions + state * m.lettersCount) | (m_tags[state] & Flags);
+		m.initial = reinterpret_cast<size_t>(m_transitions + state * m.lettersCount);
 	}
 
-	void SetTag(size_t state, size_t tag)
+	void SetTag(size_t state, size_t value)
 	{
+		// FIXME: SetTag() needs to be called for _each_ state.
 		YASSERT(m_buffer);
+		Transition& tag = m_transitions[state * m.lettersCount];
 		
-		if (!(m_tags[state] & TagSet)) {
+		if (!(tag & TagSet)) {
 			m_finalIndex[state] = m_finalEnd - m_final;
-			if (tag & FinalFlag)
+			if (value & FinalFlag)
 				*m_finalEnd++ = 0;
 			*m_finalEnd++ = static_cast<size_t>(-1);
 		}
-		m_tags[state] = (tag & Flags) | TagSet;	
-
-		if (((m.initial & ~Flags) - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition)) == state)
-			m.initial = (m.initial & ~Flags) | (tag & Flags);
+		tag = (value & Flags) | TagSet;
 	}
 
 	size_t AcceptedRegexpsCount(size_t idx) const
@@ -306,53 +299,6 @@ protected:
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
 	friend class Impl::ScannerGlueTask;
-};
-
-
-/**
-* A faster version of compiled multiregexp.
-* The speedup is achieved by not saving the flags in the transition table and hence
-* not needing to clear those flags when calculating offsets on each step of the scanner.
-*/
-class FastScanner : public Scanner {
-public:
-	FastScanner()
-		: Scanner()
-	{}
-
-	explicit FastScanner(const Scanner& s)
-		: Scanner(s)
-	{
-		ClearFinalFlag();
-	}
-
-	FastScanner& operator = (const Scanner& s)
-	{
-		FastScanner(s).Swap(*this);
-		ClearFinalFlag();
-		return *this;
-	}
-
-	/// Handles one characters
-	FORCED_INLINE
-	Action Next(State& state, Char c) const
-	{
-		size_t letterClass = m_letters[static_cast<size_t>(c)];
-		i64 shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
-		state += shift;
-
-		return 0;
-	}
-
-private:
-	// Optimization for tiny_mu - final flag in the state is never checked there
-	void ClearFinalFlag()
-	{
-		m.initial &= ~FinalFlag;
-
-		for (size_t tran = 0; tran < m.statesCount * m.lettersCount; ++tran)
-			m_transitions[tran] &= ~FinalFlag;
-	}
 };
 
 }
