@@ -3,16 +3,9 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <pire/pire.h>
-
-template<class Scanner>
-typename Scanner::State RunScanner(const Scanner& scanner, const char* begin, const char* end)
-{
-	Pire::RunHelper<Scanner> runner(scanner);
-	runner.Begin().Run(begin, end).End();
-	return runner.State();
-}
 
 class Timer {
 public:
@@ -38,32 +31,102 @@ typedef std::vector<Pire::Fsm> Fsms;
 class ITester {
 public:
 	virtual ~ITester() {}
-	virtual void Compile(const Fsms& fsms) = 0;
+	virtual void Compile(const std::vector<Fsms>& fsms) = 0;
 	virtual void Run(const char* begin, const char* end) = 0;
 };
 
 template<class Scanner>
-class Tester: public ITester {
-public:
-	void Compile(const Fsms& fsms)
+struct Compile {
+	static Scanner Do(const Fsms& fsms)
 	{
 		if (fsms.size() != 1)
 			throw std::runtime_error("Only one regexp is allowed for this scanner");
-		sc = Pire::Fsm(fsms[0]).Compile<Scanner>();
+		return Pire::Fsm(fsms[0]).Compile<Scanner>();
 	}
-    
-	void Run(const char* begin, const char* end)
+};
+
+template<>
+struct Compile<Pire::Scanner> {
+	static Pire::Scanner Do(const Fsms& fsms)
 	{
-		typename Scanner::State st = RunScanner(sc, begin, end);
+		Pire::Scanner sc;
+		for (Fsms::const_iterator i = fsms.begin(), ie = fsms.end(); i != ie; ++i) {
+			Pire::Scanner tsc = Pire::Fsm(*i).Compile<Pire::Scanner>();
+			if (i == fsms.begin())
+				tsc.Swap(sc);
+			else
+				sc = Pire::Scanner::Glue(sc, tsc);
+		}
+		return sc;
+	}
+};
+
+template<class Scanner>
+struct PrintResult {
+	static void Do(const Scanner& sc, typename Scanner::State st)
+	{
 		if (sc.Final(st))
 			std::cerr << "Match" << std::endl;
 		else
 			std::cerr << "No match" << std::endl;
 	}
-    
+};
+
+template<>
+struct PrintResult<Pire::Scanner> {
+	static void Do(const Pire::Scanner& sc, Pire::Scanner::State st)
+	{
+		std::pair<const size_t*, const size_t*> accepted = sc.AcceptedRegexps(st);
+		std::cerr << "Accepted regexps:";
+		for (; accepted.first != accepted.second; ++accepted.first)
+			std::cerr << " " << *accepted.first;
+		std::cerr << std::endl;
+	}
+};
+
+
+template<class Scanner>
+class Tester: public ITester {
+public:
+	void Compile(const std::vector<Fsms>& fsms)
+	{
+		if (fsms.size() != 1)
+			throw std::runtime_error("Only one set of regexps is allowed for this scanner");
+		sc = ::Compile<Scanner>::Do(fsms[0]);
+	}
+	
+	void Run(const char* begin, const char* end)
+	{
+		PrintResult<Scanner>::Do(sc, Pire::Runner(sc).Begin().Run(begin, end).End().State());
+	}
 private:
 	Scanner sc;
 };
+
+template<class Scanner1, class Scanner2>
+class PairTester: public ITester {
+	void Compile(const std::vector<Fsms>& fsms)
+	{
+		if (fsms.size() != 2)
+			throw std::runtime_error("Only two sets of regexps are allowed for this scanner");
+		sc1 = ::Compile<Scanner1>::Do(fsms[0]);
+		sc2 = ::Compile<Scanner2>::Do(fsms[1]);
+	}
+	
+	void Run(const char* begin, const char* end)
+	{
+		typedef Pire::Impl::ScannerPair<Scanner1, Scanner2> Pair;
+		Pire::RunHelper<Pair> rh(Pair(sc1, sc2));
+		rh.Begin().Run(begin, end).End();
+		std::cerr << "[first] "; PrintResult<Scanner1>::Do(sc1, rh.State().first);
+		std::cerr << "[second] "; PrintResult<Scanner2>::Do(sc2, rh.State().second);
+	}
+	
+private:
+	Scanner1 sc1;
+	Scanner2 sc2;
+};
+
 
 class FileMmap {
 public:
@@ -110,36 +173,9 @@ private:
 	size_t m_len;
 };
 
-template<class Scanner>
-class MultiTester: public ITester {
-public:
-	void Compile(const Fsms& fsms)
-	{
-		for (Fsms::const_iterator i = fsms.begin(), ie = fsms.end(); i != ie; ++i) {
-			Pire::Scanner tsc = Pire::Fsm(*i).Compile<Pire::Scanner>();
-			if (i == fsms.begin())
-				tsc.Swap(sc);
-			else
-				sc = Pire::Scanner::Glue(sc, tsc);
-		}
-	}
-
-	void Run(const char* begin, const char* end)
-	{
-		Pire::Scanner::State st = RunScanner(sc, begin, end);
-		std::pair<const size_t*, const size_t*> accepted = sc.AcceptedRegexps(st);
-		std::cerr << "Accepted regexps:";
-		for (; accepted.first != accepted.second; ++accepted.first)
-			std::cerr << " " << *accepted.first;
-		std::cerr << std::endl;
-	}
-private:
-	Scanner sc;
-};
-
 class MemTester: public ITester {
 public:
-	void Compile(const Fsms&) {}
+	void Compile(const std::vector<Fsms>&) {}
 	// Just estimates memory throughput
 	void Run(const char* begin, const char* end)
 	{
@@ -151,40 +187,67 @@ public:
 	}
 };
 
+
 void Main(int argc, char** argv)
 {
-	std::runtime_error usage("Usage: bench {--multi|--simple|--slow|--null} file regexp [regexp2 [regexp3...]]");
-	if (argc < 4)
+	std::runtime_error usage("Usage: bench -f file -t {multi|simple|slow|null} regexp [regexp2 [-e regexp3...]] [-t <type> regexp4 [regexp5...]]");
+	std::vector<Fsms> fsms;
+	std::vector<std::string> types;
+	std::string file;
+	for (--argc, ++argv; argc; --argc, ++argv) {
+		if (!strcmp(*argv, "-t") && argc >= 2) {
+			types.push_back(argv[1]);
+			fsms.push_back(Fsms());
+			--argc, ++argv;
+		} else if (!strcmp(*argv, "-f") && argc >= 2) {
+			file = argv[1];
+			--argc, ++argv;
+		} else if (!strcmp(*argv, "-e") && argc >= 2) {
+			if (fsms.empty())
+				throw usage;
+			fsms.back().push_back(Pire::Lexer(std::string(argv[1])).Parse().Surround());
+			--argc, ++argv;
+		} else {
+			if (fsms.empty())
+				throw usage;
+			fsms.back().push_back(Pire::Lexer(std::string(*argv)).Parse().Surround());
+		}
+	}
+	if (types.empty() || file.empty() || fsms.back().empty())
 		throw usage;
-    
+
 	std::auto_ptr<ITester> tester;
-	std::string type(argv[1]);                                            
-	if (type == "--multi")
-		tester.reset(new MultiTester<Pire::Scanner>);
-	else if (type == "--simple")
+	
+	if (types.size() == 1 && types[0] == "multi")
+		tester.reset(new Tester<Pire::Scanner>);
+	else if (types.size() == 1 && types[0] == "simple")
 		tester.reset(new Tester<Pire::SimpleScanner>);
-	else if (type == "--slow")
+	else if (types.size() == 1 && types[0] == "slow")
 		tester.reset(new Tester<Pire::SlowScanner>);
-	else if (type == "--null")
+	else if (types.size() == 1 && types[0] == "null")
 		tester.reset(new MemTester);
+	else if (types.size() == 2 && types[0] == "multi" && types[1] == "multi")
+		tester.reset(new PairTester<Pire::Scanner, Pire::Scanner>);
+	else if (types.size() == 2 && types[0] == "simple" && types[1] == "simple")
+		tester.reset(new PairTester<Pire::SimpleScanner, Pire::SimpleScanner>);
+	else if (types.size() == 2 && types[0] == "multi" && types[1] == "simple")
+		tester.reset(new PairTester<Pire::Scanner, Pire::SimpleScanner>);
+	else if (types.size() == 2 && types[0] == "simple" && types[1] == "multi")
+		tester.reset(new PairTester<Pire::SimpleScanner, Pire::Scanner>);
 	else
 		throw usage;
 
-	const char *fname = argv[2];
-
-	std::vector<Pire::Fsm> fsms;
-	for (argc -= 3, argv += 3; argc; --argc, ++argv) {
-		fsms.push_back(Pire::Lexer(std::string(*argv)).Parse().Surround());
-	}
-    
 	tester->Compile(fsms);
-    
-	FileMmap fmap(fname);
+	FileMmap fmap(file.c_str());
 
 	// Run the benchmark multiple times
+	std::ostringstream stream;
+	for (std::vector<std::string>::iterator j = types.begin(), je = types.end(); j != je; ++j)
+		stream << *j << " ";
+	std::string typesName = stream.str();
 	for (int i = 0; i < 3; ++i)
 	{
-		Timer timer(std::string(type.begin() + 2, type.end()), fmap.Size());
+		Timer timer(typesName, fmap.Size());
 		tester->Run(fmap.Begin(), fmap.End());
 	}
 }
