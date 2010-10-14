@@ -1,3 +1,26 @@
+/*
+ * fsm.h -- the definition of the FSM class.
+ *
+ * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
+ *                          Alexander Gololobov <agololobov@gmail.com>
+ *
+ * This file is part of Pire, the Perl Incompatible
+ * Regular Expressions library.
+ *
+ * Pire is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Pire is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser Public License for more details.
+ * You should have received a copy of the GNU Lesser Public License
+ * along with Pire.  If not, see <http://www.gnu.org/licenses>.
+ */
+
+
 #ifndef PIRE_FSM_H
 #define PIRE_FSM_H
 
@@ -35,16 +58,18 @@ namespace Pire {
 		/// while another string represents its uppercase variant.
 		void AppendStrings(const yvector<ystring>& strings);
 
+		/// Appends a part matching a single byte (any).
 		void AppendDot();
 
+		/// Appends and prepends the FSM with the dot (see above).
 		Fsm& Surround(); // returns *this
 		Fsm Surrounded() const { Fsm copy(*this); copy.Surround(); return copy; }
 
-		Fsm& operator += (const Fsm& rhs);
-		Fsm& operator |= (const Fsm& rhs);
-		Fsm& operator &= (const Fsm& rhs);
-		Fsm& Iterate();
-		Fsm& Complement();
+		Fsm& operator += (const Fsm& rhs); ///< Concatenation
+		Fsm& operator |= (const Fsm& rhs); ///< Alternation
+		Fsm& operator &= (const Fsm& rhs); ///< Conjunction
+		Fsm& Iterate();                    ///< Klene star
+		Fsm& Complement();                 ///< Complementation
 		Fsm& operator *= (size_t count) { *this = *this * count; return *this; }
 
 		Fsm operator + (const Fsm& rhs) const { Fsm a(*this); return a += rhs; }
@@ -105,11 +130,11 @@ namespace Pire {
 
 
 		/*
-		* A very low level FSM building interface.
-		*
-		* It is generally unwise to call any of these functions unless you are building
-		* your own scanner, your own ecoding or exaclty know what are you doing.
-		*/
+		 * A very low level FSM building interface.
+		 *
+		 * It is generally unwise to call any of these functions unless you are building
+		 * your own scanner, your own ecoding or exaclty know what you are doing.
+		 */
 		unsigned long Tag(size_t state) const { Tags::const_iterator i = tags.find(state); return (i == tags.end()) ? 0 : i->second; }
 		void SetTag(size_t state, unsigned long tag) { tags[state] = tag; }
 

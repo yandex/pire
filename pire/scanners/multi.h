@@ -1,3 +1,26 @@
+/*
+ * multi.h -- definition of the Scanner
+ *
+ * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
+ *                          Alexander Gololobov <agololobov@gmail.com>
+ *
+ * This file is part of Pire, the Perl Incompatible
+ * Regular Expressions library.
+ *
+ * Pire is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Pire is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser Public License for more details.
+ * You should have received a copy of the GNU Lesser Public License
+ * along with Pire.  If not, see <http://www.gnu.org/licenses>.
+ */
+
+
 #ifndef PIRE_SCANNERS_MULTI_H
 #define PIRE_SCANNERS_MULTI_H
 
@@ -16,14 +39,14 @@ namespace Pire {
 	namespace Impl { class ScannerGlueTask; }
 
 /**
-* A compiled multiregexp.
-* Can only find out whether a string matches the regexps or not,
-* but takes O( str.length() ) time.
-*
-* In addition, multiple scanners can be agglutinated together,
-* producting a scanner which can be used for checking
-* strings against several regexps in a single pass.
-*/
+ * A compiled multiregexp.
+ * Can only find out whether a string matches the regexps or not,
+ * but takes O( str.length() ) time.
+ *
+ * In addition, multiple scanners can be agglutinated together,
+ * producting a scanner which can be used for checking
+ * strings against several regexps in a single pass.
+ */
 class Scanner {
 protected:
 	enum {
@@ -155,9 +178,9 @@ public:
 	}
 
 	/*
-	* Constructs the scanner from mmap()-ed memory range, returning a pointer
-	* to unconsumed part of the buffer.
-	*/
+	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
+	 * to unconsumed part of the buffer.
+	 */
 	const void* Mmap(const void* ptr, size_t size)
 	{
 		Impl::CheckAlign(ptr);
@@ -243,8 +266,8 @@ protected:
 	}
 
 	/*
-	* Initializes pointers depending on buffer start, letters and states count
-	*/
+	 * Initializes pointers depending on buffer start, letters and states count
+	 */
 	void Markup(void* ptr)
 	{
 		m_letters     = reinterpret_cast<Letter*>(ptr);

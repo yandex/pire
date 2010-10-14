@@ -1,3 +1,26 @@
+/*
+ * slow.h -- definition of the SlowScanner
+ *
+ * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
+ *                          Alexander Gololobov <agololobov@gmail.com>
+ *
+ * This file is part of Pire, the Perl Incompatible
+ * Regular Expressions library.
+ *
+ * Pire is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Pire is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser Public License for more details.
+ * You should have received a copy of the GNU Lesser Public License
+ * along with Pire.  If not, see <http://www.gnu.org/licenses>.
+ */
+
+
 #ifndef PIRE_SCANNERS_SLOW_H
 #define PIRE_SCANNERS_SLOW_H
 
@@ -16,13 +39,13 @@
 namespace Pire {
 
 /**
-* A 'slow' scanner.
-* Takes O( str.length() * this->m_states.size() ) time to scan string,
-* but does not require FSM to be deterministic.
-* Thus can be used to handle something sorta /x.{40}$/,
-* where deterministic FSM contains 2^40 states and hence cannot fit
-* in memory.
-*/
+ * A 'slow' scanner.
+ * Takes O( str.length() * this->m_states.size() ) time to scan string,
+ * but does not require FSM to be deterministic.
+ * Thus can be used to handle something sorta /x.{40}$/,
+ * where deterministic FSM contains 2^40 states and hence cannot fit
+ * in memory.
+ */
 class SlowScanner {
 public:
 	typedef size_t      Transition;

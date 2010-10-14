@@ -1,3 +1,26 @@
+/*
+ * simple.h -- the definition of the SimpleScanner
+ *
+ * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
+ *                          Alexander Gololobov <agololobov@gmail.com>
+ *
+ * This file is part of Pire, the Perl Incompatible
+ * Regular Expressions library.
+ *
+ * Pire is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Pire is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser Public License for more details.
+ * You should have received a copy of the GNU Lesser Public License
+ * along with Pire.  If not, see <http://www.gnu.org/licenses>.
+ */
+
+
 #ifndef PIRE_SCANNERS_SIMPLE_H
 #define PIRE_SCANNERS_SIMPLE_H
 
@@ -7,6 +30,11 @@
 #include "../stub/saveload.h"
 
 namespace Pire {
+
+/**
+ * More faster version than the Scanner, but incapable of storing multiple
+ * regexps and taking more memory for the same regexp.
+ */
 class SimpleScanner {
 private:
 	static const size_t STATE_ROW_SIZE = MaxChar + 1; // All characters + 1 element to store final state flag
@@ -81,9 +109,9 @@ public:
 	}
 
 	/*
-	* Constructs the scanner from mmap()-ed memory range, returning a pointer
-	* to unconsumed part of the buffer.
-	*/
+	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
+	 * to unconsumed part of the buffer.
+	 */
 	const void* Mmap(const void* ptr, size_t size)
 	{
 		Impl::CheckAlign(ptr);
@@ -133,8 +161,8 @@ protected:
 	Transition* m_transitions;
 
 	/*
-	* Initializes pointers depending on buffer start, letters and states count
-	*/
+	 * Initializes pointers depending on buffer start, letters and states count
+	 */
 	void Markup(void* ptr)
 	{
 		m_transitions = reinterpret_cast<Transition*>(ptr);
