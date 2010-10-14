@@ -1,0 +1,41 @@
+BUILDING AND INSTALLATION INSTRUCTIONS
+======================================
+
+On *nix, from the tarball:
+
+	$ ./configure && make && sudo make install
+
+	Pire uses GNU autotools, so all customizations of the build process
+	(overriding compiler or its flags, installation into other directory,
+	cross-compiling, etc...) is applicable for Pire as well.
+	`./configure --help' gives you a brief description of those.
+
+	If you want additional features placed in extra/ directory (CountingScanner,
+	CapturingScanner and GlueSimilarGlyphs feature), add `--enable-extra' option
+	to ./configure.
+
+	If you want to build and run unit tests, install cppunit <http://cppunit.sourceforge.net>,
+	add `--with-cppunit' option to ./configure and run `make check'.
+
+	You will find stubs for package specs in pkg/ directories. You can use them for providing
+	a package for your favourite distribution; your contribution will be highly appreciated.
+
+
+On *nix, from VCS:
+
+	You will need GNU autotools (autoconf, automake and libtool), bison, flex and cppunit.
+	Please note that if you want to rebuild the tarball, cppunit is required, since its detection
+	and using code is needed in configure script and makefiles.
+
+	Once you have all this, simply run
+	$ autoreconf --install && ./configure && make all check && sudo make install
+
+	To rebuild the tarball, run `make distcheck'.
+
+
+On Windows:
+
+	Unpack the tarball and run `nmake -f pkg\Makefile win32 all'.
+
+	If you want to build bleeding edge version from VCS, you'll need to install bison, flex,
+	cppunit and create a project on your own.
