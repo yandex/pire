@@ -71,6 +71,7 @@ Die DieHelper() {
 
 "/*" {
 	int c;
+	fputs("/*", yyout);
 	for (;;) {
 		while ((c = yyinput()) != EOF && c != '*') {
 			if (c == '\n')
@@ -78,6 +79,7 @@ Die DieHelper() {
 			putc(c, yyout);
 		}
 		if (c == '*') {
+			putc('*', yyout);
 			while ((c = yyinput()) == '*')
 				putc(c, yyout);
 			if (c == '/') {
