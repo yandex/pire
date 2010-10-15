@@ -50,8 +50,9 @@ AC_CONFIG_FILES([
 	pire/Makefile
 	tests/Makefile
 	pkg/Makefile
+	tools/Makefile
+	tools/bench/Makefile
 	samples/Makefile
-	samples/bench/Makefile
 	samples/inline/Makefile
 	samples/blacklist/Makefile
 	samples/pigrep/Makefile
