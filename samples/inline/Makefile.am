@@ -9,7 +9,7 @@ endif
 
 noinst_PROGRAMS = validator
 
-validator_SOURCES  = validator_2.cpp
+nodist_validator_SOURCES = validator_2.cpp
 validator_LDADD    = ../../pire/libpire.la
 validator_CXXFLAGS = -I$(top_srcdir) $(AM_CXXFLAGS)
 
