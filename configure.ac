@@ -45,5 +45,6 @@ AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
 
-AC_CONFIG_FILES([Makefile pire/Makefile tests/Makefile pkg/Makefile samples/Makefile samples/bench/Makefile])
+AC_CONFIG_FILES([Makefile pire/Makefile tests/Makefile pkg/Makefile samples/Makefile
+		 samples/bench/Makefile samples/inline/Makefile])
 AC_OUTPUT

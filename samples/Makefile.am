@@ -1,1 +1,3 @@
-SUBDIRS = bench
+SUBDIRS = \
+	bench \
+	inline
