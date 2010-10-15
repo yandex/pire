@@ -168,9 +168,10 @@ public:
 			if (err)
 				throw std::runtime_error("fstat failed");
 			m_len = fileStat.st_size;
-			m_mmap = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
-			if (m_mmap == MAP_FAILED)
+			const char* addr = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
+			if (addr == MAP_FAILED)
 				throw std::runtime_error("mmap failed");
+			m_mmap = addr;
 		} catch (...) {
 			Close();
 			throw;
@@ -184,6 +185,8 @@ public:
 private:
 	void Close()
 	{
+		if (m_mmap)
+			munmap((void*)m_mmap, m_len);
 		if (m_fd)
 			close(m_fd);
 		m_fd = 0;
