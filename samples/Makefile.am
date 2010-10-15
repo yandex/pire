@@ -1,3 +1,4 @@
 SUBDIRS = \
 	bench \
-	inline
+	inline \
+	blacklist

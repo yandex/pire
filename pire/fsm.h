@@ -48,18 +48,19 @@ namespace Pire {
 		/// Current number of states
 		size_t Size() const { return m_transitions.size(); }
 
-		void Append(char c);
-		void AppendSpecial(Char c);
+		Fsm& Append(char c);
+        Fsm& Append(const ystring& str);
+		Fsm& AppendSpecial(Char c);
 
 		/// Efficiently appends a union of passed strings to FSM.
 		/// Used for ranges (e.g. [a-z]), character classes (e.g. \w, \d)
 		/// and case-insensitive comparison of multibyte characters,
 		/// when one string represents a lowercase variant of a character,
 		/// while another string represents its uppercase variant.
-		void AppendStrings(const yvector<ystring>& strings);
+		Fsm& AppendStrings(const yvector<ystring>& strings);
 
 		/// Appends a part matching a single byte (any).
-		void AppendDot();
+		Fsm& AppendDot();
 
 		/// Appends and prepends the FSM with the dot (see above).
 		Fsm& Surround(); // returns *this

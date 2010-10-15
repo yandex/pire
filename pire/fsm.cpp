@@ -240,7 +240,7 @@ void Fsm::SetFinal(size_t state, bool final)
 		m_final.erase(state);
 }
 
-void Fsm::AppendDot()
+Fsm& Fsm::AppendDot()
 {
 	Resize(Size() + 1);
 	for (size_t letter = 0; letter != (1 << (sizeof(char)*8)); ++letter)
@@ -248,27 +248,37 @@ void Fsm::AppendDot()
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
+    return *this;
 }
 
-void Fsm::Append(char c)
+Fsm& Fsm::Append(char c)
 {
 	Resize(Size() + 1);
 	ConnectFinal(Size() - 1, static_cast<unsigned char>(c));
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
+    return *this;
+}
+    
+Fsm& Fsm::Append(const ystring& str)
+{
+    for (ystring::const_iterator i = str.begin(), ie = str.end(); i != ie; ++i)
+        Append(*i);
+    return *this;
 }
 
-void Fsm::AppendSpecial(Char c)
+Fsm& Fsm::AppendSpecial(Char c)
 {
 	Resize(Size() + 1);
 	ConnectFinal(Size() - 1, c);
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
+    *this;
 }
 
-void Fsm::AppendStrings(const yvector<ystring>& strings)
+Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
 {
 	for (yvector<ystring>::const_iterator i = strings.begin(), ie = strings.end(); i != ie; ++i)
 		if (i->empty())
