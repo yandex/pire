@@ -17,6 +17,9 @@ other regexp libraries). Pire does not have any Perlish conditional
 regexps, lookaheads & backtrackings, greedy/nongreedy matches; neither
 has it any capturing facilities.
 
+Pire was developed in Yandex (http://company.yandex.ru/) as a part of its
+web crawler.
+
 More information can be found in README.ru (in Russian), which is
 yet to be translated.
 
