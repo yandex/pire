@@ -275,7 +275,7 @@ Fsm& Fsm::AppendSpecial(Char c)
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
-    *this;
+    return *this;
 }
 
 Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
@@ -344,6 +344,7 @@ Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
 
 	ClearFinal();
 	SetFinal(end, true);
+    return *this;
 }
 
 void Fsm::Import(const Fsm& rhs)

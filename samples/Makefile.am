@@ -1,4 +1,5 @@
 SUBDIRS = \
 	bench \
 	inline \
-	blacklist
+	blacklist \
+	pigrep

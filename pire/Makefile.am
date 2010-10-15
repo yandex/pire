@@ -97,13 +97,10 @@ pire_stub_HEADERS = \
 	stub/saveload.h \
 	stub/lexical_cast.h
 
-bin_PROGRAMS = pire_inline pigrep
+bin_PROGRAMS = pire_inline 
 
 pire_inline_SOURCES = inline.lpp stub/hacks.h stub/memstreams.h
 pire_inline_LDADD = libpire.la
-
-pigrep_SOURCES = pigrep.cpp
-pigrep_LDADD = libpire.la
 
 BUILT_SOURCES = re_parser.h re_parser.cpp
 CLEANFILES    = re_parser.h re_parser.cpp
