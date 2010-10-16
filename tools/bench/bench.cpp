@@ -22,6 +22,7 @@
 
 
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
@@ -77,8 +78,14 @@ struct Compile<Pire::Scanner> {
 			Pire::Scanner tsc = Pire::Fsm(*i).Compile<Pire::Scanner>();
 			if (i == fsms.begin())
 				tsc.Swap(sc);
-			else
+			else {
 				sc = Pire::Scanner::Glue(sc, tsc);
+				if (sc.Empty()) {
+					std::ostringstream msg;
+					msg << "Scanner gluing failed at regexp #" << i - fsms.begin() << " - pattern too complicated";
+					throw std::runtime_error(msg.str());
+				}
+			}
 		}
 		return sc;
 	}
@@ -160,17 +167,17 @@ public:
 	{
 		try {
 			int fd = open(name, O_RDONLY);
-			if (!fd)
-				throw std::runtime_error("open failed");
+			if (fd == -1)
+				throw std::runtime_error(std::string("open failed for ") + name + ": " + strerror(errno));
 			m_fd = fd;
 			struct stat fileStat;
 			int err = fstat(m_fd, &fileStat);
 			if (err)
-				throw std::runtime_error("fstat failed");
+				throw std::runtime_error(std::string("fstat failed for") + name + ": " + strerror(errno));
 			m_len = fileStat.st_size;
 			const char* addr = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
 			if (addr == MAP_FAILED)
-				throw std::runtime_error("mmap failed");
+				throw std::runtime_error(std::string("mmap failed for ") + name + ": " + strerror(errno));
 			m_mmap = addr;
 		} catch (...) {
 			Close();
