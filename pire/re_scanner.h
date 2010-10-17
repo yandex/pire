@@ -244,7 +244,7 @@ namespace Impl {
 
 /// The main function: runs a scanner through given memory range.
 template<class Scanner>
-inline void Run(const Scanner& scanner, typename Scanner::State& state, const char* begin, const char* end)
+inline void Run(const Scanner& scanner, typename Scanner::State& st, const char* begin, const char* end)
 {
 	YASSERT(sizeof(void*) <= 8);
 
@@ -255,9 +255,14 @@ inline void Run(const Scanner& scanner, typename Scanner::State& state, const ch
 	size_t tailSize = end - (const char*) tail;
 
 	if (head == tail) {
-		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), end - begin);
+		Impl::RunChunk(scanner, st, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), end - begin);
 		return;
 	}
+
+	// st is passed by reference to this function. If we use it directly on each step the compiler will have to
+	// update it in memory because of pointer aliasing assumptions. Copying it into a local var allows the
+	// compiler to store it in a register. This saves some instructions and cycles
+	typename Scanner::State state = st;
 
 	if (headSize) {
 		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), headSize);
@@ -275,6 +280,8 @@ inline void Run(const Scanner& scanner, typename Scanner::State& state, const ch
 
 	if (tailSize)
 		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*tail), tailSize);
+
+	st = state;
 }
 
 /// Runs two scanners through given memory range simultaneously.
