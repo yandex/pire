@@ -69,8 +69,8 @@ struct Compile {
 	}
 };
 
-template<>
-struct Compile<Pire::Scanner> {
+template<class Relocation>
+struct Compile< Pire::Impl::Scanner<Relocation> > {
 	static Pire::Scanner Do(const Fsms& fsms)
 	{
 		Pire::Scanner sc;
@@ -102,8 +102,8 @@ struct PrintResult {
 	}
 };
 
-template<>
-struct PrintResult<Pire::Scanner> {
+template<class Relocation>
+struct PrintResult< Pire::Impl::Scanner<Relocation> > {
 	static void Do(const Pire::Scanner& sc, Pire::Scanner::State st)
 	{
 		std::pair<const size_t*, const size_t*> accepted = sc.AcceptedRegexps(st);
@@ -223,7 +223,7 @@ public:
 
 void Main(int argc, char** argv)
 {
-	std::runtime_error usage("Usage: bench -f file -t {multi|simple|slow|null} regexp [regexp2 [-e regexp3...]] [-t <type> regexp4 [regexp5...]]");
+	std::runtime_error usage("Usage: bench -f file -t {multi|nonreloc|simple|slow|null} regexp [regexp2 [-e regexp3...]] [-t <type> regexp4 [regexp5...]]");
 	std::vector<Fsms> fsms;
 	std::vector<std::string> types;
 	std::string file;
@@ -251,8 +251,11 @@ void Main(int argc, char** argv)
 
 	std::auto_ptr<ITester> tester;
 	
+	// TODO: is there a way to get out of this copypasting?
 	if (types.size() == 1 && types[0] == "multi")
 		tester.reset(new Tester<Pire::Scanner>);
+	if (types.size() == 1 && types[0] == "nonreloc")
+		tester.reset(new Tester<Pire::NonrelocScanner>);
 	else if (types.size() == 1 && types[0] == "simple")
 		tester.reset(new Tester<Pire::SimpleScanner>);
 	else if (types.size() == 1 && types[0] == "slow")
@@ -261,12 +264,23 @@ void Main(int argc, char** argv)
 		tester.reset(new MemTester);
 	else if (types.size() == 2 && types[0] == "multi" && types[1] == "multi")
 		tester.reset(new PairTester<Pire::Scanner, Pire::Scanner>);
-	else if (types.size() == 2 && types[0] == "simple" && types[1] == "simple")
-		tester.reset(new PairTester<Pire::SimpleScanner, Pire::SimpleScanner>);
 	else if (types.size() == 2 && types[0] == "multi" && types[1] == "simple")
 		tester.reset(new PairTester<Pire::Scanner, Pire::SimpleScanner>);
+	else if (types.size() == 2 && types[0] == "multi" && types[1] == "nonreloc")
+		tester.reset(new PairTester<Pire::Scanner, Pire::NonrelocScanner>);
+	else if (types.size() == 2 && types[0] == "simple" && types[1] == "simple")
+		tester.reset(new PairTester<Pire::SimpleScanner, Pire::SimpleScanner>);
 	else if (types.size() == 2 && types[0] == "simple" && types[1] == "multi")
 		tester.reset(new PairTester<Pire::SimpleScanner, Pire::Scanner>);
+	else if (types.size() == 2 && types[0] == "simple" && types[1] == "nonreloc")
+		tester.reset(new PairTester<Pire::SimpleScanner, Pire::NonrelocScanner>);
+	else if (types.size() == 2 && types[0] == "nonreloc" && types[1] == "multi")
+		tester.reset(new PairTester<Pire::NonrelocScanner, Pire::Scanner>);
+	else if (types.size() == 2 && types[0] == "nonreloc" && types[1] == "simple")
+		tester.reset(new PairTester<Pire::NonrelocScanner, Pire::SimpleScanner>);
+	else if (types.size() == 2 && types[0] == "nonreloc" && types[1] == "nonreloc")
+		tester.reset(new PairTester<Pire::NonrelocScanner, Pire::NonrelocScanner>);
+
 	else
 		throw usage;
 

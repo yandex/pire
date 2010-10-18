@@ -41,6 +41,8 @@ namespace Impl {
     template<class T>
 	class ScannerGlueTask;
 
+	// This strategy allows to mmap() saved representation of a scanner. This is achieved by
+	// storing shifts instead of addresses in the transition table.
 	struct Relocatable {
 		static const size_t Signature = 1;
 		// Please note that Transition size is hardcoded as 32 bits.
@@ -49,28 +51,27 @@ namespace Impl {
 		// can be made a template parameter if this is a concern.
 		typedef ui32 Transition;
 		
-		typedef const void* PtrInMmap;
+		typedef const void* RetvalForMmap;
+        
 		static size_t Go(size_t state, Transition shift) { return state + SignExtend(shift); }
 		static Transition Diff(size_t from, size_t to) { return static_cast<Transition>(to - from); }
 	};
 	
+	// With this strategy the transition table stores addresses. This makes the scanner faster
+	// compared to mmap()-ed
 	struct Nonrelocatable {
 		static const size_t Signature = 2;
 		typedef size_t Transition;
-        typedef struct {} const* PtrInMmap;
+
+		// Generates a compile-time error if Scanner<Nonrelocatable>::Mmap()
+		// (which is unsupported) is mistakenly called
+		typedef struct {} RetvalForMmap;
+
 		static size_t Go(size_t /*state*/, Transition shift) { return shift; }
 		static Transition Diff(size_t /*from*/, size_t to) { return to; }
 	};
-	
-/**
- * A compiled multiregexp.
- * Can only find out whether a string matches the regexps or not,
- * but takes O( str.length() ) time.
- *
- * In addition, multiple scanners can be agglutinated together,
- * producting a scanner which can be used for checking
- * strings against several regexps in a single pass.
- */
+
+// Scanner implementation parametrized by transition table representation strategy 
 template<class Relocation>
 class Scanner {
 protected:
@@ -201,7 +202,7 @@ public:
 	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
 	 * to unconsumed part of the buffer.
 	 */
-	typename Relocation::PtrInMmap Mmap(const void* ptr, size_t size)
+	typename Relocation::RetvalForMmap Mmap(const void* ptr, size_t size)
 	{
 		Impl::CheckAlign(ptr);
 		Scanner s;
@@ -389,8 +390,22 @@ private:
 
 }
 
+/**
+ * A compiled multiregexp.
+ * Can only find out whether a string matches the regexps or not,
+ * but takes O( str.length() ) time.
+ *
+ * In addition, multiple scanners can be agglutinated together,
+ * producting a scanner which can be used for checking
+ * strings against several regexps in a single pass.
+ */
 typedef Impl::Scanner<Impl::Relocatable> Scanner;
-namespace Nonrelocatable { typedef Impl::Scanner<Impl::Nonrelocatable> Scanner; }
+
+/**
+ * Same as above, but does not allow relocation or mmap()-ing.
+ * On the other hand, runs almost twice as fast as the Scanner.
+ */
+typedef Impl::Scanner<Impl::Nonrelocatable> NonrelocScanner;
 
 }
 

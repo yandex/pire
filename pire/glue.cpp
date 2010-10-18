@@ -105,8 +105,7 @@ Impl::Scanner<Relocation> Impl::Scanner<Relocation>::Glue(const Impl::Scanner<Re
 }
 
 template Scanner Scanner::Glue(const Scanner&, const Scanner&, size_t);
-//template Nonrelocatable::Scanner Nonrelocatable::Scanner::Glue(const Nonrelocatable::Scanner&, const Nonrelocatable::Scanner&, size_t);
-template Impl::Scanner<Impl::Nonrelocatable> Impl::Scanner<Impl::Nonrelocatable>::Glue(const Impl::Scanner<Impl::Nonrelocatable>&, const Impl::Scanner<Impl::Nonrelocatable>&, size_t);
+template NonrelocScanner NonrelocScanner::Glue(const NonrelocScanner&, const NonrelocScanner&, size_t);
 
 }
 

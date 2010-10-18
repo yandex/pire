@@ -70,13 +70,13 @@ inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pi
 
 struct Scanners {
 	Pire::Scanner fast;
-    Pire::Nonrelocatable::Scanner nonreloc;
+	Pire::NonrelocScanner nonreloc;
 	Pire::SimpleScanner simple;
 	Pire::SlowScanner slow;
 
 	Scanners(const Pire::Fsm& fsm)
 		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>())
-        , nonreloc(Pire::Fsm(fsm).Compile<Pire::Nonrelocatable::Scanner>())
+ 		, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>())
 		, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>())
 		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>())
 	{}
@@ -85,7 +85,7 @@ struct Scanners {
 	{
 		Pire::Fsm fsm = ParseRegexp(str, options);
 		fast = Pire::Fsm(fsm).Compile<Pire::Scanner>();
-        nonreloc = Pire::Fsm(fsm).Compile<Pire::Nonrelocatable::Scanner>();
+		nonreloc = Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>();
 		simple = Pire::Fsm(fsm).Compile<Pire::SimpleScanner>();
 		slow = Pire::Fsm(fsm).Compile<Pire::SlowScanner>();
 	}
