@@ -32,12 +32,34 @@
 
 namespace Pire {
 
-	inline static ssize_t SignExtend(i32 i) { return i; }
-	template<class T>
-	class ScannerGlueCommon;
+inline static ssize_t SignExtend(i32 i) { return i; }
+template<class T>
+class ScannerGlueCommon;
 	
-	namespace Impl { class ScannerGlueTask; }
+namespace Impl {
+	
+	class ScannerGlueTask;
 
+	struct Relocatable {
+		static const size_t Signature = 1;
+		// Please note that Transition size is hardcoded as 32 bits.
+		// This limits size of transition table to 4G, but compresses
+		// it twice compared to 64-bit transitions. In future Transition
+		// can be made a template parameter if this is a concern.
+		typedef ui32 Transition;
+		
+		typedef const void* PtrInMmap;
+		static size_t Go(size_t state, Transition shift) { return state + SignExtend(shift); }
+		static Transition Diff(size_t from, size_t to) { return static_cast<Transition>(to - from); }
+	};
+	
+	struct Nonrelocatable {
+		static const size_t Signature = 2;
+		typedef size_t Transition;
+		static size_t Go(size_t /*state*/, Transition shift) { return shift; }
+		static Transition Diff(size_t /*from*/, size_t to) { return to; }
+	};
+	
 /**
  * A compiled multiregexp.
  * Can only find out whether a string matches the regexps or not,
@@ -47,6 +69,7 @@ namespace Pire {
  * producting a scanner which can be used for checking
  * strings against several regexps in a single pass.
  */
+template<class Relocation>
 class Scanner {
 protected:
 	enum {
@@ -59,11 +82,7 @@ protected:
 	static const size_t End = static_cast<size_t>(-1);
 
 public:
-	typedef ui32        Transition;
-	// Please note that Transition size is hardcoded as 32 bits.
-	// This limits size of transition table to 4G, but compresses
-	// it twice compared to 64-bit transitions. In future Transition
-	// can be made a template parameter if this is a concern.
+	typedef typename Relocation::Transition Transition;
 	
 	typedef ui16        Letter;
 	typedef ui32        Action;
@@ -73,6 +92,7 @@ public:
 		: m_buffer(0)
 		, m_finalEnd(0)
 	{
+		m.relocationSignature = Relocation::Signature;
 		m.statesCount = 0;
 		m.lettersCount = 0;
 		m.regexpsCount = 0;
@@ -126,10 +146,7 @@ public:
 	/// Handles one characters
 	Action Next(State& state, Char c) const
 	{
-		size_t letterClass = m_letters[c];
-		ssize_t shift = SignExtend(reinterpret_cast<const Transition*>(state)[letterClass]);
-		state += shift;
-
+		state = Relocation::Go(state, reinterpret_cast<const Transition*>(state)[m_letters[c]]);
 		return 0;
 	}
 
@@ -145,16 +162,17 @@ public:
 			m_finalIndex = s.m_finalIndex;
 			m_transitions = s.m_transitions;
 		} else {
-			// In-memory scanner, perform deep copy
-			m_buffer = new char[BufSize()];
-			memcpy(m_buffer, s.m_buffer, BufSize());
-			Markup(m_buffer);
-
-			m.initial += (m_transitions - s.m_transitions) * sizeof(Transition);
-			m_finalEnd = m_final + (s.m_finalEnd - s.m_final);
+			// In-memory scanner
+			DeepCopy(s);
 		}
 	}
-
+	
+	template<class AnotherRelocation>
+	Scanner(const Scanner<AnotherRelocation>& s)
+	{
+		DeepCopy(s);
+	}
+	
 	void Swap(Scanner& s)
 	{
 		DoSwap(m_buffer, s.m_buffer);
@@ -181,7 +199,7 @@ public:
 	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
 	 * to unconsumed part of the buffer.
 	 */
-	const void* Mmap(const void* ptr, size_t size)
+	typename Relocation::PtrInMmap Mmap(const void* ptr, size_t size)
 	{
 		Impl::CheckAlign(ptr);
 		Scanner s;
@@ -189,9 +207,11 @@ public:
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
 		Impl::ValidateHeader(p, size, 1, sizeof(m));
 		if (size < sizeof(s.m))
-			throw Error("EOF reached while mapping NPire::Scanner");
+			throw Error("EOF reached while mapping Pire::Scanner");
 
 		memcpy(&s.m, p, sizeof(s.m));
+		if (s.m.relocationSignature != Relocation::Signature)
+			throw Error("Type mismatch while mmapping Pire::Scanner");
 		Impl::AdvancePtr(p, size, sizeof(s.m));
 		Impl::AlignPtr(p, size);
 
@@ -226,13 +246,14 @@ public:
 	void Save(yostream*) const;
 	void Load(yistream*);
 
-protected:
+private:
 	struct Locals {
 		ui32 statesCount;
 		ui32 lettersCount;
 		ui32 regexpsCount;
 		size_t initial;
 		ui32 finalTableSize;
+		size_t relocationSignature;
 	} m;
 
 	char* m_buffer;
@@ -247,6 +268,7 @@ protected:
 	template<class Eq>
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
 	{
+		m.relocationSignature = Relocation::Signature;
 		m.statesCount = states;
 		m.lettersCount = letters.Size() + 1;
 		m.regexpsCount = regexpsCount;
@@ -275,22 +297,58 @@ protected:
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
 		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
 	}
+	
+	template<class AnotherRelocation>
+	void DeepCopy(const Scanner<AnotherRelocation>& s)
+	{
+		m = s.m;
+		m.relocationSignature = Relocation::Signature;
+		m_buffer = new char[BufSize()];
+		Markup(m_buffer);
+		
+		memcpy(m_letters, s.m_letters, MaxChar * sizeof(*m_letters));
+		memcpy(m_final, s.m_final, m.finalTableSize * sizeof(*m_final));
+		memcpy(m_finalIndex, s.m_finalIndex, m.statesCount * sizeof(*m_finalIndex));
+		
+		m.initial = IndexToState(s.StateIndex(s.m.initial));
+		m_finalEnd = m_final + (s.m_finalEnd - s.m_final);
+		
+		for (size_t st = 0; st != m.statesCount; ++st) {
+			size_t oldstate = s.IndexToState(st);
+			size_t newstate = IndexToState(st);
+			const typename Scanner<AnotherRelocation>::Transition* os
+				= reinterpret_cast<const typename Scanner<AnotherRelocation>::Transition*>(oldstate);
+			Transition* ns = reinterpret_cast<Transition*>(newstate);
+		
+			ns[0] = os[0];
+			for (size_t l = 1; l <= m.lettersCount; ++l)
+				ns[l] = Relocation::Diff(newstate, AnotherRelocation::Go(oldstate, os[l]));
+		}
+	}
+
+	
+	size_t IndexToState(size_t stateIndex) const
+	{
+		return reinterpret_cast<size_t>(m_transitions + stateIndex * m.lettersCount);
+	}
+
 
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/ = 0)
 	{
 		YASSERT(m_buffer);
 		YASSERT(oldState < m.statesCount);
 		YASSERT(newState < m.statesCount);
+		
 		m_transitions[oldState * m.lettersCount + m_letters[c]]
-			= ((newState - oldState) * m.lettersCount * sizeof(Transition));
+			= Relocation::Diff(IndexToState(oldState), IndexToState(newState));
 	}
 
 	unsigned long RemapAction(unsigned long action) { return action; }
-
+	
 	void SetInitial(size_t state)
 	{
 		YASSERT(m_buffer);
-		m.initial = reinterpret_cast<size_t>(m_transitions + state * m.lettersCount);
+		m.initial = IndexToState(state);
 	}
 
 	void SetTag(size_t state, size_t value)
@@ -323,6 +381,11 @@ protected:
 	friend class ScannerGlueCommon<Scanner>;
 	friend class Impl::ScannerGlueTask;
 };
+
+}
+
+typedef Impl::Scanner<Impl::Relocatable> Scanner;
+namespace Nonrelocatable { typedef Impl::Scanner<Impl::Nonrelocatable> Scanner; }
 
 }
 
