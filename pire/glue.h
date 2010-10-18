@@ -31,35 +31,33 @@
 
 namespace Pire {
 namespace Impl {
-	template <class Scanner>
-	class LettersEquality: public ybinary_function<Char, Char, bool> {
-	public:
-		LettersEquality(typename Scanner::Letter* lhs, typename Scanner::Letter* rhs): m_lhs(lhs), m_rhs(rhs) {}
 
-		bool operator()(Char a, Char b) const
-		{
-			return m_lhs[a] == m_lhs[b] && m_rhs[a] == m_rhs[b];
-		}
+template <class Scanner>
+class LettersEquality: public ybinary_function<Char, Char, bool> {
+public:
+    LettersEquality(typename Scanner::Letter* lhs, typename Scanner::Letter* rhs): m_lhs(lhs), m_rhs(rhs) {}
 
-	private:
-		typename Scanner::Letter* m_lhs;
-		typename Scanner::Letter* m_rhs;
-	};
-	
-	typedef ypair<Scanner::State, Scanner::State> GluedState;
-}
+    bool operator()(Char a, Char b) const
+    {
+        return m_lhs[a] == m_lhs[b] && m_rhs[a] == m_rhs[b];
+    }
+
+private:
+    typename Scanner::Letter* m_lhs;
+    typename Scanner::Letter* m_rhs;
+};	
 
 // This lookup table is used instead of std::map.
 // The key idea is to specify size which is a power of 2 in order to use >> and | instead of
 // divisions and remainders.
 // NB: it mimics limited std::map<> behaviour, hence stl-like method names and typedefs.
-template <size_t N>
+template <size_t N, class State>
 class GluedStateLookupTable {
 public:
 	static const size_t MaxSize = N;
-	typedef Impl::GluedState key_type;
+	typedef ypair<State, State> key_type;
 	typedef size_t mapped_type;
-	typedef ypair<const Impl::GluedState, size_t> value_type;
+	typedef ypair<key_type, mapped_type> value_type;
 	typedef value_type* iterator;
 	typedef const value_type* const_iterator;
 
@@ -95,7 +93,7 @@ public:
 	}
 
 private:
-	size_t Search(const Impl::GluedState& st) const {
+	size_t Search(const key_type& st) const {
 		size_t startInd = (Hash(st) % N);
 		for (size_t ind = startInd; ind != (startInd + N - 1) % N; ind = (ind + 1) % N) {
 			if (!mFilled[ind] || mMap[ind].first == st) {
@@ -105,7 +103,7 @@ private:
 		return -1;
 	}
 
-	static size_t Hash(const Impl::GluedState& st) {
+	static size_t Hash(const key_type& st) {
 		return size_t((st.first >> 2) ^ (st.second >> 4) ^ (st.second << 10));
 	}
 
@@ -165,7 +163,7 @@ private:
 	yauto_ptr<Scanner> m_result;
 };
 
-	
+}	
 }
 
 #endif

@@ -29,10 +29,11 @@
 namespace Pire {
 class Fsm;
 	
-template<class T>
-class ScannerGlueCommon;
 namespace Impl {
-	class CountingScannerGlueTask;
+    template<class T>
+    class ScannerGlueCommon;
+	
+    class CountingScannerGlueTask;
 };
 
 /**
@@ -178,7 +179,7 @@ private:
 	
 	typedef LoadedScanner::InternalState InternalState;
 	friend void BuildScanner<CountingScanner>(const Fsm&, CountingScanner&);
-	friend class ScannerGlueCommon<CountingScanner>;
+	friend class Impl::ScannerGlueCommon<CountingScanner>;
 	friend class Impl::CountingScannerGlueTask;
 };
 

@@ -70,11 +70,13 @@ inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pi
 
 struct Scanners {
 	Pire::Scanner fast;
+	Pire::NonrelocScanner nonreloc;
 	Pire::SimpleScanner simple;
 	Pire::SlowScanner slow;
 
 	Scanners(const Pire::Fsm& fsm)
 		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>())
+ 		, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>())
 		, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>())
 		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>())
 	{}
@@ -83,6 +85,7 @@ struct Scanners {
 	{
 		Pire::Fsm fsm = ParseRegexp(str, options);
 		fast = Pire::Fsm(fsm).Compile<Pire::Scanner>();
+		nonreloc = Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>();
 		simple = Pire::Fsm(fsm).Compile<Pire::SimpleScanner>();
 		slow = Pire::Fsm(fsm).Compile<Pire::SlowScanner>();
 	}
@@ -149,6 +152,7 @@ bool Matches(const Scanner& scanner, const char* str)
 #define ACCEPTS(str) \
 	do {\
 		UNIT_ASSERT(Matches(m_scanners.fast, str));\
+        UNIT_ASSERT(Matches(m_scanners.nonreloc, str));\
 		UNIT_ASSERT(Matches(m_scanners.simple, str));\
 		UNIT_ASSERT(Matches(m_scanners.slow, str));\
 	} while (false)
@@ -156,6 +160,7 @@ bool Matches(const Scanner& scanner, const char* str)
 #define DENIES(str) \
 	do {\
 		UNIT_ASSERT(!Matches(m_scanners.fast, str));\
+        UNIT_ASSERT(!Matches(m_scanners.nonreloc, str));\
 		UNIT_ASSERT(!Matches(m_scanners.simple, str));\
 		UNIT_ASSERT(!Matches(m_scanners.slow, str));\
 	} while (false)

@@ -431,11 +431,12 @@ SIMPLE_UNIT_TEST(Serialization)
 
 }
 
-SIMPLE_UNIT_TEST(Glue)
+template<class Scanner>
+void TestGlue()
 {
-	Pire::Scanner sc1 = ParseRegexp("aaa").Compile<Pire::Scanner>();
-	Pire::Scanner sc2 = ParseRegexp("bbb").Compile<Pire::Scanner>();
-	Pire::Scanner glued = Pire::Scanner::Glue(sc1, sc2);
+	Scanner sc1 = ParseRegexp("aaa").Compile<Scanner>();
+	Scanner sc2 = ParseRegexp("bbb").Compile<Scanner>();
+	Scanner glued = Scanner::Glue(sc1, sc2);
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(2));
 
 	ypair<const size_t*, const size_t*> res;
@@ -456,20 +457,26 @@ SIMPLE_UNIT_TEST(Glue)
 	res = glued.AcceptedRegexps(RunRegexp(glued, "ccc"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(0));
 
-	Pire::Scanner sc3 = ParseRegexp("ccc").Compile<Pire::Scanner>();
-	glued = Pire::Scanner::Glue(sc3, glued);
+	Scanner sc3 = ParseRegexp("ccc").Compile<Scanner>();
+	glued = Scanner::Glue(sc3, glued);
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(3));
 
 	res = glued.AcceptedRegexps(RunRegexp(glued, "ccc"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(res.first[0], size_t(0));
-	Pire::Scanner sc4 = Pire::Scanner::Glue(
-		ParseRegexp("a", "n").Compile<Pire::Scanner>(),
-		ParseRegexp("c", "n").Compile<Pire::Scanner>()
+	Scanner sc4 = Scanner::Glue(
+		ParseRegexp("a", "n").Compile<Scanner>(),
+		ParseRegexp("c", "n").Compile<Scanner>()
 	);
 	res = sc4.AcceptedRegexps(RunRegexp(sc4, "ac"));
 	UNIT_ASSERT(res.second == res.first);
 	UNIT_ASSERT(!sc4.Final(RunRegexp(sc4, "ac")));
+}
+
+SIMPLE_UNIT_TEST(Glue)
+{
+    TestGlue<Pire::Scanner>();
+    TestGlue<Pire::NonrelocScanner>();
 }
 
 }
