@@ -35,9 +35,17 @@ namespace Pire {
 
 namespace Impl {
 
+template<class Scanner>
 class ScannerGlueTask: public ScannerGlueCommon<Scanner> {
-public:    
-	typedef GluedStateLookupTable<256*1024> InvStates;
+public:
+    typedef ScannerGlueCommon<Scanner> Base;
+    typedef typename Base::State State;
+    using Base::Lhs;
+    using Base::Rhs;
+    using Base::Sc;
+    using Base::Letters;
+    
+	typedef GluedStateLookupTable<256*1024, typename Scanner::State> InvStates;
 	
 	ScannerGlueTask(const Scanner& lhs, const Scanner& rhs)
 		: ScannerGlueCommon<Scanner>(lhs, rhs, LettersEquality<Scanner>(lhs.m_letters, rhs.m_letters))
@@ -48,7 +56,7 @@ public:
 		// Make up a new scanner and fill in the final table
 		
 		size_t finalTableSize = 0;
-		for (yvector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
+		for (typename yvector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
 			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i->first)) + RangeLen(Rhs().AcceptedRegexps(i->second));
 		SetSc(new Scanner);
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
@@ -76,6 +84,7 @@ private:
 	{
 		return std::distance(range.first, range.second);
 	}
+
 	template<class Iter, class OutIter>
 	OutIter Shift(ypair<Iter, Iter> range, size_t shift, OutIter out) const
 	{
@@ -86,12 +95,18 @@ private:
 };
 	
 }
-Scanner Scanner::Glue(const Scanner& lhs, const Scanner& rhs, size_t maxSize /* = 0 */)
+
+template<class Relocation>
+Impl::Scanner<Relocation> Impl::Scanner<Relocation>::Glue(const Impl::Scanner<Relocation>& lhs, const Impl::Scanner<Relocation>& rhs, size_t maxSize /* = 0 */)
 {
 	static const size_t DefMaxSize = 80000;
-	Impl::ScannerGlueTask task(lhs, rhs);
+	Impl::ScannerGlueTask< Impl::Scanner<Relocation> > task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
-}    
+}
+
+template Scanner Scanner::Glue(const Scanner&, const Scanner&, size_t);
+//template Nonrelocatable::Scanner Nonrelocatable::Scanner::Glue(const Nonrelocatable::Scanner&, const Nonrelocatable::Scanner&, size_t);
+template Impl::Scanner<Impl::Nonrelocatable> Impl::Scanner<Impl::Nonrelocatable>::Glue(const Impl::Scanner<Impl::Nonrelocatable>&, const Impl::Scanner<Impl::Nonrelocatable>&, size_t);
 
 }
 

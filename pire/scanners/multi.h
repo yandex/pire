@@ -31,13 +31,14 @@
 #include "../stub/saveload.h"
 
 namespace Pire {
-
-inline static ssize_t SignExtend(i32 i) { return i; }
-template<class T>
-class ScannerGlueCommon;
 	
 namespace Impl {
+
+    inline static ssize_t SignExtend(i32 i) { return i; }
+    template<class T>
+    class ScannerGlueCommon;
 	
+    template<class T>
 	class ScannerGlueTask;
 
 	struct Relocatable {
@@ -56,6 +57,7 @@ namespace Impl {
 	struct Nonrelocatable {
 		static const size_t Signature = 2;
 		typedef size_t Transition;
+        typedef struct {} const* PtrInMmap;
 		static size_t Go(size_t /*state*/, Transition shift) { return shift; }
 		static Transition Diff(size_t /*from*/, size_t to) { return to; }
 	};
@@ -301,7 +303,9 @@ private:
 	template<class AnotherRelocation>
 	void DeepCopy(const Scanner<AnotherRelocation>& s)
 	{
-		m = s.m;
+        // Ensure that specializations of Scanner across different Relocations do not touch its Locals
+        YASSERT(sizeof(m) == sizeof(s.m));
+		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
 		m_buffer = new char[BufSize()];
 		Markup(m_buffer);
@@ -321,8 +325,8 @@ private:
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
 		
 			ns[0] = os[0];
-			for (size_t l = 1; l <= m.lettersCount; ++l)
-				ns[l] = Relocation::Diff(newstate, AnotherRelocation::Go(oldstate, os[l]));
+			for (size_t let = 1; let < m.lettersCount; ++let)
+				ns[let] = Relocation::Diff(newstate, IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[let]))));
 		}
 	}
 
@@ -379,7 +383,8 @@ private:
 
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
-	friend class Impl::ScannerGlueTask;
+	friend class ScannerGlueTask<Scanner>;
+    template<class AnotherRelocation> friend class Scanner;
 };
 
 }
