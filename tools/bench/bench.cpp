@@ -104,7 +104,9 @@ struct PrintResult {
 
 template<class Relocation>
 struct PrintResult< Pire::Impl::Scanner<Relocation> > {
-	static void Do(const Pire::Scanner& sc, Pire::Scanner::State st)
+	typedef Pire::Impl::Scanner<Relocation> Scanner;
+
+	static void Do(const Scanner& sc, typename Scanner::State st)
 	{
 		std::pair<const size_t*, const size_t*> accepted = sc.AcceptedRegexps(st);
 		std::cerr << "Accepted regexps:";
@@ -254,7 +256,7 @@ void Main(int argc, char** argv)
 	// TODO: is there a way to get out of this copypasting?
 	if (types.size() == 1 && types[0] == "multi")
 		tester.reset(new Tester<Pire::Scanner>);
-	if (types.size() == 1 && types[0] == "nonreloc")
+	else if (types.size() == 1 && types[0] == "nonreloc")
 		tester.reset(new Tester<Pire::NonrelocScanner>);
 	else if (types.size() == 1 && types[0] == "simple")
 		tester.reset(new Tester<Pire::SimpleScanner>);
