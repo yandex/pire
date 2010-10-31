@@ -271,8 +271,9 @@ inline void Run(const Scanner& scanner, typename Scanner::State& st, const char*
 
 	for (; head < tail; ++head) {
 		size_t chunk = Impl::ToLittleEndian(*head);
-		// TODO: manually unroll this loop
-		for (unsigned i = 0; i < sizeof(void*); ++i) {
+		// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
+		// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
+		for (unsigned i = sizeof(void*); i != 0; --i) {
 			Step(scanner, state, chunk & 0xFF);
 			chunk >>= 8;
 		}
