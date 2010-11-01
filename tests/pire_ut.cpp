@@ -291,31 +291,23 @@ SIMPLE_UNIT_TEST(PrefixSuffix)
 
 	static const char* text = "1234567890 --> middle --> end";
 	const char* end = Pire::LongestPrefix(gsc, text, text + strlen(text));
-	const char* begin = Pire::LongestSuffix(rsc, end - 1, text - 1);
-	++begin;
-
 	UNIT_ASSERT_EQUAL(end, text + 14);
+	const char* begin = Pire::LongestSuffix(rsc, end - 1, text - 1) + 1;
 	UNIT_ASSERT_EQUAL(begin, text + 11);
 
 	end = Pire::LongestPrefix(ngsc, text, text + strlen(text));
-	begin = Pire::LongestSuffix(rsc, end - 1, text - 1);
-	++begin;
-
 	UNIT_ASSERT_EQUAL(end, text + 25);
+	begin = Pire::LongestSuffix(rsc, end - 1, text - 1) + 1;
 	UNIT_ASSERT_EQUAL(begin, text + 22);
 
 	end = Pire::ShortestPrefix(gsc, text, text + strlen(text));
-	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1);
-	++begin;
-
 	UNIT_ASSERT_EQUAL(end, text + 14);
+	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1) + 1;
 	UNIT_ASSERT_EQUAL(begin, text + 11);
 
 	end = Pire::ShortestPrefix(ngsc, text, text + strlen(text));
-	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1);
-	++begin;
-
 	UNIT_ASSERT_EQUAL(end, text + 14);
+	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1) + 1;
 	UNIT_ASSERT_EQUAL(begin, text + 11);
 }
 
@@ -475,8 +467,8 @@ void TestGlue()
 
 SIMPLE_UNIT_TEST(Glue)
 {
-    TestGlue<Pire::Scanner>();
-    TestGlue<Pire::NonrelocScanner>();
+	TestGlue<Pire::Scanner>();
+	TestGlue<Pire::NonrelocScanner>();
 }
 
 }

@@ -28,17 +28,18 @@
 #include "../stub/stl.h"
 #include "../fsm.h"
 #include "../partition.h"
+#include "../static_assert.h"
 #include "../stub/saveload.h"
 
 namespace Pire {
 	
 namespace Impl {
 
-    inline static ssize_t SignExtend(i32 i) { return i; }
-    template<class T>
-    class ScannerGlueCommon;
+	inline static ssize_t SignExtend(i32 i) { return i; }
+	template<class T>
+	class ScannerGlueCommon;
 	
-    template<class T>
+	template<class T>
 	class ScannerGlueTask;
 
 	// This strategy allows to mmap() saved representation of a scanner. This is achieved by
@@ -52,7 +53,7 @@ namespace Impl {
 		typedef ui32 Transition;
 		
 		typedef const void* RetvalForMmap;
-        
+		
 		static size_t Go(size_t state, Transition shift) { return state + SignExtend(shift); }
 		static Transition Diff(size_t from, size_t to) { return static_cast<Transition>(to - from); }
 	};
@@ -68,7 +69,20 @@ namespace Impl {
 		typedef struct {} RetvalForMmap;
 
 		static size_t Go(size_t /*state*/, Transition shift) { return shift; }
-		static Transition Diff(size_t /*from*/, size_t to) { return to; }
+		static Transition Diff(size_t /*from*/, size_t to) { return to; }		
+	};
+	
+	/// Some properties of the particular state.
+	struct ScannerRowHeader {
+		/// If this state loops for all letters except particular one,
+		/// ExitMask contains that letter in each byte.
+		/// If bytes of mask hold different values, the mask is invalid
+		/// and will not be used.
+		size_t ExitMask;
+
+		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
+
+		ScannerRowHeader(): ExitMask(1), Flags(0) {}		
 	};
 
 // Scanner implementation parametrized by transition table representation strategy 
@@ -86,10 +100,10 @@ protected:
 
 public:
 	typedef typename Relocation::Transition Transition;
-	
-	typedef ui16        Letter;
-	typedef ui32        Action;
-	typedef ui8         Tag;
+		
+	typedef ui16		Letter;
+	typedef ui32		Action;
+	typedef ui8		 Tag;
 
 	Scanner()
 		: m_buffer(0)
@@ -97,7 +111,7 @@ public:
 	{
 		m.relocationSignature = Relocation::Signature;
 		m.statesCount = 0;
-		m.lettersCount = 0;
+		m.rowSize = 0;
 		m.regexpsCount = 0;
 		m.finalTableSize = 0;
 	}
@@ -122,20 +136,20 @@ public:
 		return m.regexpsCount;
 	}
 	size_t LettersCount() const {
-		return m.lettersCount - 1;
+		return m.rowSize - HEADER_SIZE;
 	}
 
 	/// Checks whether specified state is in any of the final sets
-	bool Final(const State& state) const { return (*reinterpret_cast<const Transition*>(state) & FinalFlag) != 0; }
+	bool Final(const State& state) const { return (Header(state).Flags & FinalFlag) != 0; }
 	
 	/// Checks whether specified state is 'dead' (i.e. scanner will never
 	/// reach any final state from current one)
-	bool Dead(const State& state) const { return (*reinterpret_cast<const Transition*>(state) & DeadFlag) != 0; }
+	bool Dead(const State& state) const { return (Header(state).Flags & DeadFlag) != 0; }
 
 	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& state) const
 	{
 		size_t idx = (state - reinterpret_cast<size_t>(m_transitions)) /
-			(m.lettersCount * sizeof(Transition));
+			(m.rowSize * sizeof(Transition));
 		const size_t* b = m_final + m_finalIndex[idx];
 		const size_t* e = b;
 		while (*e != End)
@@ -180,7 +194,7 @@ public:
 	{
 		DoSwap(m_buffer, s.m_buffer);
 		DoSwap(m.statesCount, s.m.statesCount);
-		DoSwap(m.lettersCount, s.m.lettersCount);
+		DoSwap(m.rowSize, s.m.rowSize);
 		DoSwap(m.regexpsCount, s.m.regexpsCount);
 		DoSwap(m.initial, s.m.initial);
 		DoSwap(m_letters, s.m_letters);
@@ -230,7 +244,7 @@ public:
 
 	size_t StateIndex(State s) const
 	{
-		return (s - reinterpret_cast<size_t>(m_transitions)) / (m.lettersCount * sizeof(Transition));
+		return (s - reinterpret_cast<size_t>(m_transitions)) / (m.rowSize * sizeof(Transition));
 	}
 
 	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0);
@@ -240,10 +254,10 @@ public:
 	{
 		// TODO: need to fix according to letter table size
 		return
-			MaxChar * sizeof(Letter)                               // Letters translation table
-			+ m.finalTableSize * sizeof(size_t)                    // Final table
-			+ m.statesCount * sizeof(size_t)                       // Final index
-			+ m.lettersCount * m.statesCount * sizeof(Transition); // Transitions table
+			MaxChar * sizeof(Letter)                           // Letters translation table
+			+ m.finalTableSize * sizeof(size_t)                // Final table
+			+ m.statesCount * sizeof(size_t)                   // Final index
+			+ m.rowSize * m.statesCount * sizeof(Transition);  // Transitions table
 	}
 
 	void Save(yostream*) const;
@@ -252,7 +266,7 @@ public:
 private:
 	struct Locals {
 		ui32 statesCount;
-		ui32 lettersCount;
+		ui32 rowSize;
 		ui32 regexpsCount;
 		size_t initial;
 		ui32 finalTableSize;
@@ -268,12 +282,15 @@ private:
 
 	Transition* m_transitions;
 	
+	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
+	PIRE_STATIC_ASSERT(sizeof(ScannerRowHeader) % sizeof(Transition) == 0);
+	
 	template<class Eq>
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
 	{
 		m.relocationSignature = Relocation::Signature;
 		m.statesCount = states;
-		m.lettersCount = letters.Size() + 1;
+		m.rowSize = letters.Size() + HEADER_SIZE;
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
 
@@ -281,13 +298,16 @@ private:
 		memset(m_buffer, 0, BufSize());
 		Markup(m_buffer);
 		m_finalEnd = m_final;
+		
+		for (size_t i = 0; i != Size(); ++i)
+			Header(IndexToState(i)) = ScannerRowHeader();
 
-		m.initial = reinterpret_cast<size_t>(m_transitions + startState * m.lettersCount);
+		m.initial = reinterpret_cast<size_t>(m_transitions + startState * m.rowSize);
 
 		// Build letter translation table
 		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
 			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first + 1; // First item of the transition row stores state flags, hence +1
+				m_letters[*it2] = it->second.first + HEADER_SIZE;
 	}
 
 	/*
@@ -295,17 +315,20 @@ private:
 	 */
 	void Markup(void* ptr)
 	{
-		m_letters     = reinterpret_cast<Letter*>(ptr);
-		m_final       = reinterpret_cast<size_t*>(m_letters + MaxChar);
+		m_letters	 = reinterpret_cast<Letter*>(ptr);
+		m_final	   = reinterpret_cast<size_t*>(m_letters + MaxChar);
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
 		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
 	}
 	
+	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
+	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
+	
 	template<class AnotherRelocation>
 	void DeepCopy(const Scanner<AnotherRelocation>& s)
 	{
-        // Ensure that specializations of Scanner across different Relocations do not touch its Locals
-        YASSERT(sizeof(m) == sizeof(s.m));
+		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
+		YASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
 		m_buffer = new char[BufSize()];
@@ -321,12 +344,12 @@ private:
 		for (size_t st = 0; st != m.statesCount; ++st) {
 			size_t oldstate = s.IndexToState(st);
 			size_t newstate = IndexToState(st);
+			Header(newstate) = s.Header(oldstate);
 			const typename Scanner<AnotherRelocation>::Transition* os
 				= reinterpret_cast<const typename Scanner<AnotherRelocation>::Transition*>(oldstate);
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
 		
-			ns[0] = os[0];
-			for (size_t let = 1; let < m.lettersCount; ++let)
+			for (size_t let = HEADER_SIZE; let != m.rowSize; ++let)
 				ns[let] = Relocation::Diff(newstate, IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[let]))));
 		}
 	}
@@ -334,7 +357,7 @@ private:
 	
 	size_t IndexToState(size_t stateIndex) const
 	{
-		return reinterpret_cast<size_t>(m_transitions + stateIndex * m.lettersCount);
+		return reinterpret_cast<size_t>(m_transitions + stateIndex * m.rowSize);
 	}
 
 
@@ -344,7 +367,7 @@ private:
 		YASSERT(oldState < m.statesCount);
 		YASSERT(newState < m.statesCount);
 		
-		m_transitions[oldState * m.lettersCount + m_letters[c]]
+		m_transitions[oldState * m.rowSize + m_letters[c]]
 			= Relocation::Diff(IndexToState(oldState), IndexToState(newState));
 	}
 
@@ -360,7 +383,7 @@ private:
 	{
 		// FIXME: SetTag() needs to be called for _each_ state.
 		YASSERT(m_buffer);
-		Transition& tag = m_transitions[state * m.lettersCount];
+		size_t& tag = Header(IndexToState(state)).Flags;
 		
 		if (!(tag & TagSet)) {
 			m_finalIndex[state] = m_finalEnd - m_final;
@@ -385,7 +408,7 @@ private:
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
 	friend class ScannerGlueTask<Scanner>;
-    template<class AnotherRelocation> friend class Scanner;
+	template<class AnotherRelocation> friend class Scanner;
 };
 
 }

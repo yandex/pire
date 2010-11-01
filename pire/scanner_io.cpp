@@ -29,51 +29,51 @@
 
 namespace Pire {
 namespace Impl {
-    
-    template<>
-    void Scanner<Relocatable>::Save(yostream* s) const
-    {
-        Locals mc = m;
-        mc.initial -= reinterpret_cast<size_t>(m_transitions);
-        SavePodType(s, Header(1, sizeof(mc)));
-        Impl::AlignSave(s, sizeof(Header));
-        SavePodType(s, mc);
-        Impl::AlignSave(s, sizeof(mc));
-        Impl::AlignedSaveArray(s, m_buffer, BufSize());
-    }
+	
+	template<>
+	void Scanner<Relocatable>::Save(yostream* s) const
+	{
+		Locals mc = m;
+		mc.initial -= reinterpret_cast<size_t>(m_transitions);
+		SavePodType(s, Pire::Header(1, sizeof(mc)));
+		Impl::AlignSave(s, sizeof(Pire::Header));
+		SavePodType(s, mc);
+		Impl::AlignSave(s, sizeof(mc));
+		Impl::AlignedSaveArray(s, m_buffer, BufSize());
+	}
 
-    template<>
-    void Scanner<Relocatable>::Load(yistream* s)
-    {
-        Scanner<Relocatable> sc;
-        Impl::ValidateHeader(s, 1, sizeof(sc.m));
-        LoadPodType(s, sc.m);
-        Impl::AlignLoad(s, sizeof(sc.m));
-        sc.m_buffer = new char[sc.BufSize()];
-        Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-        sc.Markup(sc.m_buffer);
-        sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
-        Swap(sc);
-    }
-    
-    // TODO: implement more effective serialization
-    // of nonrelocatable scanner if necessary
-    
-    template<>
-    void Scanner<Nonrelocatable>::Save(yostream* s) const
-    {
-        Scanner<Relocatable>(*this).Save(s);
-    }
-    
-    template<>
-    void Scanner<Nonrelocatable>::Load(yistream* s)
-    {
-        Scanner<Relocatable> rs;
-        rs.Load(s);
-        Scanner<Nonrelocatable>(rs).Swap(*this);
-    }
+	template<>
+	void Scanner<Relocatable>::Load(yistream* s)
+	{
+		Scanner<Relocatable> sc;
+		Impl::ValidateHeader(s, 1, sizeof(sc.m));
+		LoadPodType(s, sc.m);
+		Impl::AlignLoad(s, sizeof(sc.m));
+		sc.m_buffer = new char[sc.BufSize()];
+		Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
+		sc.Markup(sc.m_buffer);
+		sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
+		Swap(sc);
+	}
+	
+	// TODO: implement more effective serialization
+	// of nonrelocatable scanner if necessary
+	
+	template<>
+	void Scanner<Nonrelocatable>::Save(yostream* s) const
+	{
+		Scanner<Relocatable>(*this).Save(s);
+	}
+	
+	template<>
+	void Scanner<Nonrelocatable>::Load(yistream* s)
+	{
+		Scanner<Relocatable> rs;
+		rs.Load(s);
+		Scanner<Nonrelocatable>(rs).Swap(*this);
+	}
 }
-    
+	
 void SimpleScanner::Save(yostream* s) const
 {
 	YASSERT(m_buffer);

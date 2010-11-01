@@ -38,12 +38,12 @@ namespace Impl {
 template<class Scanner>
 class ScannerGlueTask: public ScannerGlueCommon<Scanner> {
 public:
-    typedef ScannerGlueCommon<Scanner> Base;
-    typedef typename Base::State State;
-    using Base::Lhs;
-    using Base::Rhs;
-    using Base::Sc;
-    using Base::Letters;
+	typedef ScannerGlueCommon<Scanner> Base;
+	typedef typename Base::State State;
+	using Base::Lhs;
+	using Base::Rhs;
+	using Base::Sc;
+	using Base::Letters;
     
 	typedef GluedStateLookupTable<256*1024, typename Scanner::State> InvStates;
 	
@@ -64,7 +64,7 @@ public:
 		// Prevent scanner from building final table
 		// (we'll build it ourselves)
 		for (size_t i = 0; i != Sc().Size(); ++i)
-			Sc().m_transitions[i * Sc().m.lettersCount] = Scanner::TagSet; 
+			Sc().Header(Sc().IndexToState(i)).Flags = Scanner::TagSet; 
 		
 		for (size_t state = 0; state != states.size(); ++state) {
 			Sc().m_finalIndex[state] = Sc().m_finalEnd - Sc().m_final;

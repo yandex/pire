@@ -72,6 +72,7 @@ pire_hdr_HEADERS = \
 	re_lexer.h \
 	re_parser.h \
 	re_scanner.h \
+	static_assert.h \
 	vbitset.h
 
 if ENABLE_EXTRA
