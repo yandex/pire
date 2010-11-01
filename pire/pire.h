@@ -25,9 +25,14 @@
 #define PIRE_PIRE_H
 
 
-#include "re_scanner.h"
 #include "re_lexer.h"
 #include "fsm.h"
 #include "encoding.h"
+#include "run.h"
+
+#include "scanners/multi.h"
+#include "scanners/simple.h"
+#include "scanners/slow.h"
+#include "scanners/pair.h"
 
 #endif

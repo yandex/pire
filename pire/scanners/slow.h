@@ -24,11 +24,12 @@
 #ifndef PIRE_SCANNERS_SLOW_H
 #define PIRE_SCANNERS_SLOW_H
 
-
+#include "common.h"
 #include "../stub/stl.h"
 #include "../partition.h"
 #include "../vbitset.h"
 #include "../fsm.h"
+#include "../run.h"
 #include "../stub/saveload.h"
 
 #ifdef PIRE_DEBUG
@@ -292,6 +293,27 @@ private:
 
 	friend void BuildScanner<SlowScanner>(const Fsm&, SlowScanner&);
 };
+
+#ifndef PIRE_DEBUG	
+/// A specialization of Run(), since its state is much heavier than other ones
+/// and we thus want to avoid copying states.
+template<>
+inline void Run<SlowScanner>(const SlowScanner& scanner, SlowScanner::State& state, const char* begin, const char* end)
+{
+	SlowScanner::State temp;
+	scanner.Initialize(temp);
+
+	SlowScanner::State* src = &state;
+	SlowScanner::State* dest = &temp;
+
+	for (; begin != end; ++begin) {
+		scanner.Next(*src, *dest, static_cast<unsigned char>(*begin));
+		DoSwap(src, dest);
+	}
+	if (src != &state)
+		state = *src;
+}
+#endif
 
 }
 

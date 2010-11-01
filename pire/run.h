@@ -1,6 +1,5 @@
 /*
- * re_scanner.h -- general definitions for scanners and
- *                 routines for running them on strings.
+ * run.h -- routines for running scanners on strings.
  *
  * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
  *                          Alexander Gololobov <agololobov@gmail.com>
@@ -25,101 +24,9 @@
 #ifndef PIRE_RE_SCANNER_H
 #define PIRE_RE_SCANNER_H
 
-
-#ifndef NDEBUG
-// PIRE_DEBUG is disabled by default even in debug mode because its too slow.
-// uncomment the line below to enable it.
-
-//#define PIRE_DEBUG
-#endif
-
-#include <stdlib.h>
-#include <string.h>
-
 #include "defs.h"
 #include "stub/stl.h"
-#include "align.h"
-#include "stub/defaults.h"
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-namespace Pire {
-
-	struct Header {
-		ui32 Magic;
-		ui32 Version;
-		ui32 PtrSize;
-		ui32 Type;
-		size_t HdrSize;
-
-		static const ui32 MAGIC = 0x45524950;   // "PIRE" on litte-endian
-		static const ui32 RE_VERSION = 2;       // Should be incremented each time when the format of serialized scanner changes
-
-		explicit Header(ui32 type, size_t hdrsize)
-			: Magic(MAGIC)
-			, Version(RE_VERSION)
-			, PtrSize(sizeof(void*))
-			, Type(type)
-			, HdrSize(hdrsize)
-		{}
-
-		void Validate(ui32 type, size_t hdrsize) const
-		{
-			if (Magic != MAGIC || PtrSize != sizeof(void*))
-				throw Error("Serialized regexp incompatible with your system");
-			if (Version != RE_VERSION)
-				throw Error("You are trying to used an incompatible version of a serialized regexp");
-			if ((type != 0 && type != Type) || (hdrsize != 0 && HdrSize != hdrsize))
-				throw Error("Serialized regexp incompatible with your system");
-		}
-	};
-
-	namespace Impl {
-		inline const void* AdvancePtr(const size_t*& ptr, size_t& size, size_t delta)
-		{
-			ptr = (const size_t*) ((const char*) ptr + delta);
-			size -= delta;
-			return (const void*) ptr;
-		}
-
-		template<class T>
-		inline void MapPtr(T*& field, size_t count, const size_t*& p, size_t& size)
-		{
-			if (size < count * sizeof(*field))
-				throw Error("EOF reached while mapping Pire::SlowScanner");
-			field = (T*) p;
-			Impl::AdvancePtr(p, size, count * sizeof(*field));
-			Impl::AlignPtr(p, size);
-		}
-
-		inline void CheckAlign(const void* ptr)
-		{
-			if ((size_t) ptr & (sizeof(void*)-1))
-				throw Error("Tried to mmap scanner at misaligned address");
-		}
-
-		inline void ValidateHeader(const size_t*& ptr, size_t& size, ui32 type, size_t hdrsize)
-		{
-			const Header* hdr;
-			MapPtr(hdr, 1, ptr, size);
-			hdr->Validate(type, hdrsize);
-		}
-
-		inline void ValidateHeader(yistream* s, ui32 type, size_t hdrsize)
-		{
-			Header hdr(0, 0);
-			LoadPodType(s, hdr);
-			AlignLoad(s, sizeof(hdr));
-			hdr.Validate(type, hdrsize);
-		}
-	}
-}
-
-#include "scanners/multi.h"
-#include "scanners/slow.h"
-#include "scanners/simple.h"
+#include "scanners/pair.h"
 
 #ifdef PIRE_DEBUG
 #include "stub/lexical_cast.h"
@@ -177,47 +84,6 @@ namespace Impl {
 #error TODO: Please implement Pire::Impl::ToLittleEndian()
 #endif
 
-	template<class Scanner1, class Scanner2>
-	class ScannerPair {
-	public:
-		typedef ypair<typename Scanner1::State, typename Scanner2::State> State;
-		typedef ypair<typename Scanner1::Action, typename Scanner2::Action> Action;
-
-		ScannerPair()
-			: m_scanner1()
-			, m_scanner2()
-		{
-		}
-		ScannerPair(const Scanner1& s1, const Scanner2& s2)
-			: m_scanner1(&s1)
-			, m_scanner2(&s2)
-		{
-		}
-
-		void Initialize(State& state) const
-		{
-			m_scanner1->Initialize(state.first);
-			m_scanner2->Initialize(state.second);
-		}
-
-		Action Next(State& state, Char ch) const
-		{
-			return ymake_pair(
-				m_scanner1->Next(state.first, ch),
-				m_scanner2->Next(state.second, ch)
-			);
-		}
-
-		void TakeAction(State& s, Action a) const
-		{
-			m_scanner1->TakeAction(s.first, a.first);
-			m_scanner2->TakeAction(s.second, a.second);
-		}
-
-	private:
-		const Scanner1* m_scanner1;
-		const Scanner2* m_scanner2;
-	};
 
 
 	/// Effectively runs a scanner on a short data chunk, fit completely into one machine word.
@@ -239,6 +105,22 @@ namespace Impl {
 		if (size & 1) {
 			Step(scanner, state, chunk & 0xFF);
 		}
+	}
+	
+	template<class Scanner>
+	inline typename Scanner::State RunAligned(const Scanner& scanner, typename Scanner::State state, const size_t* begin, const size_t* end)
+	{
+		for (; begin != end; ++begin) {
+			size_t chunk = ToLittleEndian(*begin);
+
+			// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
+			// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
+			for (unsigned i = sizeof(void*); i != 0; --i) {
+				Step(scanner, state, chunk & 0xFF);
+				chunk >>= 8;
+			}
+		}
+		return state;
 	}
 }
 
@@ -269,15 +151,7 @@ inline void Run(const Scanner& scanner, typename Scanner::State& st, const char*
 		++head;
 	}
 
-	for (; head < tail; ++head) {
-		size_t chunk = Impl::ToLittleEndian(*head);
-		// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
-		// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
-		for (unsigned i = sizeof(void*); i != 0; --i) {
-			Step(scanner, state, chunk & 0xFF);
-			chunk >>= 8;
-		}
-	}
+	state = Impl::RunAligned(scanner, state, head, tail);
 
 	if (tailSize)
 		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*tail), tailSize);
@@ -290,31 +164,12 @@ inline void Run(const Scanner& scanner, typename Scanner::State& st, const char*
 template<class Scanner1, class Scanner2>
 inline void Run(const Scanner1& scanner1, const Scanner2& scanner2, typename Scanner1::State& state1, typename Scanner2::State& state2, const char* begin, const char* end)
 {
-	typedef Impl::ScannerPair<Scanner1, Scanner2> Scanners;
+	typedef ScannerPair<Scanner1, Scanner2> Scanners;
 	Scanners pair(scanner1, scanner2);
 	typename Scanners::State states(state1, state2);
 	Run(pair, states, begin, end);
 	state1 = states.first;
 	state2 = states.second;
-}
-
-/// A specialization for SlowScanner, since its state is much heavier than other ones
-/// and we thus want to avoid copying states.
-template<>
-inline void Run<SlowScanner>(const SlowScanner& scanner, SlowScanner::State& state, const char* begin, const char* end)
-{
-	SlowScanner::State temp;
-	scanner.Initialize(temp);
-
-	SlowScanner::State* src = &state;
-	SlowScanner::State* dest = &temp;
-
-	for (; begin != end; ++begin) {
-		scanner.Next(*src, *dest, static_cast<unsigned char>(*begin));
-		DoSwap(src, dest);
-	}
-	if (src != &state)
-		state = *src;
 }
 
 #else
@@ -336,9 +191,10 @@ inline void Run(const Scanner& scanner, typename Scanner::State& state, const ch
 
 /// Find a longest acceptable prefix of a given string.
 /// Returns its right boundary or NULL if there exists no acceptable prefix (even the empty string is rejected).
+template<class Scanner>
 inline const char* LongestPrefix(const Scanner& scanner, const char* begin, const char* end)
 {
-	Scanner::State state;
+	typename Scanner::State state;
 	scanner.Initialize(state);
 
  	PIRE_IFDEBUG(Cdbg << "Running LongestPrefix on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
@@ -359,9 +215,10 @@ inline const char* LongestPrefix(const Scanner& scanner, const char* begin, cons
 
 /// The same as above, but scans string in reverse direction
 /// (consider using Fsm::Reverse() for using in this function).
+template<class Scanner>
 inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, const char* rend)
 {
-	Scanner::State state;
+	typename Scanner::State state;
 	scanner.Initialize(state);
 
 	PIRE_IFDEBUG(Cdbg << "Running LongestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
@@ -382,9 +239,10 @@ inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, con
 
 /// Finds a first position where FSM jumps from a non-final state into a final
 /// one (i.e. finds shortest acceptable prefixx)
+template<class Scanner>
 inline const char* ShortestPrefix(const Scanner& scanner, const char* begin, const char* end)
 {
-	Pire::Scanner::State state;
+	typename Scanner::State state;
 	scanner.Initialize(state);
 
 	PIRE_IFDEBUG(Cdbg << "Running ShortestPrefix on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
@@ -398,9 +256,10 @@ inline const char* ShortestPrefix(const Scanner& scanner, const char* begin, con
 }
 
 /// The same as above, but scans string in reverse direction
+template<class Scanner>
 inline const char* ShortestSuffix(const Scanner& scanner, const char* rbegin, const char* rend)
 {
-	Pire::Scanner::State state;
+	typename Scanner::State state;
 	scanner.Initialize(state);
 
 	PIRE_IFDEBUG(Cdbg << "Running ShortestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
@@ -461,12 +320,5 @@ Scanner MmappedScanner(const void* ptr, size_t size)
 }
 
 }
-
-namespace std {
-	inline void swap(Pire::Scanner& a, Pire::Scanner b) {
-		a.Swap(b);
-	}
-}
-
 
 #endif

@@ -23,7 +23,10 @@
 
 #include "stub/stl.h"
 #include "stub/saveload.h"
-#include "re_scanner.h"
+#include "scanners/multi.h"
+#include "scanners/slow.h"
+#include "scanners/simple.h"
+#include "scanners/loaded.h"
 #include "align.h"
 #include "scanners/loaded.h"
 

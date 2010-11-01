@@ -21,7 +21,6 @@
  */
 
 
-#include "re_scanner.h"
 #include "count.h"
 #include "fsm.h"
 #include "../determine.h"

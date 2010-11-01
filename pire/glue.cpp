@@ -26,7 +26,8 @@
 #include <algorithm>
 #include "stub/stl.h"
 #include "stub/noncopyable.h"
-#include "re_scanner.h"
+#include "scanners/multi.h"
+#include "defs.h"
 #include "partition.h"
 #include "determine.h"
 #include "glue.h"

@@ -24,7 +24,8 @@
 #ifndef PIRE_SCANNERS_MULTI_H
 #define PIRE_SCANNERS_MULTI_H
 
-
+#include <string.h>
+#include "common.h"
 #include "../stub/stl.h"
 #include "../fsm.h"
 #include "../partition.h"
@@ -431,5 +432,16 @@ typedef Impl::Scanner<Impl::Relocatable> Scanner;
 typedef Impl::Scanner<Impl::Nonrelocatable> NonrelocScanner;
 
 }
+
+namespace std {
+	inline void swap(Pire::Scanner& a, Pire::Scanner b) {
+		a.Swap(b);
+	}
+
+	inline void swap(Pire::NonrelocScanner& a, Pire::NonrelocScanner b) {
+		a.Swap(b);
+	}
+}
+
 
 #endif

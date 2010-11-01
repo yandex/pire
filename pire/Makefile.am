@@ -26,7 +26,7 @@ libpire_la_SOURCES = \
 	pire.h \
 	re_lexer.cpp \
 	re_lexer.h \
-	re_scanner.h \
+	run.h n\
 	scanner_io.cpp \
 	vbitset.h \
 	re_parser.ypp \
@@ -34,6 +34,8 @@ libpire_la_SOURCES = \
 	scanners/multi.h \
 	scanners/slow.h \
 	scanners/simple.h \
+	scanners/common.h \
+	scanners/pair.h \
 	stub/stl.h \
 	stub/lexical_cast.h \
 	stub/saveload.h \
@@ -71,7 +73,7 @@ pire_hdr_HEADERS = \
 	pire.h \
 	re_lexer.h \
 	re_parser.h \
-	re_scanner.h \
+	run.h \
 	static_assert.h \
 	vbitset.h
 
@@ -85,10 +87,12 @@ endif
 
 pire_scannersdir = $(includedir)/pire/scanners
 pire_scanners_HEADERS = \
+	scanners/common.h \
 	scanners/multi.h \
 	scanners/slow.h \
 	scanners/simple.h \
-	scanners/loaded.h
+	scanners/loaded.h \
+	scanners/pair.h
 
 pire_stubdir = $(includedir)/pire/stub
 pire_stub_HEADERS = \

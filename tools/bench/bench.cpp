@@ -147,7 +147,7 @@ class PairTester: public ITester {
 	
 	void Run(const char* begin, const char* end)
 	{
-		typedef Pire::Impl::ScannerPair<Scanner1, Scanner2> Pair;
+		typedef Pire::ScannerPair<Scanner1, Scanner2> Pair;
 		Pire::RunHelper<Pair> rh(Pair(sc1, sc2));
 		rh.Begin().Run(begin, end).End();
 		std::cerr << "[first] "; PrintResult<Scanner1>::Do(sc1, rh.State().first);

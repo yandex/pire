@@ -24,10 +24,9 @@
 #ifndef PIRE_SCANNERS_LOADED_H
 #define PIRE_SCANNERS_LOADED_H
 
-
+#include <string.h>
+#include "common.h"
 #include "../partition.h"
-#include "../re_scanner.h"
-#include "../stub/saveload.h"
 
 #ifdef PIRE_DEBUG
 #include <iostream>

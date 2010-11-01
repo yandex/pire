@@ -25,6 +25,7 @@
 #define PIRE_EXTRA_COUNT_H
 
 #include "../scanners/loaded.h"
+#include "../fsm.h"
 
 namespace Pire {
 class Fsm;
