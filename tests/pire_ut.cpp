@@ -420,7 +420,21 @@ SIMPLE_UNIT_TEST(Serialization)
 		UNIT_ASSERT(!"SlowScanner failed to check for misaligned mmaping");
 	}
 	catch (Pire::Error&) {}
+}
 
+SIMPLE_UNIT_TEST(TestShortcuts)
+{
+	REGEXP("aaa") {
+		ACCEPTS("......................................aaa.............");
+		DENIES ("......................................aab.............");
+		DENIES ("......................................................");
+	}
+	REGEXP("[ab]{3}") {
+		ACCEPTS("......................................aaa.............");
+		ACCEPTS("......................................aab.............");
+		ACCEPTS("......................................bbb.............");
+		DENIES ("......................................................");
+	}
 }
 
 template<class Scanner>

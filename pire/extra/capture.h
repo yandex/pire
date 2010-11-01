@@ -139,6 +139,8 @@ private:
 
 		return x >> ActionShift;
 	}
+			
+	void FinishBuild() {}
 
 	friend void BuildScanner<CapturingScanner>(const Fsm&, CapturingScanner&);
 };

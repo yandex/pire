@@ -50,6 +50,13 @@ namespace Pire {
 	
 	using namespace SpecialChar;
 
+	namespace Impl {
+#ifndef WORDS_BIGENDIAN
+		inline size_t ToLittleEndian(size_t val) { return val; }
+#else
+#error TODO: Please implement Pire::Impl::ToLittleEndian()
+#endif
+	}
 }
 
 #endif

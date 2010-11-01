@@ -52,6 +52,7 @@ public:
 		: ScannerGlueCommon<Scanner>(lhs, rhs, LettersEquality<Scanner>(lhs.m_letters, rhs.m_letters))
 	{
 	}
+	
 	void AcceptStates(const yvector<State>& states)
 	{
 		// Make up a new scanner and fill in the final table
@@ -61,12 +62,7 @@ public:
 			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i->first)) + RangeLen(Rhs().AcceptedRegexps(i->second));
 		SetSc(new Scanner);
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
-		
-		// Prevent scanner from building final table
-		// (we'll build it ourselves)
-		for (size_t i = 0; i != Sc().Size(); ++i)
-			Sc().Header(Sc().IndexToState(i)).Flags = Scanner::TagSet; 
-		
+				
 		for (size_t state = 0; state != states.size(); ++state) {
 			Sc().m_finalIndex[state] = Sc().m_finalEnd - Sc().m_final;
 			Sc().m_finalEnd = Shift(Lhs().AcceptedRegexps(states[state].first), 0, Sc().m_finalEnd);
@@ -77,7 +73,14 @@ public:
 				| ((Lhs().Dead(states[state].first) && Rhs().Dead(states[state].second)) ? Scanner::DeadFlag : 0));
 		}
 	}
+	
 	void Connect(size_t from, size_t to, Char letter) { Sc().SetJump(from, letter, to); }
+
+	const Scanner& Success()
+	{
+		Sc().BuildShortcuts();
+		return Sc();
+	}
 	
 private:    
 	template<class Iter>

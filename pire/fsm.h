@@ -255,6 +255,8 @@ namespace Pire {
 				for (Fsm::StatesSet::const_iterator to = tos.begin(), toEnd = tos.end(); to != toEnd; ++to)
 					r.SetJump(from, lit->first, *to, r.RemapAction(fsm.Output(from, *to)));
 			}
+		
+		r.FinishBuild();
 	}
 	
 	template<class Scanner>

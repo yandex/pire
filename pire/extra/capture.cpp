@@ -82,6 +82,8 @@ namespace {
 			fsm.SetFinal(fsm.Size() - 1, true);
 			fsm.SetIsDetermined(false);
 		}
+		
+		void FinishBuild() {}
 	};
 }
 	

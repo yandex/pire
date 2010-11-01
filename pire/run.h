@@ -78,13 +78,6 @@ void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 #ifndef PIRE_DEBUG
 
 namespace Impl {
-#ifndef WORDS_BIGENDIAN
-	inline size_t ToLittleEndian(size_t val) { return val; }
-#else
-#error TODO: Please implement Pire::Impl::ToLittleEndian()
-#endif
-
-
 
 	/// Effectively runs a scanner on a short data chunk, fit completely into one machine word.
 	template<class Scanner>
@@ -108,20 +101,24 @@ namespace Impl {
 	}
 	
 	template<class Scanner>
-	inline typename Scanner::State RunAligned(const Scanner& scanner, typename Scanner::State state, const size_t* begin, const size_t* end)
-	{
-		for (; begin != end; ++begin) {
-			size_t chunk = ToLittleEndian(*begin);
+	struct AlignedRunner {
+		
+		static inline typename Scanner::State
+		RunAligned(const Scanner& scanner, typename Scanner::State state, const size_t* begin, const size_t* end)
+		{
+			for (; begin != end; ++begin) {
+				size_t chunk = ToLittleEndian(*begin);
 
-			// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
-			// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
-			for (unsigned i = sizeof(void*); i != 0; --i) {
-				Step(scanner, state, chunk & 0xFF);
-				chunk >>= 8;
+				// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
+				// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
+				for (unsigned i = sizeof(void*); i != 0; --i) {
+					Step(scanner, state, chunk & 0xFF);
+					chunk >>= 8;
+				}
 			}
+			return state;
 		}
-		return state;
-	}
+	};
 }
 
 /// The main function: runs a scanner through given memory range.
@@ -151,7 +148,7 @@ inline void Run(const Scanner& scanner, typename Scanner::State& st, const char*
 		++head;
 	}
 
-	state = Impl::RunAligned(scanner, state, head, tail);
+	state = Impl::AlignedRunner<Scanner>::RunAligned(scanner, state, head, tail);
 
 	if (tailSize)
 		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*tail), tailSize);

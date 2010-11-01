@@ -29,6 +29,7 @@
 #include "../stub/stl.h"
 #include "../fsm.h"
 #include "../partition.h"
+#include "../run.h"
 #include "../static_assert.h"
 #include "../stub/saveload.h"
 
@@ -75,15 +76,31 @@ namespace Impl {
 	
 	/// Some properties of the particular state.
 	struct ScannerRowHeader {
-		/// If this state loops for all letters except particular one,
-		/// ExitMask contains that letter in each byte.
+		enum { ExitMaskCount = 2 };
+		
+		/// If this state loops for all letters except particular set
+		/// (common thing when matching something like /.*[Aa]/),
+		/// each ExitMask contains that letter in each byte of size_t.
+		///
+		/// These masks are most commonly used for fast forwarding through parts
+		/// of the string matching /.*/ somewhere in the middle regexp.
+		///
 		/// If bytes of mask hold different values, the mask is invalid
 		/// and will not be used.
-		size_t ExitMask;
+		size_t ExitMasks[ExitMaskCount];
+		
+		enum {
+			INVALID_MASK  = 0xDEADBEEF,
+			UNLIKELY_MASK = 0x81525916 // Just a random number
+		};
 
 		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
 
-		ScannerRowHeader(): ExitMask(1), Flags(0) {}		
+		ScannerRowHeader(): Flags(0)
+		{
+			for (size_t i = 0; i < ExitMaskCount; ++i)
+				ExitMasks[i] = INVALID_MASK;
+		}
 	};
 
 // Scanner implementation parametrized by transition table representation strategy 
@@ -93,8 +110,7 @@ protected:
 	enum {
 		 FinalFlag = 1,
 		 DeadFlag  = 2,
-		 Flags = FinalFlag | DeadFlag,
-		 TagSet = 0x80
+		 Flags = FinalFlag | DeadFlag
 	};
 
 	static const size_t End = static_cast<size_t>(-1);
@@ -104,7 +120,7 @@ public:
 		
 	typedef ui16		Letter;
 	typedef ui32		Action;
-	typedef ui8		 Tag;
+	typedef ui8		Tag;
 
 	Scanner()
 		: m_buffer(0)
@@ -166,6 +182,19 @@ public:
 	{
 		state = Relocation::Go(state, reinterpret_cast<const Transition*>(state)[m_letters[c]]);
 		return 0;
+	}
+	
+	inline bool ShortCut(State state, size_t chunk) const
+	{
+		const size_t* mptr = Header(state).ExitMasks;
+		if (*mptr == ScannerRowHeader::INVALID_MASK)
+			return false;
+		for (size_t i = 0; i != ScannerRowHeader::ExitMaskCount; ++i, ++mptr) {
+			size_t m = chunk ^ *mptr;
+			if (((m - (size_t) 0x0101010101010101ull) & ~m & (size_t) 0x8080808080808080ull) != 0)
+				return false;
+		}
+		return true;
 	}
 
 	void TakeAction(State&, Action) const {}
@@ -382,17 +411,60 @@ private:
 
 	void SetTag(size_t state, size_t value)
 	{
-		// FIXME: SetTag() needs to be called for _each_ state.
 		YASSERT(m_buffer);
-		size_t& tag = Header(IndexToState(state)).Flags;
+		Header(IndexToState(state)).Flags = value;
+	}
+	
+	size_t MakeCharMask(char c)
+	{
+		size_t mask = c;
+		for (size_t i = 8; i != sizeof(size_t)*8; i <<= 1)
+			mask = (mask << i) | mask;
+		return mask;
+	}
+	
+	void BuildShortcuts()
+	{		
+		yvector< yvector<char> > letters(m.rowSize);
+		for (unsigned ch = 0; ch != 1 << (sizeof(char)*8); ++ch)
+			letters[m_letters[ch]].push_back(ch);
 		
-		if (!(tag & TagSet)) {
+		YASSERT(m_buffer);
+		for (size_t i = 0; i != Size(); ++i) {
+			State st = IndexToState(i);
+			size_t* ptr = Header(st).ExitMasks;
+			size_t* end = ptr + ScannerRowHeader::ExitMaskCount;
+			size_t lastMask = ScannerRowHeader::UNLIKELY_MASK;
+			size_t let = HEADER_SIZE;
+			for (; let != m.rowSize; ++let) {
+				if (Relocation::Go(st, reinterpret_cast<const Transition*>(st)[let]) != st) {
+					if (ptr + letters[let].size() > end)
+						break;
+					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit)
+						*ptr++ = lastMask = MakeCharMask(*chit);
+				}
+			}
+			
+			if (let != m.rowSize) {
+				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
+				lastMask = ScannerRowHeader::INVALID_MASK;
+				ptr = Header(st).ExitMasks;
+			}
+			while (ptr != end)
+				*ptr++ = lastMask;
+		}
+	}
+	
+	void FinishBuild()
+	{
+		YASSERT(m_buffer);
+		for (size_t state = 0; state != Size(); ++state) {
 			m_finalIndex[state] = m_finalEnd - m_final;
-			if (value & FinalFlag)
+			if (Header(IndexToState(state)).Flags & FinalFlag)
 				*m_finalEnd++ = 0;
 			*m_finalEnd++ = static_cast<size_t>(-1);
 		}
-		tag = (value & Flags) | TagSet;
+		BuildShortcuts();
 	}
 
 	size_t AcceptedRegexpsCount(size_t idx) const
@@ -409,7 +481,27 @@ private:
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
 	friend class ScannerGlueTask<Scanner>;
-	template<class AnotherRelocation> friend class Scanner;
+	template<class AnotherRelocation> friend class Scanner;	
+};	
+	
+template<class Relocation>
+struct AlignedRunner< Scanner<Relocation> > {
+	static inline typename Scanner<Relocation>::State
+	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, const size_t* begin, const size_t* end)
+	{
+		for (; begin != end; ++begin) {
+			size_t chunk = ToLittleEndian(*begin);
+			if (!scanner.ShortCut(state, chunk)) {
+				// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
+				// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
+				for (unsigned i = sizeof(void*); i != 0; --i) {
+					Step(scanner, state, chunk & 0xFF);
+					chunk >>= 8;
+				}
+			}
+		}
+		return state;
+	}
 };
 
 }

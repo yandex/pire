@@ -71,15 +71,16 @@ struct Compile {
 
 template<class Relocation>
 struct Compile< Pire::Impl::Scanner<Relocation> > {
-	static Pire::Scanner Do(const Fsms& fsms)
+	static Pire::Impl::Scanner<Relocation> Do(const Fsms& fsms)
 	{
-		Pire::Scanner sc;
+		typedef Pire::Impl::Scanner<Relocation> Sc;
+		Sc sc;
 		for (Fsms::const_iterator i = fsms.begin(), ie = fsms.end(); i != ie; ++i) {
-			Pire::Scanner tsc = Pire::Fsm(*i).Compile<Pire::Scanner>();
+			Sc tsc = Pire::Fsm(*i).Compile<Sc>();
 			if (i == fsms.begin())
 				tsc.Swap(sc);
 			else {
-				sc = Pire::Scanner::Glue(sc, tsc);
+				sc = Sc::Glue(sc, tsc);
 				if (sc.Empty()) {
 					std::ostringstream msg;
 					msg << "Scanner gluing failed at regexp #" << i - fsms.begin() << " - pattern too complicated";

@@ -178,6 +178,8 @@ private:
 			return 0;
 	}
 	
+	void FinishBuild() {}
+	
 	typedef LoadedScanner::InternalState InternalState;
 	friend void BuildScanner<CountingScanner>(const Fsm&, CountingScanner&);
 	friend class Impl::ScannerGlueCommon<CountingScanner>;

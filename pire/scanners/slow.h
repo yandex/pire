@@ -277,6 +277,8 @@ private:
 
 	void SetInitial(size_t state) { m.start = state; }
 	void SetTag(size_t state, ui8 tag) { m_finals[state] = (tag != 0); }
+	
+	void FinishBuild() {}
 
 	static ypair<const size_t*, const size_t*> Accept()
 	{

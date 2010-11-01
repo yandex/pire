@@ -26,7 +26,7 @@ libpire_la_SOURCES = \
 	pire.h \
 	re_lexer.cpp \
 	re_lexer.h \
-	run.h n\
+	run.h \
 	scanner_io.cpp \
 	vbitset.h \
 	re_parser.ypp \
