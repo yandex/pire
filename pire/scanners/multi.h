@@ -90,8 +90,8 @@ namespace Impl {
 		size_t ExitMasks[ExitMaskCount];
 		
 		enum {
-			INVALID_MASK  = 0xDEADBEEF, // the state doensn't have shortcuts
-			NOEXIT_MASK = 0x81525916    // the state has only transtions to itself
+			NO_SHORTCUT_MASK = 0xDEADBEEF, // the state doensn't have shortcuts
+			NO_EXIT_MASK  = 0x81525916  // the state has only transtions to itself
 		};
 
 		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
@@ -99,7 +99,7 @@ namespace Impl {
 		ScannerRowHeader(): Flags(0)
 		{
 			for (size_t i = 0; i < ExitMaskCount; ++i)
-				ExitMasks[i] = INVALID_MASK;
+				ExitMasks[i] = NO_SHORTCUT_MASK;
 		}
 	};
 
@@ -121,6 +121,8 @@ public:
 	typedef ui16		Letter;
 	typedef ui32		Action;
 	typedef ui8		Tag;
+
+	enum ShortcutAction { Look, Shortcut, Exit };
 
 	Scanner()
 		: m_buffer(0)
@@ -184,25 +186,25 @@ public:
 		return 0;
 	}
 
-	inline bool ShortCut(State state, size_t chunk) const
+	inline ShortcutAction CheckShortCut(State state, size_t chunk) const
 	{
 		const size_t* mptr = Header(state).ExitMasks;
 		// Check whether shortcuts are possible at all in this state
-		if (*mptr == ScannerRowHeader::INVALID_MASK)
-			return false;
+		if (*mptr == ScannerRowHeader::NO_SHORTCUT_MASK)
+			return Look;
 		// Check if there are no exits from the current state and skip the chunk
-		if (*mptr == ScannerRowHeader::NOEXIT_MASK)
-			return true;
+		if (*mptr == ScannerRowHeader::NO_EXIT_MASK)
+			return Exit;
 		// Check if any character in the chunk matches one of the shortcut masks
 		const size_t mask0x01 = 0x0101010101010101ull;
 		const size_t mask0x80 = 0x8080808080808080ull;
 		for (size_t i = 0; i != ScannerRowHeader::ExitMaskCount; ++i, ++mptr) {
 			size_t mc = chunk ^ *mptr;
 			if (((mc - mask0x01) & ~mc & mask0x80) != 0)
-				return false;
+				return Look;
 		}
 		// Can skip the whole chunk if no character matched none of the masks
-		return true;
+		return Shortcut;
 	}
 
 	void TakeAction(State&, Action) const {}
@@ -447,7 +449,7 @@ private:
 			State st = IndexToState(i);
 			size_t* ptr = Header(st).ExitMasks;
 			size_t* end = ptr + ScannerRowHeader::ExitMaskCount;
-			size_t lastMask = ScannerRowHeader::NOEXIT_MASK;
+			size_t lastMask = ScannerRowHeader::NO_EXIT_MASK;
 			size_t let = HEADER_SIZE;
 			for (; let != m.rowSize; ++let) {
 				// Check if the transition is not the same state
@@ -462,7 +464,7 @@ private:
 			
 			if (let != m.rowSize) {
 				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
-				lastMask = ScannerRowHeader::INVALID_MASK;
+				lastMask = ScannerRowHeader::NO_SHORTCUT_MASK;
 				ptr = Header(st).ExitMasks;
 			}
 			// Fill the rest of the shortcut masks with the last used mask
@@ -509,7 +511,10 @@ struct AlignedRunner< Scanner<Relocation> > {
 		for (; begin != end; ++begin) {
 			size_t chunk = ToLittleEndian(*begin);
 			// Only process each character if the chunk cannot be fully skipped
-			if (!scanner.ShortCut(state, chunk)) {
+			typename Scanner<Relocation>::ShortcutAction res = scanner.CheckShortCut(state, chunk);
+			if (res == Scanner<Relocation>::Exit)
+				return state;
+			if (res == Scanner<Relocation>::Look) {
 				// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
 				// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
 				for (unsigned i = sizeof(void*); i != 0; --i) {
