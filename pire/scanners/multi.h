@@ -196,8 +196,8 @@ public:
 		if (*mptr == ScannerRowHeader::NO_EXIT_MASK)
 			return Exit;
 		// Check if any character in the chunk matches one of the shortcut masks
-		const size_t mask0x01 = 0x0101010101010101ull;
-		const size_t mask0x80 = 0x8080808080808080ull;
+		const size_t mask0x01 = (size_t)0x0101010101010101ull;
+		const size_t mask0x80 = (size_t)0x8080808080808080ull;
 		for (size_t i = 0; i != ScannerRowHeader::ExitMaskCount; ++i, ++mptr) {
 			size_t mc = chunk ^ *mptr;
 			if (((mc - mask0x01) & ~mc & mask0x80) != 0)
