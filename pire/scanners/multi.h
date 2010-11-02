@@ -90,8 +90,8 @@ namespace Impl {
 		size_t ExitMasks[ExitMaskCount];
 		
 		enum {
-			INVALID_MASK  = 0xDEADBEEF,
-			UNLIKELY_MASK = 0x81525916 // Just a random number
+			INVALID_MASK  = 0xDEADBEEF, // the state doensn't have shortcuts
+			NOEXIT_MASK = 0x81525916    // the state has only transtions to itself
 		};
 
 		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
@@ -183,17 +183,25 @@ public:
 		state = Relocation::Go(state, reinterpret_cast<const Transition*>(state)[m_letters[c]]);
 		return 0;
 	}
-	
+
 	inline bool ShortCut(State state, size_t chunk) const
 	{
 		const size_t* mptr = Header(state).ExitMasks;
+		// Check whether shortcuts are possible at all in this state
 		if (*mptr == ScannerRowHeader::INVALID_MASK)
 			return false;
+		// Check if there are no exits from the current state and skip the chunk
+		if (*mptr == ScannerRowHeader::NOEXIT_MASK)
+			return true;
+		// Check if any character in the chunk matches one of the shortcut masks
+		const size_t mask0x01 = 0x0101010101010101ull;
+		const size_t mask0x80 = 0x8080808080808080ull;
 		for (size_t i = 0; i != ScannerRowHeader::ExitMaskCount; ++i, ++mptr) {
-			size_t m = chunk ^ *mptr;
-			if (((m - (size_t) 0x0101010101010101ull) & ~m & (size_t) 0x8080808080808080ull) != 0)
+			size_t mc = chunk ^ *mptr;
+			if (((mc - mask0x01) & ~mc & mask0x80) != 0)
 				return false;
 		}
+		// Can skip the whole chunk if no character matched none of the masks
 		return true;
 	}
 
@@ -390,7 +398,6 @@ private:
 		return reinterpret_cast<size_t>(m_transitions + stateIndex * m.rowSize);
 	}
 
-
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/ = 0)
 	{
 		YASSERT(m_buffer);
@@ -414,32 +421,40 @@ private:
 		YASSERT(m_buffer);
 		Header(IndexToState(state)).Flags = value;
 	}
-	
-	size_t MakeCharMask(char c)
+
+	// Makes a size_t mask where every byte is c
+	static inline size_t MakeCharMask(unsigned char c)
 	{
 		size_t mask = c;
 		for (size_t i = 8; i != sizeof(size_t)*8; i <<= 1)
 			mask = (mask << i) | mask;
 		return mask;
 	}
-	
+
+	// Fill shortcut masks for all the states
 	void BuildShortcuts()
-	{		
+	{
+		YASSERT(m_buffer);
+
+		// Build the mapping from letter classes to characters
 		yvector< yvector<char> > letters(m.rowSize);
 		for (unsigned ch = 0; ch != 1 << (sizeof(char)*8); ++ch)
 			letters[m_letters[ch]].push_back(ch);
-		
-		YASSERT(m_buffer);
+
+		// Loop through all states in the transition table and
+		// check if it is possible to setup shortcuts
 		for (size_t i = 0; i != Size(); ++i) {
 			State st = IndexToState(i);
 			size_t* ptr = Header(st).ExitMasks;
 			size_t* end = ptr + ScannerRowHeader::ExitMaskCount;
-			size_t lastMask = ScannerRowHeader::UNLIKELY_MASK;
+			size_t lastMask = ScannerRowHeader::NOEXIT_MASK;
 			size_t let = HEADER_SIZE;
 			for (; let != m.rowSize; ++let) {
+				// Check if the transition is not the same state
 				if (Relocation::Go(st, reinterpret_cast<const Transition*>(st)[let]) != st) {
 					if (ptr + letters[let].size() > end)
 						break;
+					// For each character setup a mask
 					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit)
 						*ptr++ = lastMask = MakeCharMask(*chit);
 				}
@@ -450,11 +465,13 @@ private:
 				lastMask = ScannerRowHeader::INVALID_MASK;
 				ptr = Header(st).ExitMasks;
 			}
+			// Fill the rest of the shortcut masks with the last used mask
 			while (ptr != end)
 				*ptr++ = lastMask;
 		}
 	}
-	
+
+	// Fills final states table and builds shortcuts if possible
 	void FinishBuild()
 	{
 		YASSERT(m_buffer);
@@ -491,6 +508,7 @@ struct AlignedRunner< Scanner<Relocation> > {
 	{
 		for (; begin != end; ++begin) {
 			size_t chunk = ToLittleEndian(*begin);
+			// Only process each character if the chunk cannot be fully skipped
 			if (!scanner.ShortCut(state, chunk)) {
 				// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
 				// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
