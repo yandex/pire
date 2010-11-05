@@ -196,6 +196,9 @@ namespace Pire {
 		/// Unpacks all letters equivalence classs back into transitions table
 		void Unsparse();
 
+		/// Reorders states in the FSM, increasing spatial locality
+		void Sort();
+
 	private:
 
 		/// Transitions table :: Q x V -> exp(Q)

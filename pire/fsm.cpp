@@ -798,6 +798,9 @@ bool Fsm::LettersEquality::operator()(Char a, Char b) const
 
 void Fsm::Sparse()
 {
+	if (m_sparsed)
+		return;
+
 	letters = LettersTbl(LettersEquality(m_transitions));
 	for (unsigned letter = 0; letter < MaxChar; ++letter)
 		if (letter != Epsilon)
@@ -809,6 +812,9 @@ void Fsm::Sparse()
 
 void Fsm::Unsparse()
 {
+	if (!m_sparsed)
+		return;
+
 	for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit)
 		for (TransitionTable::iterator i = m_transitions.begin(), ie = m_transitions.end(); i != ie; ++i)
 			for (yvector<Char>::const_iterator j = lit->second.second.begin(), je = lit->second.second.end(); j != je; ++j)
@@ -1124,6 +1130,7 @@ Fsm& Fsm::Canonize(size_t maxSize /* = 0 */)
 			throw Error("regexp pattern too complicated");
 	}
 	Minimize();
+	Sort();
 	return *this;
 }
 
@@ -1178,5 +1185,89 @@ void Fsm::Divert(size_t from, size_t to, size_t dest)
 	ClearHints();
 }
 
+namespace {
+	template< class T, class Field, class Comp>
+	class ByField: public std::binary_function<const T&, const T&, bool> {
+	public:
+		ByField(Field T::*field, Comp comp = Comp()): m_field(field), m_comp(comp) {}
+		bool operator()(const T& a, const T& b) const { return m_comp(a.*m_field, b.*m_field); }
+	private:
+		Field T::*m_field;
+		Comp m_comp;
+	};
+
+	template<class T, class Field>
+	ByField< T, Field, std::less<Field> > byField(Field T::*field) { return ByField< T, Field, std::less<Field> >(field, std::less<Field>()); }
+
+	template<class T, class Field, class Comp>
+	ByField<T, Field, Comp> byField(Field T::*field, Comp comp) { return ByField<T, Field, Comp>(field, comp); }
+}
+
+void Fsm::Sort()
+{
+	Sparse();
+
+	yvector<size_t> order;
+	yset<size_t> visited;
+	ydeque<size_t> stack;
+	stack.push_back(initial);
+	visited.insert(initial);
+
+	// Find out new ordering for the states
+	while (!stack.empty()) {
+		order.push_back(stack.back());
+		stack.pop_back();
+
+		// Determine which states we are more likely to go into after current state
+		ymap<size_t, size_t> freq;
+		const TransitionRow& row = m_transitions[order.back()];
+		for (TransitionRow::const_iterator i = row.begin(), ie = row.end(); i != ie; ++i)
+			for (StatesSet::const_iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
+				++freq[*j];
+
+		// Push new states to stack, least frequently met first (so they will be popped and processed last)
+		std::vector< std::pair<size_t, size_t> > vfreq(freq.begin(), freq.end());
+		std::sort(vfreq.begin(), vfreq.end(), byField(&std::pair<size_t, size_t>::second));
+		for (std::vector< std::pair<size_t, size_t> >::iterator i = vfreq.begin(), ie = vfreq.end(); i != ie; ++i) {
+			if (visited.insert(i->first).second)
+				stack.push_back(i->first);
+		}
+	}
+	YASSERT(order.size() == Size());
+	PIRE_IFDEBUG(Cdbg << "New states ordering: " << Join(order.begin(), order.end(), ", ") << Endl);
+
+	// Build inverted states map
+	yvector<size_t> remap(Size(), size_t(-1));
+	for (size_t i = 0; i != Size(); ++i)
+		remap[order[i]] = i;
+
+	// Build a new FSM
+	Fsm out;
+	out.Resize(Size());
+	out.letters = letters;
+	out.initial = remap[initial];
+	for (Tags::const_iterator i = tags.begin(), ie = tags.end(); i != ie; ++i)
+		out.SetTag(remap[i->first], i->second);
+	out.ClearFinal();
+	for (FinalTable::const_iterator i = Finals().begin(), ie = Finals().end(); i != ie; ++i)
+		out.SetFinal(remap[*i], true);
+	for (size_t from = 0; from != Size(); ++from) {
+		for (TransitionRow::const_iterator li = m_transitions[from].begin(), lie = m_transitions[from].end(); li != lie; ++li) {
+			for (StatesSet::const_iterator to = li->second.begin(), toe = li->second.end(); to != toe; ++to) {
+				out.Connect(remap[from], remap[*to], li->first);
+				unsigned long output = Output(from, *to);
+				if (output)
+					out.SetOutput(remap[from], remap[*to], output);
+			}
+		}
+	}
+	out.m_sparsed = true;
+	out.determined = true;
+	out.isAlternative = isAlternative;
+
+	// Commit
+	Swap(out);
+	PIRE_IFDEBUG(Cdbg << "After reordering:\n" << *this << Endl);
+}
 
 }
