@@ -41,7 +41,7 @@ public:
 		gettimeofday(&end, 0);
 		long long usec = (end.tv_sec - m_tv.tv_sec) * 1000000 + (end.tv_usec - m_tv.tv_usec);
 		float bw = m_sz *1.0 / usec;
-		std::cerr << m_msg << ": " << usec << " us\t" << bw << " MB/sec" <<  std::endl;
+		std::cout << m_msg << ": " << usec << " us\t" << bw << " MB/sec" <<  std::endl;
 	}
     
 private:
@@ -97,9 +97,9 @@ struct PrintResult {
 	static void Do(const Scanner& sc, typename Scanner::State st)
 	{
 		if (sc.Final(st))
-			std::cerr << "Match" << std::endl;
+			std::cout << "Match" << std::endl;
 		else
-			std::cerr << "No match" << std::endl;
+			std::cout << "No match" << std::endl;
 	}
 };
 
@@ -110,10 +110,10 @@ struct PrintResult< Pire::Impl::Scanner<Relocation> > {
 	static void Do(const Scanner& sc, typename Scanner::State st)
 	{
 		std::pair<const size_t*, const size_t*> accepted = sc.AcceptedRegexps(st);
-		std::cerr << "Accepted regexps:";
+		std::cout << "Accepted regexps:";
 		for (; accepted.first != accepted.second; ++accepted.first)
-			std::cerr << " " << *accepted.first;
-		std::cerr << std::endl;
+			std::cout << " " << *accepted.first;
+		std::cout << std::endl;
 	}
 };
 
@@ -151,8 +151,8 @@ class PairTester: public ITester {
 		typedef Pire::ScannerPair<Scanner1, Scanner2> Pair;
 		Pire::RunHelper<Pair> rh(Pair(sc1, sc2));
 		rh.Begin().Run(begin, end).End();
-		std::cerr << "[first] "; PrintResult<Scanner1>::Do(sc1, rh.State().first);
-		std::cerr << "[second] "; PrintResult<Scanner2>::Do(sc2, rh.State().second);
+		std::cout << "[first] "; PrintResult<Scanner1>::Do(sc1, rh.State().first);
+		std::cout << "[second] "; PrintResult<Scanner2>::Do(sc2, rh.State().second);
 	}
 	
 private:
@@ -309,7 +309,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 	catch (std::exception& e) {
-		std::cerr << "bench: " << e.what() << std::endl;
+		std::cout << "bench: " << e.what() << std::endl;
 		return 1;
 	}
 }

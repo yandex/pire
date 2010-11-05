@@ -1,0 +1,47 @@
+#!/bin/sh -e
+
+BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
+BIGFILE_SIZE=1000000000
+
+BENCH="tools/bench/bench -f $BIGFILE"
+
+usage() {
+	echo "Usage: `basename $0` [-f big-file] [-k]" >&2
+	echo "  -f big-file  - specifies path to a big text file (1GB would be enough)" >&2
+	echo "  -k           - do not generate the file if it exists and do not delete it on exit" >&2
+	exit 1
+}
+
+bench() {
+	echo "$*"
+	echo -n "    "
+	$BENCH $* | tail -1
+}
+
+ARGS=`getopt f:k $*` || usage
+set -- $ARGS
+while [ "$1" != "--" ]; do
+	if [ "$1" = "-f" ]; then BIGFILE=$2; shift 2
+	elif [ "$1" = "-k" ]; then KEEPFILE=y; shift
+	fi
+done
+
+if [ -z "$KEEPFILE" ] || ! [ -r $BIGFILE ]; then
+	echo "Preparing a big file..."
+	cat $0 > $BIGFILE
+	while [ `stat -c '%s' $BIGFILE` -lt $BIGFILE_SIZE ]; do
+		cat $BIGFILE $BIGFILE $BIGFILE > $BIGFILE.new
+		mv -f $BIGFILE.new $BIGFILE
+	done
+fi
+
+bench -t nonreloc 'A$'
+bench -t multi 'A$'
+bench -t nonreloc "`printf \\\\100`"
+bench -t nonreloc 'ABC''DE'
+bench -t nonreloc 'KEEPFILE'
+
+if [ -z "$KEEPFILE" ]; then
+	rm -f $BIGFILE
+fi
+
