@@ -34,15 +34,11 @@
 #include "partition.h"
 #include "determine.h"
 
-#ifdef PIRE_DEBUG
 #include <iostream>
 #include <stdio.h>
 #include "stub/lexical_cast.h"
-#endif
 
 namespace Pire {
-
-#ifdef PIRE_DEBUG
 	
 ystring CharDump(Char c)
 {
@@ -160,7 +156,6 @@ void Fsm::DumpTo(yostream& s) const
 }
 
 yostream& operator << (yostream& s, const Fsm& fsm) { fsm.DumpTo(s); return s; }
-#endif
 
 
 namespace {
@@ -867,14 +862,14 @@ public:
 		State next;
 		next.reserve(20);
 		for (State::const_iterator from = state.begin(), fromEnd = state.end(); from != fromEnd; ++from) {
-const Fsm::StatesSet& part = mFsm.Destinations(*from, letter);
-std::copy(part.begin(), part.end(), std::back_inserter(next));
+			const Fsm::StatesSet& part = mFsm.Destinations(*from, letter);
+			std::copy(part.begin(), part.end(), std::back_inserter(next));
 		}
 
 		std::sort(next.begin(), next.end());
 		next.erase(std::unique(next.begin(), next.end()), next.end());
 		PIRE_IFDEBUG(Cdbg << "Returning transition [" << Join(state.begin(), state.end(), ", ") << "] --" << letter
-<< "--> [" << Join(next.begin(), next.end(), ", ") << "]" << Endl);
+		                  << "--> [" << Join(next.begin(), next.end(), ", ") << "]" << Endl);
 		return next;
 	}
 	

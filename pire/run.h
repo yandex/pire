@@ -28,9 +28,6 @@
 #include "stub/stl.h"
 #include "scanners/pair.h"
 
-#ifdef PIRE_DEBUG
-#include "stub/lexical_cast.h"
-
 namespace Pire {
 
 	template<class Scanner>
@@ -42,27 +39,9 @@ namespace Pire {
 		typename Scanner::State m_st;
 	};
 
-	template<>
-	struct StDumper<Scanner> {
-		StDumper(const Scanner& sc, Scanner::State st): m_sc(&sc), m_st(st) {}
-
-		void Dump(yostream& stream) const
-		{
-			stream << m_sc->StateIndex(m_st);
-			if (m_sc->Final(m_st))
-				stream << " [final]";
-			if (m_sc->Dead(m_st))
-				stream << " [dead]";
-		}
-	private:
-		const Scanner* m_sc;
-		Scanner::State m_st;
-	};
 	template<class Scanner> StDumper<Scanner> StDump(const Scanner& sc, typename Scanner::State st) { return StDumper<Scanner>(sc, st); }
 	template<class Scanner> yostream& operator << (yostream& stream, const StDumper<Scanner>& stdump) { stdump.Dump(stream); return stream; }
 }
-
-#endif
 
 namespace Pire {
 

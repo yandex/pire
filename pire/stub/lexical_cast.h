@@ -65,13 +65,13 @@ template<class T> T FromString(const std::string& s) { return LexicalCast<T>(s);
 template<class Iter>
 inline std::string Join(Iter begin, Iter end, const std::string& separator)
 {
-if (begin == end)
-return std::string();
-std::stringstream s;
-s << *begin;
-for (++begin; begin != end; ++begin)
-s << separator << *begin;
-return s.str();
+	if (begin == end)
+		return std::string();
+	std::stringstream s;
+	s << *begin;
+	for (++begin; begin != end; ++begin)
+		s << separator << *begin;
+	return s.str();
 }
 
 }

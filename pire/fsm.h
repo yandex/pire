@@ -49,7 +49,7 @@ namespace Pire {
 		size_t Size() const { return m_transitions.size(); }
 
 		Fsm& Append(char c);
-        Fsm& Append(const ystring& str);
+		Fsm& Append(const ystring& str);
 		Fsm& AppendSpecial(Char c);
 
 		/// Efficiently appends a union of passed strings to FSM.
@@ -112,8 +112,8 @@ namespace Pire {
 		template<class Scanner>
 		Scanner Compile();
 
-		PIRE_IFDEBUG(void DumpState(yostream& s, size_t state) const);
-		PIRE_IFDEBUG(void DumpTo(yostream& s) const);
+		void DumpState(yostream& s, size_t state) const;
+		void DumpTo(yostream& s) const;
 
 		typedef yset<size_t> StatesSet;
 		typedef ymap<size_t, StatesSet> TransitionRow;
@@ -265,7 +265,7 @@ namespace Pire {
 		return Scanner(*this);
 	}
 
-	PIRE_IFDEBUG(yostream& operator << (yostream&, const Fsm&));
+	yostream& operator << (yostream&, const Fsm&);
 }
 
 #endif

@@ -352,7 +352,9 @@ SIMPLE_UNIT_TEST(ScanTermination)
 	Pire::Scanner sc = Pire::Lexer("aaa").Parse().Compile<Pire::Scanner>();
 	// Scanning must terminate at first dead state. If it does not,
 	// we will pass through the end of our string and end up with segfault.
-	Pire::LongestPrefix(sc, "aaab", reinterpret_cast<const char*>(size_t(-1)));
+	ystring str("aaab");
+	const char* p = Pire::LongestPrefix(sc, &str[0], &str[0] + str.size());
+	UNIT_ASSERT(p == &str[0] + 3);
 }
 
 SIMPLE_UNIT_TEST(Serialization)

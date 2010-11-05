@@ -32,6 +32,7 @@
 #include "../run.h"
 #include "../static_assert.h"
 #include "../stub/saveload.h"
+#include "../stub/lexical_cast.h"
 
 namespace Pire {
 	
@@ -370,6 +371,7 @@ private:
 		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
 		YASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
+		m.rowSize = HEADER_SIZE + s.LettersCount();		// rowSizes may be different if HEADE_SIZE != s.HEADER_SIZE
 		m.relocationSignature = Relocation::Signature;
 		m_buffer = new char[BufSize()];
 		Markup(m_buffer);
@@ -389,8 +391,10 @@ private:
 				= reinterpret_cast<const typename Scanner<AnotherRelocation>::Transition*>(oldstate);
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
 		
-			for (size_t let = HEADER_SIZE; let != m.rowSize; ++let)
-				ns[let] = Relocation::Diff(newstate, IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[let]))));
+			for (size_t let = HEADER_SIZE; let != m.rowSize; ++let) {
+				size_t otherLet = let - HEADER_SIZE + s.HEADER_SIZE;
+				ns[let] = Relocation::Diff(newstate, IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[otherLet]))));
+			}
 		}
 	}
 
@@ -502,7 +506,9 @@ private:
 	friend class ScannerGlueTask<Scanner>;
 	template<class AnotherRelocation> friend class Scanner;	
 };	
-	
+
+#ifndef PIRE_DEBUG
+
 template<class Relocation>
 struct AlignedRunner< Scanner<Relocation> > {
 	static inline typename Scanner<Relocation>::State
@@ -527,7 +533,28 @@ struct AlignedRunner< Scanner<Relocation> > {
 	}
 };
 
+#endif
+
 }
+
+
+template<class Relocation>
+struct StDumper<Impl::Scanner<Relocation> > {
+	StDumper(const Impl::Scanner<Relocation>& sc, typename Impl::Scanner<Relocation>::State st): m_sc(&sc), m_st(st) {}
+
+	void Dump(yostream& stream) const
+	{
+		stream << m_sc->StateIndex(m_st);
+		if (m_sc->Final(m_st))
+			stream << " [final]";
+		if (m_sc->Dead(m_st))
+			stream << " [dead]";
+	}
+private:
+	const Impl::Scanner<Relocation>* m_sc;
+	typename Impl::Scanner<Relocation>::State m_st;
+};
+
 
 /**
  * A compiled multiregexp.

@@ -219,6 +219,14 @@ namespace Pire {
 		Error(const char* msg): std::runtime_error(msg) {}
 		Error(const ystring& msg): std::runtime_error(msg) {}
 	};
+
+	template <class T1, class T2, class Stream>
+	Stream& operator << (Stream& stream, const ypair<T1, T2>& val)
+	{
+		stream << "[" << val.first << ", " << val.second << "]";
+		return stream;
+	}
+
 }
 
 #endif

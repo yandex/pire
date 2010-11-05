@@ -25,6 +25,7 @@
 #include "fsm.h"
 #include "../determine.h"
 #include "../glue.h"
+#include "../stub/lexical_cast.h"
 
 namespace Pire {
 	
