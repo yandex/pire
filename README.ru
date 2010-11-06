@@ -29,30 +29,46 @@ Pire была разработана в компании Яндекс (изна�
 БЫСТРЫЙ СТАРТ
 =============
 
+#include <stdio.h>
+#include <vector>
 #include <pire/pire.h>
 
 Pire::Scanner CompileRegexp(const char* pattern)
 {
-    // Переводим шаблон в UCS4
-    std::vector<wchar32> ucs4;
-    Pire::Encodings::Utf8().FromLocal(pattern, pattern + strlen(pattern), std::back_inserter(ucs4));
-        // или другая кодировка
-    
-    return Pire::Lexer(ucs4.begin(), ucs4.end())
-        .AddFeature(Pire::Features::caseInsensitive()) // если хочется нечувствительность к регистру
-        .SetEncoding(Pire::Encodings::Utf8()) // Устанавливаем кодировку, в которой будет приходить проверяемый текст
-        .Parse() // Разбираем шаблон
-        .Surround() // если мы не хотим логику PCRE_ANCHORED
-        .Compile<Pire::Scanner>(); // Компилируем регулярку
+	// Переводим шаблон в UCS4
+	std::vector<Pire::wchar32> ucs4;
+	Pire::Encodings::Utf8().FromLocal(pattern, pattern + strlen(pattern), std::back_inserter(ucs4));
+	// или другая кодировка
+
+	return Pire::Lexer(ucs4.begin(), ucs4.end())
+		.AddFeature(Pire::Features::CaseInsensitive())	// если хочется нечувствительность к регистру
+		.SetEncoding(Pire::Encodings::Utf8())		// Устанавливаем кодировку, в которой будет приходить проверяемый текст
+		.Parse() 					// Разбираем шаблон
+		.Surround()					// если мы не хотим логику PCRE_ANCHORED
+		.Compile<Pire::Scanner>();			// Компилируем регулярку
 }
- 
+
 bool Matches(const Pire::Scanner& scanner, const char* ptr, size_t len)
 {
-    return Pire::Runner(scanner)
-        .Begin()                    // Начало строки
-        .Run(ptr, len)              // Строка
-        .End();                     // Конец строки
-                                    // Оно неявно кастится к bool
+	return Pire::Runner(scanner)
+		.Begin()	// Начало строки
+		.Run(ptr, len)	// Строка
+		.End();		// Конец строки
+		// Оно неявно кастится к bool
+}
+
+int main()
+{
+	char re[] = "hello\\s+w.+d$";
+	char str[] = "Hello world";
+
+	Pire::Scanner sc = CompileRegexp(re);
+
+	bool res = Matches(sc, str, strlen(str));
+
+	printf("String \"%s\" %s \"%s\"\n", str, (res ? "matches" : "doesn't match"), re);
+		
+	return 0;
 }
 
 
