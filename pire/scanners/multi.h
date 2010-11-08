@@ -536,11 +536,12 @@ public:
 				if (begin == end)
 					return state;
 				mask1 = scanner.Header(state).ExitMasks[0];
-				mask2 = scanner.Header(state).ExitMasks[1];
-				if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
-					return state;
 				chunk = ToLittleEndian(*begin);
 			}
+
+			if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
+				return state;
+			mask2 = scanner.Header(state).ExitMasks[1];
 
 			if (mask1 == mask2) {
 				while (CanShortcut(mask1, chunk)) {
