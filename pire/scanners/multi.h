@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -35,13 +35,13 @@
 #include "../stub/lexical_cast.h"
 
 namespace Pire {
-	
+
 namespace Impl {
 
 	inline static ssize_t SignExtend(i32 i) { return i; }
 	template<class T>
 	class ScannerGlueCommon;
-	
+
 	template<class T>
 	class ScannerGlueTask;
 
@@ -54,13 +54,13 @@ namespace Impl {
 		// it twice compared to 64-bit transitions. In future Transition
 		// can be made a template parameter if this is a concern.
 		typedef ui32 Transition;
-		
+
 		typedef const void* RetvalForMmap;
-		
+
 		static size_t Go(size_t state, Transition shift) { return state + SignExtend(shift); }
 		static Transition Diff(size_t from, size_t to) { return static_cast<Transition>(to - from); }
 	};
-	
+
 	// With this strategy the transition table stores addresses. This makes the scanner faster
 	// compared to mmap()-ed
 	struct Nonrelocatable {
@@ -72,13 +72,13 @@ namespace Impl {
 		typedef struct {} RetvalForMmap;
 
 		static size_t Go(size_t /*state*/, Transition shift) { return shift; }
-		static Transition Diff(size_t /*from*/, size_t to) { return to; }		
+		static Transition Diff(size_t /*from*/, size_t to) { return to; }
 	};
-	
+
 	/// Some properties of the particular state.
 	struct ScannerRowHeader {
 		enum { ExitMaskCount = 2 };
-		
+
 		/// If this state loops for all letters except particular set
 		/// (common thing when matching something like /.*[Aa]/),
 		/// each ExitMask contains that letter in each byte of size_t.
@@ -89,7 +89,7 @@ namespace Impl {
 		/// If bytes of mask hold different values, the mask is invalid
 		/// and will not be used.
 		size_t ExitMasks[ExitMaskCount];
-		
+
 		enum {
 			NO_SHORTCUT_MASK = 0xDEADBEEF, // the state doensn't have shortcuts
 			NO_EXIT_MASK  = 0x81525916  // the state has only transtions to itself
@@ -104,7 +104,7 @@ namespace Impl {
 		}
 	};
 
-// Scanner implementation parametrized by transition table representation strategy 
+// Scanner implementation parametrized by transition table representation strategy
 template<class Relocation>
 class Scanner {
 protected:
@@ -118,7 +118,7 @@ protected:
 
 public:
 	typedef typename Relocation::Transition Transition;
-		
+
 	typedef ui16		Letter;
 	typedef ui32		Action;
 	typedef ui8		Tag;
@@ -161,7 +161,7 @@ public:
 
 	/// Checks whether specified state is in any of the final sets
 	bool Final(const State& state) const { return (Header(state).Flags & FinalFlag) != 0; }
-	
+
 	/// Checks whether specified state is 'dead' (i.e. scanner will never
 	/// reach any final state from current one)
 	bool Dead(const State& state) const { return (Header(state).Flags & DeadFlag) != 0; }
@@ -187,27 +187,6 @@ public:
 		return 0;
 	}
 
-	inline ShortcutAction CheckShortCut(State state, size_t chunk) const
-	{
-		const size_t* mptr = Header(state).ExitMasks;
-		// Check whether shortcuts are possible at all in this state
-		if (*mptr == ScannerRowHeader::NO_SHORTCUT_MASK)
-			return Look;
-		// Check if there are no exits from the current state and skip the chunk
-		if (*mptr == ScannerRowHeader::NO_EXIT_MASK)
-			return Exit;
-		// Check if any character in the chunk matches one of the shortcut masks
-		const size_t mask0x01 = (size_t)0x0101010101010101ull;
-		const size_t mask0x80 = (size_t)0x8080808080808080ull;
-		for (size_t i = 0; i != ScannerRowHeader::ExitMaskCount; ++i, ++mptr) {
-			size_t mc = chunk ^ *mptr;
-			if (((mc - mask0x01) & ~mc & mask0x80) != 0)
-				return Look;
-		}
-		// Can skip the whole chunk if no character matched none of the masks
-		return Shortcut;
-	}
-
 	void TakeAction(State&, Action) const {}
 
 	Scanner(const Scanner& s): m(s.m)
@@ -224,13 +203,13 @@ public:
 			DeepCopy(s);
 		}
 	}
-	
+
 	template<class AnotherRelocation>
 	Scanner(const Scanner<AnotherRelocation>& s)
 	{
 		DeepCopy(s);
 	}
-	
+
 	void Swap(Scanner& s)
 	{
 		DoSwap(m_buffer, s.m_buffer);
@@ -322,10 +301,10 @@ private:
 	size_t* m_finalIndex;
 
 	Transition* m_transitions;
-	
+
 	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
 	PIRE_STATIC_ASSERT(sizeof(ScannerRowHeader) % sizeof(Transition) == 0);
-	
+
 	template<class Eq>
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
 	{
@@ -339,7 +318,7 @@ private:
 		memset(m_buffer, 0, BufSize());
 		Markup(m_buffer);
 		m_finalEnd = m_final;
-		
+
 		for (size_t i = 0; i != Size(); ++i)
 			Header(IndexToState(i)) = ScannerRowHeader();
 
@@ -361,10 +340,10 @@ private:
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
 		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
 	}
-	
+
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
 	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
-	
+
 	template<class AnotherRelocation>
 	void DeepCopy(const Scanner<AnotherRelocation>& s)
 	{
@@ -375,14 +354,14 @@ private:
 		m.relocationSignature = Relocation::Signature;
 		m_buffer = new char[BufSize()];
 		Markup(m_buffer);
-		
+
 		memcpy(m_letters, s.m_letters, MaxChar * sizeof(*m_letters));
 		memcpy(m_final, s.m_final, m.finalTableSize * sizeof(*m_final));
 		memcpy(m_finalIndex, s.m_finalIndex, m.statesCount * sizeof(*m_finalIndex));
-		
+
 		m.initial = IndexToState(s.StateIndex(s.m.initial));
 		m_finalEnd = m_final + (s.m_finalEnd - s.m_final);
-		
+
 		for (size_t st = 0; st != m.statesCount; ++st) {
 			size_t oldstate = s.IndexToState(st);
 			size_t newstate = IndexToState(st);
@@ -390,7 +369,7 @@ private:
 			const typename Scanner<AnotherRelocation>::Transition* os
 				= reinterpret_cast<const typename Scanner<AnotherRelocation>::Transition*>(oldstate);
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
-		
+
 			for (size_t let = HEADER_SIZE; let != m.rowSize; ++let) {
 				size_t otherLet = let - HEADER_SIZE + s.HEADER_SIZE;
 				ns[let] = Relocation::Diff(newstate, IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[otherLet]))));
@@ -398,7 +377,7 @@ private:
 		}
 	}
 
-	
+
 	size_t IndexToState(size_t stateIndex) const
 	{
 		return reinterpret_cast<size_t>(m_transitions + stateIndex * m.rowSize);
@@ -409,13 +388,13 @@ private:
 		YASSERT(m_buffer);
 		YASSERT(oldState < m.statesCount);
 		YASSERT(newState < m.statesCount);
-		
+
 		m_transitions[oldState * m.rowSize + m_letters[c]]
 			= Relocation::Diff(IndexToState(oldState), IndexToState(newState));
 	}
 
 	unsigned long RemapAction(unsigned long action) { return action; }
-	
+
 	void SetInitial(size_t state)
 	{
 		YASSERT(m_buffer);
@@ -465,7 +444,7 @@ private:
 						*ptr++ = lastMask = MakeCharMask(*chit);
 				}
 			}
-			
+
 			if (let != m.rowSize) {
 				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
 				lastMask = ScannerRowHeader::NO_SHORTCUT_MASK;
@@ -504,29 +483,81 @@ private:
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
 	friend class ScannerGlueTask<Scanner>;
-	template<class AnotherRelocation> friend class Scanner;	
-};	
+	template<class AnotherRelocation> friend class Scanner;
+	friend struct AlignedRunner< Scanner<Relocation> >;
+};
 
 #ifndef PIRE_DEBUG
 
 template<class Relocation>
 struct AlignedRunner< Scanner<Relocation> > {
+private:
+	// True iff no byte in the chuck matches the mask
+	static inline bool CanShortcut(size_t mask, size_t chunk)
+	{
+		const size_t mask0x01 = (size_t)0x0101010101010101ull;
+		const size_t mask0x80 = (size_t)0x8080808080808080ull;
+		size_t mc = chunk ^ mask;
+		return (((mc - mask0x01) & ~mc & mask0x80) == 0);
+	}
+
+	// Processes a chunk that cannot be skipped with a shortcut
+	static inline typename Scanner<Relocation>::State
+	ProcessChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t chunk)
+	{
+		// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
+		// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
+		for (unsigned i = sizeof(void*); i != 0; --i) {
+			Step(scanner, state, chunk & 0xFF);
+			chunk >>= 8;
+		}
+		return state;
+	}
+
+public:
 	static inline typename Scanner<Relocation>::State
 	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, const size_t* begin, const size_t* end)
 	{
-		for (; begin != end; ++begin) {
-			size_t chunk = ToLittleEndian(*begin);
-			// Only process each character if the chunk cannot be fully skipped
-			typename Scanner<Relocation>::ShortcutAction res = scanner.CheckShortCut(state, chunk);
-			if (res == Scanner<Relocation>::Exit)
-				return state;
-			if (res == Scanner<Relocation>::Look) {
-				// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
-				// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
-				for (unsigned i = sizeof(void*); i != 0; --i) {
-					Step(scanner, state, chunk & 0xFF);
-					chunk >>= 8;
+		PIRE_STATIC_ASSERT(ScannerRowHeader::ExitMaskCount == 2);
+		size_t mask1 = scanner.Header(state).ExitMasks[0];
+		size_t mask2 = scanner.Header(state).ExitMasks[1];
+		if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
+			return state;
+
+		if (begin == end)
+			return state;
+		size_t chunk = ToLittleEndian(*begin);
+
+		while (true) {
+
+			while (mask1 == ScannerRowHeader::NO_SHORTCUT_MASK) {
+				state = ProcessChunk(scanner, state, chunk);
+				++begin;
+				if (begin == end)
+					return state;
+				mask1 = scanner.Header(state).ExitMasks[0];
+				mask2 = scanner.Header(state).ExitMasks[1];
+				if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
+					return state;
+				chunk = ToLittleEndian(*begin);
+			}
+
+			if (mask1 == mask2) {
+				while (CanShortcut(mask1, chunk)) {
+					++begin;
+					if (begin == end)
+						return state;
+					chunk = ToLittleEndian(*begin);
 				}
+				mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
+			} else {
+				while (CanShortcut(mask1, chunk) && CanShortcut(mask2, chunk)) {
+					++begin;
+					if (begin == end)
+						return state;
+					chunk = ToLittleEndian(*begin);
+				}
+				mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
 			}
 		}
 		return state;
