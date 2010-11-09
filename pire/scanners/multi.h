@@ -568,12 +568,12 @@ public:
 		while (true) {
 
 			while (mask1 == ScannerRowHeader::NO_SHORTCUT_MASK) {
+				chunk = ToLittleEndian(*begin);
 				state = ProcessChunk(scanner, state, chunk);
 				++begin;
 				if (begin == end)
 					return state;
 				mask1 = scanner.Header(state).ExitMasks[0];
-				chunk = ToLittleEndian(*begin);
 			}
 
 			if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
@@ -583,7 +583,6 @@ public:
 			if (begin == end)
 				return state;
 			mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
-			chunk = ToLittleEndian(*begin);
 		}
 		return state;
 	}
