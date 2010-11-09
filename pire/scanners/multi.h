@@ -335,8 +335,8 @@ private:
 	 */
 	void Markup(void* ptr)
 	{
-		m_letters	 = reinterpret_cast<Letter*>(ptr);
-		m_final	   = reinterpret_cast<size_t*>(m_letters + MaxChar);
+		m_letters     = reinterpret_cast<Letter*>(ptr);
+		m_final	      = reinterpret_cast<size_t*>(m_letters + MaxChar);
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
 		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
 	}
@@ -489,18 +489,57 @@ private:
 
 #ifndef PIRE_DEBUG
 
+// True iff no byte in the chuck matches the mask
+inline bool CanShortcut(size_t mask, size_t chunk)
+{
+	const size_t mask0x01 = (size_t)0x0101010101010101ull;
+	const size_t mask0x80 = (size_t)0x8080808080808080ull;
+	size_t mc = chunk ^ mask;
+	return (((mc - mask0x01) & ~mc & mask0x80) == 0);
+}
+	
+template<unsigned N>
+struct MaskChecker {
+	MaskChecker(const size_t* mend): prev(mend-1), mask(mend[-1]) {}
+	
+	inline bool Check(size_t chunk) const { return prev.Check(chunk) && CanShortcut(mask, chunk); }
+	
+	inline const size_t* DoRun(const size_t* begin, const size_t* end) const
+	{
+		for (; begin != end && Check(ToLittleEndian(*begin)); ++begin);
+		return begin;
+	}
+	
+	inline const size_t* Run(const size_t* begin, const size_t* end) const
+	{
+		if (mask != prev.mask)
+			return DoRun(begin, end);
+		else
+			return prev.Run(begin, end);
+	}
+	
+	MaskChecker<N-1> prev;
+	size_t mask;
+};
+	
+template<>
+struct MaskChecker<1> {
+	MaskChecker(const size_t* mend): mask(mend[-1]) {}
+	
+	inline bool Check(size_t chunk) const { return CanShortcut(mask, chunk); }
+	
+	inline const size_t* Run(const size_t* begin, const size_t* end) const
+	{
+		for (; begin != end && Check(ToLittleEndian(*begin)); ++begin);
+		return begin;
+	}
+	
+	size_t mask;
+};
+
 template<class Relocation>
 struct AlignedRunner< Scanner<Relocation> > {
 private:
-	// True iff no byte in the chuck matches the mask
-	static inline bool CanShortcut(size_t mask, size_t chunk)
-	{
-		const size_t mask0x01 = (size_t)0x0101010101010101ull;
-		const size_t mask0x80 = (size_t)0x8080808080808080ull;
-		size_t mc = chunk ^ mask;
-		return (((mc - mask0x01) & ~mc & mask0x80) == 0);
-	}
-
 	// Processes a chunk that cannot be skipped with a shortcut
 	static inline typename Scanner<Relocation>::State
 	ProcessChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t chunk)
@@ -518,9 +557,7 @@ public:
 	static inline typename Scanner<Relocation>::State
 	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, const size_t* begin, const size_t* end)
 	{
-		PIRE_STATIC_ASSERT(ScannerRowHeader::ExitMaskCount == 2);
 		size_t mask1 = scanner.Header(state).ExitMasks[0];
-		size_t mask2 = scanner.Header(state).ExitMasks[1];
 		if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
 			return state;
 
@@ -541,25 +578,12 @@ public:
 
 			if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
 				return state;
-			mask2 = scanner.Header(state).ExitMasks[1];
 
-			if (mask1 == mask2) {
-				while (CanShortcut(mask1, chunk)) {
-					++begin;
-					if (begin == end)
-						return state;
-					chunk = ToLittleEndian(*begin);
-				}
-				mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
-			} else {
-				while (CanShortcut(mask1, chunk) && CanShortcut(mask2, chunk)) {
-					++begin;
-					if (begin == end)
-						return state;
-					chunk = ToLittleEndian(*begin);
-				}
-				mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
-			}
+			begin = MaskChecker<ScannerRowHeader::ExitMaskCount>(scanner.Header(state).ExitMasks + ScannerRowHeader::ExitMaskCount).Run(begin, end);
+			if (begin == end)
+				return state;
+			mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
+			chunk = ToLittleEndian(*begin);
 		}
 		return state;
 	}
