@@ -1,7 +1,7 @@
 %define pkgname libpire
 
 Name: libpire
-Version: 0.0.2
+Version: 0.0.3
 Release: my1
 
 Summary: Perl Incompatible Regular Expressions library
@@ -10,7 +10,7 @@ Group: System/Libraries
 Url: http://wiki.yandex-team.ru/DmitrijjProkopcev/pire
 Packager: Dmitry Prokoptsev <dprokoptsev@yandex-team.ru>
 
-Source: pire-0.0.1.tar.gz
+Source: pire-0.0.3.tar.gz
 
 Provides: libpire = %version-%release
 
@@ -63,12 +63,15 @@ programs which use %pkgname.
 %_libdir/libpire.a
 
 %changelog
-* Sat Jul 10 2008 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.2-my1
+* Thu Nov 11 2010 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.3-my1
+- Lots of performance optimizations.
+
+* Sat Jul 10 2010 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.2-my1
 - Slashes no longer require to be escaped.
 - Implemented Fsm::Reverse().
 - Scan() now searches longest acceptable prefix.
 - Optimized compiling of a union of a huge amount of relatively small patterns.
 
-* Fri Jul 02 2008 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.1-my1
+* Fri Jul 02 2010 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.1-my1
 - Initial revision
 
