@@ -42,7 +42,9 @@ namespace Impl {
 		Impl::AlignSave(s, sizeof(Pire::Header));
 		SavePodType(s, mc);
 		Impl::AlignSave(s, sizeof(mc));
-		Impl::AlignedSaveArray(s, m_buffer, BufSize());
+		SavePodType(s, Settings());
+		Impl::AlignSave(s, sizeof(Settings));
+		Impl::AlignedSaveArray(s, AlignUp(m_buffer, sizeof(Word)), BufSize());
 	}
 
 	template<>
@@ -52,9 +54,14 @@ namespace Impl {
 		Impl::ValidateHeader(s, 1, sizeof(sc.m));
 		LoadPodType(s, sc.m);
 		Impl::AlignLoad(s, sizeof(sc.m));
-		sc.m_buffer = new char[sc.BufSize()];
-		Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-		sc.Markup(sc.m_buffer);
+		Settings actual, required;
+		LoadPodType(s, actual);
+		Impl::AlignLoad(s, sizeof(actual));
+		if (actual != required)
+			throw std::runtime_error("This scanner was compiled for an incompatible platform");
+		sc.m_buffer = new char[sc.BufSize() + sizeof(Word)];
+		Impl::AlignedLoadArray(s, AlignUp(sc.m_buffer, sizeof(Word)), sc.BufSize());
+		sc.Markup(AlignUp(sc.m_buffer, sizeof(Word)));
 		sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
 		Swap(sc);
 	}

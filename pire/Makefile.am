@@ -28,6 +28,8 @@ libpire_la_SOURCES = \
 	re_lexer.h \
 	run.h \
 	scanner_io.cpp \
+	static_assert.h \
+	sse.h \
 	vbitset.h \
 	re_parser.ypp \
 	scanners/loaded.h \
@@ -75,6 +77,7 @@ pire_hdr_HEADERS = \
 	re_parser.h \
 	run.h \
 	static_assert.h \
+	sse.h \
 	vbitset.h
 
 if ENABLE_EXTRA

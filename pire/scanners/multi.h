@@ -88,11 +88,11 @@ namespace Impl {
 		///
 		/// If bytes of mask hold different values, the mask is invalid
 		/// and will not be used.
-		size_t ExitMasks[ExitMaskCount];
+		Word ExitMasks[ExitMaskCount];
 
 		enum {
-			NO_SHORTCUT_MASK = 0xDEADBEEF, // the state doensn't have shortcuts
-			NO_EXIT_MASK  = 0x81525916  // the state has only transtions to itself
+			NO_SHORTCUT_MASK = 1, // the state doensn't have shortcuts
+			NO_EXIT_MASK  =    2  // the state has only transtions to itself
 		};
 
 		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
@@ -100,7 +100,7 @@ namespace Impl {
 		ScannerRowHeader(): Flags(0)
 		{
 			for (size_t i = 0; i < ExitMaskCount; ++i)
-				ExitMasks[i] = NO_SHORTCUT_MASK;
+				ExitMasks[i] = FromShort(NO_SHORTCUT_MASK);
 		}
 	};
 
@@ -131,7 +131,7 @@ public:
 	{
 		m.relocationSignature = Relocation::Signature;
 		m.statesCount = 0;
-		m.rowSize = 0;
+		m.lettersCount = 0;
 		m.regexpsCount = 0;
 		m.finalTableSize = 0;
 	}
@@ -156,7 +156,7 @@ public:
 		return m.regexpsCount;
 	}
 	size_t LettersCount() const {
-		return m.rowSize - HEADER_SIZE;
+		return m.lettersCount;
 	}
 
 	/// Checks whether specified state is in any of the final sets
@@ -169,7 +169,7 @@ public:
 	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& state) const
 	{
 		size_t idx = (state - reinterpret_cast<size_t>(m_transitions)) /
-			(m.rowSize * sizeof(Transition));
+			(RowSize() * sizeof(Transition));
 		const size_t* b = m_final + m_finalIndex[idx];
 		const size_t* e = b;
 		while (*e != End)
@@ -214,7 +214,7 @@ public:
 	{
 		DoSwap(m_buffer, s.m_buffer);
 		DoSwap(m.statesCount, s.m.statesCount);
-		DoSwap(m.rowSize, s.m.rowSize);
+		DoSwap(m.lettersCount, s.m.lettersCount);
 		DoSwap(m.regexpsCount, s.m.regexpsCount);
 		DoSwap(m.initial, s.m.initial);
 		DoSwap(m_letters, s.m_letters);
@@ -238,7 +238,7 @@ public:
 	 */
 	typename Relocation::RetvalForMmap Mmap(const void* ptr, size_t size)
 	{
-		Impl::CheckAlign(ptr);
+		Impl::CheckAlign(ptr, sizeof(Word));
 		Scanner s;
 
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
@@ -251,7 +251,14 @@ public:
 			throw Error("Type mismatch while mmapping Pire::Scanner");
 		Impl::AdvancePtr(p, size, sizeof(s.m));
 		Impl::AlignPtr(p, size);
+		
+		Settings required;
+		const Settings* actual;
+		Impl::MapPtr(actual, 1, p, size);
+		if (required != *actual)
+			throw Error("This scanner was compiled for an incompatible platform");
 
+		Impl::AlignPtr(p, size);
 		if (size < s.BufSize())
 			throw Error("EOF reached while mapping NPire::Scanner");
 		s.Markup(const_cast<size_t*>(p));
@@ -264,7 +271,7 @@ public:
 
 	size_t StateIndex(State s) const
 	{
-		return (s - reinterpret_cast<size_t>(m_transitions)) / (m.rowSize * sizeof(Transition));
+		return (s - reinterpret_cast<size_t>(m_transitions)) / (RowSize() * sizeof(Transition));
 	}
 
 	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0);
@@ -272,21 +279,34 @@ public:
 	// Returns the size of the memory buffer used (or required) by scanner.
 	size_t BufSize() const
 	{
-		// TODO: need to fix according to letter table size
-		return
+		return AlignUp(
 			MaxChar * sizeof(Letter)                           // Letters translation table
 			+ m.finalTableSize * sizeof(size_t)                // Final table
 			+ m.statesCount * sizeof(size_t)                   // Final index
-			+ m.rowSize * m.statesCount * sizeof(Transition);  // Transitions table
+			+ sizeof(Word)                                     // Additional space, so transition table can be aligned
+			+ RowSize() * m.statesCount * sizeof(Transition),  // Transitions table
+		sizeof(Word));
 	}
 
 	void Save(yostream*) const;
 	void Load(yistream*);
 
 private:
+	struct Settings {
+		size_t ExitMaskCount;
+		size_t ExitMaskSize;
+		
+		Settings():
+			ExitMaskCount(ScannerRowHeader::ExitMaskCount),
+			ExitMaskSize(sizeof(Word))
+		{}
+		bool operator == (const Settings& rhs) const { return ExitMaskCount == rhs.ExitMaskCount && ExitMaskSize == rhs.ExitMaskSize; }
+		bool operator != (const Settings& rhs) const { return !(*this == rhs); }
+	};
+	
 	struct Locals {
 		ui32 statesCount;
-		ui32 rowSize;
+		ui32 lettersCount;
 		ui32 regexpsCount;
 		size_t initial;
 		ui32 finalTableSize;
@@ -301,6 +321,8 @@ private:
 	size_t* m_finalIndex;
 
 	Transition* m_transitions;
+	
+	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(Word)); }
 
 	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
 	PIRE_STATIC_ASSERT(sizeof(ScannerRowHeader) % sizeof(Transition) == 0);
@@ -310,19 +332,19 @@ private:
 	{
 		m.relocationSignature = Relocation::Signature;
 		m.statesCount = states;
-		m.rowSize = letters.Size() + HEADER_SIZE;
+		m.lettersCount = letters.Size();
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
 
-		m_buffer = new char[BufSize()];
-		memset(m_buffer, 0, BufSize());
-		Markup(m_buffer);
+		m_buffer = new char[BufSize() + sizeof(Word)];
+		memset(m_buffer, 0, BufSize() + sizeof(Word));
+		Markup(AlignUp(m_buffer, sizeof(Word)));
 		m_finalEnd = m_final;
 
 		for (size_t i = 0; i != Size(); ++i)
 			Header(IndexToState(i)) = ScannerRowHeader();
 
-		m.initial = reinterpret_cast<size_t>(m_transitions + startState * m.rowSize);
+		m.initial = reinterpret_cast<size_t>(m_transitions + startState * RowSize());
 
 		// Build letter translation table
 		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
@@ -335,10 +357,11 @@ private:
 	 */
 	void Markup(void* ptr)
 	{
+		Impl::CheckAlign(ptr, sizeof(Word));
 		m_letters     = reinterpret_cast<Letter*>(ptr);
 		m_final	      = reinterpret_cast<size_t*>(m_letters + MaxChar);
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
-		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
+		m_transitions = AlignUp(reinterpret_cast<Transition*>(m_finalIndex + m.statesCount), sizeof(Word));
 	}
 
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
@@ -350,10 +373,9 @@ private:
 		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
 		YASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
-		m.rowSize = HEADER_SIZE + s.LettersCount();		// rowSizes may be different if HEADE_SIZE != s.HEADER_SIZE
 		m.relocationSignature = Relocation::Signature;
-		m_buffer = new char[BufSize()];
-		Markup(m_buffer);
+		m_buffer = new char[BufSize() + sizeof(Word)];
+		Markup(AlignUp(m_buffer, sizeof(Word)));
 
 		memcpy(m_letters, s.m_letters, MaxChar * sizeof(*m_letters));
 		memcpy(m_final, s.m_final, m.finalTableSize * sizeof(*m_final));
@@ -370,17 +392,16 @@ private:
 				= reinterpret_cast<const typename Scanner<AnotherRelocation>::Transition*>(oldstate);
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
 
-			for (size_t let = HEADER_SIZE; let != m.rowSize; ++let) {
-				size_t otherLet = let - HEADER_SIZE + s.HEADER_SIZE;
-				ns[let] = Relocation::Diff(newstate, IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[otherLet]))));
-			}
+			for (size_t let = 0; let != LettersCount(); ++let)
+				ns[let + HEADER_SIZE] = Relocation::Diff(newstate,
+					IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[let + s.HEADER_SIZE]))));
 		}
 	}
 
 
 	size_t IndexToState(size_t stateIndex) const
 	{
-		return reinterpret_cast<size_t>(m_transitions + stateIndex * m.rowSize);
+		return reinterpret_cast<size_t>(m_transitions + stateIndex * RowSize());
 	}
 
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/ = 0)
@@ -389,7 +410,7 @@ private:
 		YASSERT(oldState < m.statesCount);
 		YASSERT(newState < m.statesCount);
 
-		m_transitions[oldState * m.rowSize + m_letters[c]]
+		m_transitions[oldState * RowSize() + m_letters[c]]
 			= Relocation::Diff(IndexToState(oldState), IndexToState(newState));
 	}
 
@@ -407,22 +428,13 @@ private:
 		Header(IndexToState(state)).Flags = value;
 	}
 
-	// Makes a size_t mask where every byte is c
-	static inline size_t MakeCharMask(unsigned char c)
-	{
-		size_t mask = c;
-		for (size_t i = 8; i != sizeof(size_t)*8; i <<= 1)
-			mask = (mask << i) | mask;
-		return mask;
-	}
-
 	// Fill shortcut masks for all the states
 	void BuildShortcuts()
 	{
 		YASSERT(m_buffer);
 
 		// Build the mapping from letter classes to characters
-		yvector< yvector<char> > letters(m.rowSize);
+		yvector< yvector<char> > letters(RowSize());
 		for (unsigned ch = 0; ch != 1 << (sizeof(char)*8); ++ch)
 			letters[m_letters[ch]].push_back(ch);
 
@@ -430,24 +442,24 @@ private:
 		// check if it is possible to setup shortcuts
 		for (size_t i = 0; i != Size(); ++i) {
 			State st = IndexToState(i);
-			size_t* ptr = Header(st).ExitMasks;
-			size_t* end = ptr + ScannerRowHeader::ExitMaskCount;
-			size_t lastMask = ScannerRowHeader::NO_EXIT_MASK;
+			Word* ptr = Header(st).ExitMasks;
+			Word* end = ptr + ScannerRowHeader::ExitMaskCount;
+			Word lastMask = FromShort(ScannerRowHeader::NO_EXIT_MASK);
 			size_t let = HEADER_SIZE;
-			for (; let != m.rowSize; ++let) {
+			for (; let != LettersCount() + HEADER_SIZE; ++let) {
 				// Check if the transition is not the same state
 				if (Relocation::Go(st, reinterpret_cast<const Transition*>(st)[let]) != st) {
 					if (ptr + letters[let].size() > end)
 						break;
 					// For each character setup a mask
 					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit)
-						*ptr++ = lastMask = MakeCharMask(*chit);
+						*ptr++ = lastMask = FillWord(*chit);
 				}
 			}
 
-			if (let != m.rowSize) {
+			if (let != LettersCount() + HEADER_SIZE) {
 				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
-				lastMask = ScannerRowHeader::NO_SHORTCUT_MASK;
+				lastMask = FromShort(ScannerRowHeader::NO_SHORTCUT_MASK);
 				ptr = Header(st).ExitMasks;
 			}
 			// Fill the rest of the shortcut masks with the last used mask
@@ -488,53 +500,44 @@ private:
 };
 
 #ifndef PIRE_DEBUG
-
-// True iff no byte in the chuck matches the mask
-inline bool CanShortcut(size_t mask, size_t chunk)
-{
-	const size_t mask0x01 = (size_t)0x0101010101010101ull;
-	const size_t mask0x80 = (size_t)0x8080808080808080ull;
-	size_t mc = chunk ^ mask;
-	return (((mc - mask0x01) & ~mc & mask0x80) == 0);
-}
 	
 template<unsigned N>
-struct MaskChecker {
-	MaskChecker(const size_t* mend): prev(mend-1), mask(mend[-1]) {}
+struct MaskChecker {	
+	MaskChecker(const Word* mend): prev(mend-1), mask(mend[-1]) {}
 	
-	inline bool Check(size_t chunk) const { return prev.Check(chunk) && CanShortcut(mask, chunk); }
+	inline bool Check(Word chunk) const { return prev.Check(chunk) && CmpBytes(mask, chunk); }
 	
-	inline const size_t* DoRun(const size_t* begin, const size_t* end) const
+	inline const Word* DoRun(const Word* begin, const Word* end) const
 	{
 		for (; begin != end && Check(ToLittleEndian(*begin)); ++begin);
 		return begin;
 	}
 	
-	inline const size_t* Run(const size_t* begin, const size_t* end) const
+	inline const Word* Run(const Word* begin, const Word* end) const
 	{
-		if (mask != prev.mask)
+		if (ToShort(mask) != ToShort(prev.mask))
 			return DoRun(begin, end);
 		else
 			return prev.Run(begin, end);
 	}
 	
 	MaskChecker<N-1> prev;
-	size_t mask;
+	Word mask;
 };
 	
 template<>
 struct MaskChecker<1> {
-	MaskChecker(const size_t* mend): mask(mend[-1]) {}
+	MaskChecker(const Word* mend): mask(mend[-1]) {}
 	
-	inline bool Check(size_t chunk) const { return CanShortcut(mask, chunk); }
+	inline bool Check(Word chunk) const { return CmpBytes(mask, chunk); }
 	
-	inline const size_t* Run(const size_t* begin, const size_t* end) const
+	inline const Word* Run(const Word* begin, const Word* end) const
 	{
 		for (; begin != end && Check(ToLittleEndian(*begin)); ++begin);
 		return begin;
 	}
 	
-	size_t mask;
+	Word mask;
 };
 
 template<class Relocation>
@@ -552,39 +555,51 @@ private:
 		}
 		return state;
 	}
-
+	
 public:
-	static inline typename Scanner<Relocation>::State
+	
+	static typename Scanner<Relocation>::State
 	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, const size_t* begin, const size_t* end)
 	{
-		size_t mask1 = scanner.Header(state).ExitMasks[0];
-		if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
+		if (ToShort(scanner.Header(state).ExitMasks[0]) == ScannerRowHeader::NO_EXIT_MASK || begin == end)
 			return state;
-
+		const Word* head = AlignUp((const Word*) begin, sizeof(Word));
+		const Word* tail = AlignDown((const Word*) end, sizeof(Word));
+		for (; begin != (const size_t*) head && begin != end; ++begin)
+			state = ProcessChunk(scanner, state, *begin);
 		if (begin == end)
 			return state;
-		size_t chunk = ToLittleEndian(*begin);
 
-		while (true) {
+		Word NoShortcutMask = FromShort(ScannerRowHeader::NO_SHORTCUT_MASK);
+		Word mask1 = scanner.Header(state).ExitMasks[0];
+		if (ToShort(mask1) == ScannerRowHeader::NO_EXIT_MASK)
+			return state;
 
-			while (mask1 == ScannerRowHeader::NO_SHORTCUT_MASK) {
-				state = ProcessChunk(scanner, state, chunk);
-				++begin;
-				if (begin == end)
-					return state;
+		while (head != tail) {
+
+			while (ToShort(mask1) == ScannerRowHeader::NO_SHORTCUT_MASK) {
+				for (size_t *p = (size_t*) head, *pe = (size_t*) (head+1); p != pe; ++p)			
+					state = ProcessChunk(scanner, state, ToLittleEndian(*p));
+				++head;
+				if (head == tail)
+					break;
 				mask1 = scanner.Header(state).ExitMasks[0];
-				chunk = ToLittleEndian(*begin);
 			}
+			if (head == tail)
+				break;
 
-			if (mask1 == ScannerRowHeader::NO_EXIT_MASK)
+			if (ToShort(mask1) == ScannerRowHeader::NO_EXIT_MASK)
 				return state;
 
-			begin = MaskChecker<ScannerRowHeader::ExitMaskCount>(scanner.Header(state).ExitMasks + ScannerRowHeader::ExitMaskCount).Run(begin, end);
-			if (begin == end)
-				return state;
-			mask1 = ScannerRowHeader::NO_SHORTCUT_MASK;
-			chunk = ToLittleEndian(*begin);
+			head = MaskChecker<ScannerRowHeader::ExitMaskCount>(scanner.Header(state).ExitMasks + ScannerRowHeader::ExitMaskCount)
+				.Run(head, tail);
+			if (head == tail)
+				break;
+			mask1 = NoShortcutMask;
 		}
+		
+		for (size_t* p = (size_t*) tail; p != end; ++p)
+			state = ProcessChunk(scanner, state, *p);
 		return state;
 	}
 };
