@@ -77,7 +77,7 @@ inline size_t ToShort(short s) { return s; }
 inline short FromShort(size_t x) { return (short) x; }
 
 // True iff no byte in the chuck matches the mask
-inline bool CmpBytes(size_t mask, size_t chunk) const
+inline bool CmpBytes(size_t mask, size_t chunk)
 {
 	const size_t mask0x01 = (size_t)0x0101010101010101ull;
 	const size_t mask0x80 = (size_t)0x8080808080808080ull;
