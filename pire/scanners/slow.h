@@ -202,9 +202,12 @@ public:
 			memcpy(m_finals, s.m_finals, sizeof(*m_finals) * m.statesCount);
 		}
 	}
+
 	explicit SlowScanner(Fsm& fsm)
 	{
-		fsm.Canonize();
+		fsm.RemoveEpsilons();
+		fsm.Sparse();
+
 		m.statesCount = fsm.Size();
 		m.lettersCount = fsm.Letters().Size();
 

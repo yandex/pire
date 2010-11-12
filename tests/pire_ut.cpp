@@ -487,4 +487,13 @@ SIMPLE_UNIT_TEST(Glue)
 	TestGlue<Pire::NonrelocScanner>();
 }
 
+SIMPLE_UNIT_TEST(Slow)
+{
+	Pire::SlowScanner sc = ParseRegexp("a.{30}$", "").Compile<Pire::SlowScanner>();
+	//                             123456789012345678901234567890
+	UNIT_ASSERT( Matches(sc, "....a.............................."));
+	UNIT_ASSERT(!Matches(sc, "....a..............................."));
+	UNIT_ASSERT(!Matches(sc, "....a............................."));
+}
+
 }
