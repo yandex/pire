@@ -507,7 +507,7 @@ struct MaskChecker {
 	MaskChecker(const Word* mend)
         : prev(mend-1)
         , mask(mend[-1])
-        , runMe((*(const size_t*)&mend[-2]) != (*(const size_t*)&mend[-1])) {}
+        , runMe(GetSizeT(mend - 2) != GetSizeT(mend - 1)) {}
 	
 	inline bool Check(Word chunk) const { return prev.Check(chunk) && CmpBytes(mask, chunk); }
 	
@@ -591,7 +591,7 @@ private:
 	// Compares the ExitMask[0] value without SSE reads which seems to be more optimal
 	static inline bool CheckFirstMask(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t val)
 	{
-		return (*(const size_t*)&scanner.Header(state).ExitMasks[0] == val);
+		return (GetSizeT(scanner.Header(state).ExitMasks) == val);
 	}
 	
 public:

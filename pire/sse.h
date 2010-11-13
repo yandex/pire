@@ -88,6 +88,11 @@ inline bool CmpBytes(size_t mask, size_t chunk)
 #define PIRE_SHORTCUTS_DEFINED
 #endif
 
+inline size_t GetSizeT(const Word* pVal)
+{
+	return *(const size_t*)pVal;
+}
+
 }}
 
 #endif
