@@ -388,8 +388,10 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::Scanner fast2;
 	Pire::SimpleScanner simple2;
 	Pire::SlowScanner slow2;
-	const void* ptr = wbuf.Buffer().Data();
+	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(Pire::Impl::Word));
+	const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(Pire::Impl::Word));
 	const void* end = (const void*) ((const char*) ptr + wbuf.Buffer().Size());
+	memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 
 	ptr = fast2.Mmap(ptr, (const char*) end - (const char*) ptr);
 	ptr = simple2.Mmap(ptr, (const char*) end - (const char*) ptr);

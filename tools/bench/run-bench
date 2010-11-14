@@ -3,7 +3,6 @@
 BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
 BIGFILE_SIZE=1000000000
 
-BENCH="tools/bench/bench -f $BIGFILE"
 
 usage() {
 	echo "Usage: `basename $0` [-f big-file] [-k]" >&2
@@ -25,6 +24,8 @@ while [ "$1" != "--" ]; do
 	elif [ "$1" = "-k" ]; then KEEPFILE=y; shift
 	fi
 done
+
+BENCH="tools/bench/bench -f $BIGFILE"
 
 if [ -z "$KEEPFILE" ] || ! [ -r $BIGFILE ]; then
 	echo "Preparing a big file..."

@@ -27,25 +27,38 @@
 
 #include "stub/stl.h"
 #include "stub/saveload.h"
+#include "sse.h"
 
 namespace Pire {
 	
 	namespace Impl {
+
+		template<class T>
+		inline T AlignUp(T t, size_t bound = sizeof(void*))
+		{
+			return (T) (((size_t) t + (bound-1)) & ~(bound-1));
+		}
+
+		template<class T>
+		inline T AlignDown(T t, size_t bound = sizeof(void*))
+		{
+			return (T) ((size_t) t & ~(bound-1));
+		}
 		
 		inline void AlignSave(yostream* s, size_t size)
 		{
-			size_t tail = ((size + (sizeof(void*)-1)) & ~(sizeof(void*)-1)) - size;
+			size_t tail = AlignUp(size, sizeof(Word)) - size;
 			if (tail) {
-				static const char buf[sizeof(void*)] = {0};
+				static const char buf[sizeof(void*)*4] = {0};
 				SaveArray(s, buf, tail);
 			}
 		}
 
 		inline void AlignLoad(yistream* s, size_t size)
 		{
-			size_t tail = ((size + (sizeof(void*)-1)) & ~(sizeof(void*)-1)) - size;
+			size_t tail = AlignUp(size, sizeof(Word)) - size;
 			if (tail) {
-				char buf[sizeof(void*)];
+				char buf[sizeof(Word)];
 				LoadArray(s, buf, tail);
 			}
 		}
@@ -65,19 +78,19 @@ namespace Pire {
 		}
 
 		template<class T>
-		inline T AlignPtr(T t)
+		inline bool IsAligned(T t, size_t bound = sizeof(void*))
 		{
-			return (T) (((size_t) t + (sizeof(void*)-1)) & ~(sizeof(void*)-1));
+			return ((size_t) t & (bound-1)) == 0;
 		}
 		
 		inline const void* AlignPtr(const size_t*& p, size_t& size)
 		{
-			if ((size_t) p & (sizeof(void*) - 1)) {
-				size_t l = sizeof(void*) - ((size_t) p & (sizeof(void*) - 1));
-				if (size < l)
+			if (!IsAligned(p, sizeof(Word))) {
+				const size_t* next = AlignUp(p, sizeof(Word));
+				if (next > p+size)
 					throw Error("EOF reached in NPire::Impl::align");
-				p = (const size_t*) ((const char*) p + l);
-				size -= l;
+				size -= (next - p);
+				p = next;
 			}
 			return (const void*) p;
 		}

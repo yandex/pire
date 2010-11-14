@@ -8,6 +8,7 @@ AM_CXXFLAGS += -DPIRE_CHECKED
 endif
 
 noinst_PROGRAMS = bench
+dist_noinst_SCRIPTS = run-bench
 
 bench_SOURCES  = bench.cpp
 bench_LDADD    = ../../pire/libpire.la

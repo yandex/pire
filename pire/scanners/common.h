@@ -27,6 +27,7 @@
 #include "../align.h"
 #include "../stub/defaults.h"
 #include "../defs.h"
+#include "../sse.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -42,7 +43,7 @@ namespace Pire {
 		size_t HdrSize;
 
 		static const ui32 MAGIC = 0x45524950;   // "PIRE" on litte-endian
-		static const ui32 RE_VERSION = 3;       // Should be incremented each time when the format of serialized scanner changes
+		static const ui32 RE_VERSION = 5;       // Should be incremented each time when the format of serialized scanner changes
 
 		explicit Header(ui32 type, size_t hdrsize)
 			: Magic(MAGIC)
@@ -81,9 +82,9 @@ namespace Pire {
 			Impl::AlignPtr(p, size);
 		}
 
-		inline void CheckAlign(const void* ptr)
+		inline void CheckAlign(const void* ptr, size_t bound = sizeof(void*))
 		{
-			if ((size_t) ptr & (sizeof(void*)-1))
+			if (!IsAligned(ptr, bound))
 				throw Error("Tried to mmap scanner at misaligned address");
 		}
 

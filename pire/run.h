@@ -26,6 +26,7 @@
 
 #include "defs.h"
 #include "stub/stl.h"
+#include "stub/memstreams.h"
 #include "scanners/pair.h"
 
 namespace Pire {
@@ -288,10 +289,11 @@ bool Matches(const Scanner& scanner, const char* begin, const char* end)
 
 /// Constructs an inline scanner in one statement
 template<class Scanner>
-Scanner MmappedScanner(const void* ptr, size_t size)
+Scanner MmappedScanner(const char* ptr, size_t size)
 {
+	MemoryInput inp(ptr, size);
 	Scanner s;
-	s.Mmap(ptr, size);
+	s.Load(&inp);
 	return s;
 }
 

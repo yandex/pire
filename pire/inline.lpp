@@ -180,7 +180,8 @@ Die DieHelper() {
 			pos = 5;
 		}
 	}
-	fprintf(yyout, "\", %u)\n#line %d \"%s\"\n", (unsigned int) buf.Buffer().Size(), line, filename.c_str());
+	fprintf(yyout, "\", %u)\n#line %d \"%s\"\n",
+		(unsigned int) buf.Buffer().Size(), line, filename.c_str());
 	BEGIN(INITIAL);
 }
 <INITIAL>.               { putc(*yytext, yyout); }
