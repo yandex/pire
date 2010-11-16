@@ -35,8 +35,8 @@ TESTS = pire_test
 
 CLEANFILES = inline_ut_2.cpp
 
-inline_ut_2.cpp: inline_ut.cpp
-	../pire/pire_inline -o $@ $<
+inline_ut_2.cpp: $(srcdir)/inline_ut.cpp
+	../pire/pire_inline -o inline_ut_2.cpp $(srcdir)/inline_ut.cpp
 
 endif
 

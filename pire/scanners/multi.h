@@ -496,7 +496,9 @@ private:
 	friend class ScannerGlueCommon<Scanner>;
 	friend class ScannerGlueTask<Scanner>;
 	template<class AnotherRelocation> friend class Scanner;
+#ifndef PIRE_DEBUG
 	friend struct AlignedRunner< Scanner<Relocation> >;
+#endif
 };
 
 #ifndef PIRE_DEBUG
