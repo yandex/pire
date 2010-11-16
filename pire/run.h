@@ -110,8 +110,11 @@ inline void Run(const Scanner& scanner, typename Scanner::State& st, const char*
 	const size_t* head = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(begin)) & ~(sizeof(void*)-1));
 	const size_t* tail = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(end)) & ~(sizeof(void*)-1));
 
-	size_t headSize = ((const char*) head - begin + sizeof(void*)) & (sizeof(void*) - 1);
-	size_t tailSize = end - (const char*) tail;
+	size_t headSize = ((const char*) head + sizeof(void*) - begin); // The distance from @p begin to the end of the word containing @p begin
+	size_t tailSize = end - (const char*) tail; // The distance from the beginning of the word containing @p end to the @p end
+
+	YASSERT(headSize >= 1 && headSize <= sizeof(void*));
+	YASSERT(tailSize < sizeof(void*));
 
 	if (head == tail) {
 		Impl::RunChunk(scanner, st, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), end - begin);
@@ -123,7 +126,7 @@ inline void Run(const Scanner& scanner, typename Scanner::State& st, const char*
 	// compiler to store it in a register. This saves some instructions and cycles
 	typename Scanner::State state = st;
 
-	if (headSize) {
+	if (begin != (const char*) head) {
 		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), headSize);
 		++head;
 	}

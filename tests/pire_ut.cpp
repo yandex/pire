@@ -498,4 +498,33 @@ SIMPLE_UNIT_TEST(Slow)
 	UNIT_ASSERT(!Matches(sc, "....a............................."));
 }
 
+SIMPLE_UNIT_TEST(Aligned)
+{
+	UNIT_ASSERT(Pire::Impl::IsAligned(ystring("x").c_str()));
+
+	REGEXP("xy") {
+		// Short string with aligned head
+		ACCEPTS(ystring("xy").c_str());
+		DENIES (ystring("yz").c_str());
+		// Short string, unaligned
+		ACCEPTS(ystring(".xy").c_str() + 1);
+		DENIES (ystring(".yz").c_str() + 1);
+		// Short string with aligned tail
+		ACCEPTS((ystring(sizeof(void*) - 2, '.') + "xy").c_str() + sizeof(void*) - 2);
+		DENIES ((ystring(sizeof(void*) - 2, '.') + "yz").c_str() + sizeof(void*) - 2);
+	}
+
+	REGEXP("abcde") {
+		// Everything aligned, match occurs in the middle
+		ACCEPTS(ystring("ZZZZZabcdeZZZZZZ").c_str());
+		DENIES (ystring("ZZZZZabcdfZZZZZZ").c_str());
+		// Unaligned head
+		ACCEPTS(ystring(".ZabcdeZZZ").c_str() + 1);
+		DENIES (ystring(".ZxbcdeZZZ").c_str() + 1);
+		// Unaligned tail
+		ACCEPTS(ystring("ZZZZZZZZZZZZZabcde").c_str());
+		DENIES (ystring("ZZZZZZZZZZZZZabcdf").c_str());
+	}
+}
+
 }
