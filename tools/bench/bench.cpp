@@ -219,7 +219,7 @@ public:
 		const size_t *b = (const size_t*)begin;
 		const size_t *e = (const size_t*)end;
 		while (b < e) { c ^= *b++; }
-		std::clog << c << std::endl;
+		std::cout << c << std::endl;
 	}
 };
 
@@ -295,7 +295,7 @@ void Main(int argc, char** argv)
 	for (std::vector<std::string>::iterator j = types.begin(), je = types.end(); j != je; ++j)
 		stream << *j << " ";
 	std::string typesName = stream.str();
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		Timer timer(typesName, fmap.Size());
 		tester->Run(fmap.Begin(), fmap.End());

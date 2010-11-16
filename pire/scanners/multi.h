@@ -503,49 +503,48 @@ private:
 
 #ifndef PIRE_DEBUG
 
+template<unsigned N>
+struct MaskCheckerBase {
+	static inline bool Check(const Word* mptr, Word chunk)
+	{
+		Word mask = CheckBytes(mptr[N], chunk);
+		for (int i = N-1; i >= 0; --i) {
+			mask = Or(mask, CheckBytes(mptr[i], chunk));
+		}
+		return !IsAnySet(mask);
+	}
+
+	static inline const Word* DoRun(const Word* mptr, const Word* begin, const Word* end)
+	{
+		for (; begin != end && Check(mptr, ToLittleEndian(*begin)); ++begin);
+		return begin;
+	}
+};
+
+template<unsigned N, unsigned Nmax>
+struct MaskChecker : MaskCheckerBase<N>  {
+	typedef MaskCheckerBase<N> Base;
+	typedef MaskChecker<N+1, Nmax> Next;
+
+	static inline const Word* Run(const Word* mptr, const Word* begin, const Word* end)
+	{
+		if (GetSizeT(mptr + N) == GetSizeT(mptr + N + 1))
+			return Base::DoRun(mptr, begin, end);
+		else
+			return Next::Run(mptr, begin, end);
+	}
+};
 
 template<unsigned N>
-struct MaskChecker {	
-	MaskChecker(const Word* mend)
-        : prev(mend-1)
-        , mask(mend[-1])
-        , runMe(GetSizeT(mend - 2) != GetSizeT(mend - 1)) {}
-	
-	inline bool Check(Word chunk) const { return prev.Check(chunk) && CmpBytes(mask, chunk); }
-	
-	inline const Word* DoRun(const Word* begin, const Word* end) const
+struct MaskChecker<N, N> : MaskCheckerBase<N>  {
+	typedef MaskCheckerBase<N> Base;
+
+	static inline const Word* Run(const Word* mptr, const Word* begin, const Word* end)
 	{
-		for (; begin != end && Check(ToLittleEndian(*begin)); ++begin);
-		return begin;
+		return Base::DoRun(mptr, begin, end);
 	}
-	
-	inline const Word* Run(const Word* begin, const Word* end) const
-	{
-		if (runMe)
-			return DoRun(begin, end);
-		else
-			return prev.Run(begin, end);
-	}
-	
-	MaskChecker<N-1> prev;
-	Word mask;
-	bool runMe;
 };
-	
-template<>
-struct MaskChecker<1> {
-	MaskChecker(const Word* mend): mask(mend[-1]) {}
-	
-	inline bool Check(Word chunk) const { return CmpBytes(mask, chunk); }
-	
-	inline const Word* Run(const Word* begin, const Word* end) const
-	{
-		for (; begin != end && Check(ToLittleEndian(*begin)); ++begin);
-		return begin;
-	}
-	
-	Word mask;
-};
+
 
 // Processes a size_t-sized chunk
 template<class Relocation>
@@ -615,24 +614,19 @@ public:
 
 		bool noShortcut = CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
 
-		while (head != tail) {
-			while (noShortcut) {
+		while (true) {
+			while (noShortcut && head != tail) {
 				state = MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, state, (const size_t*)head);
 				++head;
-				if (head == tail)
-					break;
 				noShortcut = CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
 			}
 			if (head == tail)
 				break;
 
 			if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK))
-    			return state;
+				return state;
 
-			head = MaskChecker<ScannerRowHeader::ExitMaskCount>(scanner.Header(state).ExitMasks + ScannerRowHeader::ExitMaskCount)
-				.Run(head, tail);
-			if (head == tail)
-				break;
+			head = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state).ExitMasks, head, tail);
 			noShortcut = true;
 		}
 		
