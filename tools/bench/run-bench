@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
-BIGFILE_SIZE=1000000000
+BIGFILE_SIZE=300000000
 
 
 usage() {
@@ -41,6 +41,17 @@ bench -t multi 'A$'
 bench -t nonreloc "`printf \\\\100`"
 bench -t nonreloc 'ABC''DE'
 bench -t nonreloc 'KEEPFILE'
+
+bench -t nonreloc '`$'
+bench -t nonreloc '[`#]$'
+bench -t nonreloc '[`#}]$'
+bench -t nonreloc '[A]$'
+bench -t nonreloc '[AB]$'
+bench -t nonreloc '[ABC]$'
+bench -t nonreloc '[a]$'
+bench -t nonreloc '[ah]$'
+bench -t nonreloc '[ahv]$'
+bench -t nonreloc 'PIRE$ rules$'
 
 if [ -z "$KEEPFILE" ]; then
 	rm -f $BIGFILE
