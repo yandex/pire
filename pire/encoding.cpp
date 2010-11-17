@@ -40,7 +40,7 @@ namespace {
 		{
 			if (begin == end)
 				throw Error("EOF reached in Pire::Latin1::fromLocal()");
-			else if (*begin < 0)
+			else if (static_cast<unsigned char>(*begin) >= 0x80)
 				throw Error("Pire::Latin1::fromLocal(): wrong character encountered (>=0x80)");
 			else
 				return (wchar32) *begin++;

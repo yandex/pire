@@ -516,7 +516,7 @@ struct MaskCheckerBase {
 
 	static inline const Word* DoRun(const Word* mptr, const Word* begin, const Word* end)
 	{
-		for (; begin != end && Check(mptr, ToLittleEndian(*begin)); ++begin);
+		for (; begin != end && Check(mptr, ToLittleEndian(*begin)); ++begin) {}
 		return begin;
 	}
 };

@@ -47,7 +47,7 @@
 #ifdef PIRE_CHECKED
 #define YASSERT(e) assert(e)
 #else
-#define YASSERT(e)
+#define YASSERT(e) do {} while (0)
 #endif
 
 namespace Pire {

@@ -30,6 +30,10 @@
 #pragma warning(disable: 4102) // unreferenced label 'yyerrlabl'
 #endif
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wuninitialized" // 'yylval' may be used uninitialized
+#endif
+
 #include <stdexcept>
 
 #include "fsm.h"
