@@ -23,6 +23,8 @@
 #ifndef PIRE_SSE_H_INCLUDED
 #define PIRE_SSE_H_INCLUDED
 
+#include "static_assert.h"
+
 namespace Pire {
 namespace Impl {
 
@@ -107,11 +109,11 @@ inline Word ToLittleEndian(Word x) { return x; }
 #define PIRE_WORD_DEFINED
 #endif /*defined(__SSE2__) && !defined(PIRE_WORD_DEFINED)*/
 
-	
+
 #ifndef PIRE_WORD_DEFINED
 
 typedef size_t Word;
-	
+
 inline size_t FillWord(char c)
 {
 	size_t w = c;
@@ -139,9 +141,60 @@ inline bool IsAnySet(Word mask) { return (mask != 0); }
 #define PIRE_SHORTCUTS_DEFINED
 #endif
 
-inline size_t GetSizeT(const Word* pVal)
+// MaxSizeWord type is largest integer type supported by the plaform including
+// all possible SSE extensions that are are known for this platform (even if these
+// extensions are not available at compile time) 
+// It is used for alignments and save/load data structures to produce data format
+// compatible between all platforms with the same endianness and pointer size
+template <size_t PtrSize> struct MaxWordSizeHelper;
+
+// Maximum size of SSE register is 128 bit on x86_64
+template <>
+struct MaxWordSizeHelper<8> {
+	struct MaxSizeWord {
+		char val[16];
+	};
+};
+
+// Maximum size of SSE register is 64 bit on x86
+template <>
+struct MaxWordSizeHelper<4> {
+	typedef unsigned long long MaxSizeWord;
+};
+
+typedef MaxWordSizeHelper<sizeof(void*)>::MaxSizeWord MaxSizeWord;
+
+// MaxSizeWord size should be a multiple of size_t size and a multipe of Word size
+PIRE_STATIC_ASSERT(
+	(sizeof(MaxSizeWord) % sizeof(size_t) == 0) && 
+	(sizeof(MaxSizeWord) % sizeof(Word) == 0));
+
+inline size_t GetSizeT(const MaxSizeWord* pVal)
 {
 	return *(const size_t*)pVal;
+}
+
+inline MaxSizeWord MaxSizeFromShort(size_t val)
+{
+	union {
+		MaxSizeWord m;
+		size_t fields[sizeof(m)/sizeof(size_t)];
+	};
+	for (size_t i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i)
+		fields[i] = 0;
+	fields[0] = val;
+	return m;
+}
+
+inline MaxSizeWord FillMaxSizeWord(char c)
+{
+	union {
+		MaxSizeWord m;
+		char fields[sizeof(m)/sizeof(char)];
+	};
+	for (size_t i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i)
+		fields[i] = c;
+	return m;
 }
 
 }}

@@ -88,7 +88,7 @@ namespace Impl {
 		///
 		/// If bytes of mask hold different values, the mask is invalid
 		/// and will not be used.
-		Word ExitMasks[ExitMaskCount];
+		MaxSizeWord ExitMasks[ExitMaskCount];
 
 		enum {
 			NO_SHORTCUT_MASK = 1, // the state doensn't have shortcuts
@@ -100,7 +100,7 @@ namespace Impl {
 		ScannerRowHeader(): Flags(0)
 		{
 			for (size_t i = 0; i < ExitMaskCount; ++i)
-				ExitMasks[i] = FromShort(NO_SHORTCUT_MASK);
+				ExitMasks[i] = MaxSizeFromShort(NO_SHORTCUT_MASK);
 		}
 	};
 
@@ -238,7 +238,7 @@ public:
 	 */
 	typename Relocation::RetvalForMmap Mmap(const void* ptr, size_t size)
 	{
-		Impl::CheckAlign(ptr, sizeof(Word));
+		Impl::CheckAlign(ptr, sizeof(MaxSizeWord));
 		Scanner s;
 
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
@@ -283,9 +283,9 @@ public:
 			MaxChar * sizeof(Letter)                           // Letters translation table
 			+ m.finalTableSize * sizeof(size_t)                // Final table
 			+ m.statesCount * sizeof(size_t)                   // Final index
-			+ sizeof(Word)                                     // Additional space, so transition table can be aligned
+			+ sizeof(MaxSizeWord)                              // Additional space, so transition table can be aligned
 			+ RowSize() * m.statesCount * sizeof(Transition),  // Transitions table
-		sizeof(Word));
+		sizeof(MaxSizeWord));
 	}
 
 	void Save(yostream*) const;
@@ -298,7 +298,7 @@ private:
 		
 		Settings():
 			ExitMaskCount(ScannerRowHeader::ExitMaskCount),
-			ExitMaskSize(sizeof(Word))
+			ExitMaskSize(sizeof(((ScannerRowHeader*)0)->ExitMasks[0]))
 		{}
 		bool operator == (const Settings& rhs) const { return ExitMaskCount == rhs.ExitMaskCount && ExitMaskSize == rhs.ExitMaskSize; }
 		bool operator != (const Settings& rhs) const { return !(*this == rhs); }
@@ -322,7 +322,7 @@ private:
 
 	Transition* m_transitions;
 	
-	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(Word)); }
+	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)); }
 
 	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
 	PIRE_STATIC_ASSERT(sizeof(ScannerRowHeader) % sizeof(Transition) == 0);
@@ -336,9 +336,9 @@ private:
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
 
-		m_buffer = new char[BufSize() + sizeof(Word)];
-		memset(m_buffer, 0, BufSize() + sizeof(Word));
-		Markup(AlignUp(m_buffer, sizeof(Word)));
+		m_buffer = new char[BufSize() + sizeof(MaxSizeWord)];
+		memset(m_buffer, 0, BufSize() + sizeof(MaxSizeWord));
+		Markup(AlignUp(m_buffer, sizeof(MaxSizeWord)));
 		m_finalEnd = m_final;
 
 		for (size_t i = 0; i != Size(); ++i)
@@ -357,11 +357,11 @@ private:
 	 */
 	void Markup(void* ptr)
 	{
-		Impl::CheckAlign(ptr, sizeof(Word));
+		Impl::CheckAlign(ptr, sizeof(MaxSizeWord));
 		m_letters     = reinterpret_cast<Letter*>(ptr);
 		m_final	      = reinterpret_cast<size_t*>(m_letters + MaxChar);
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
-		m_transitions = AlignUp(reinterpret_cast<Transition*>(m_finalIndex + m.statesCount), sizeof(Word));
+		m_transitions = AlignUp(reinterpret_cast<Transition*>(m_finalIndex + m.statesCount), sizeof(MaxSizeWord));
 	}
 
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
@@ -374,8 +374,8 @@ private:
 		YASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
-		m_buffer = new char[BufSize() + sizeof(Word)];
-		Markup(AlignUp(m_buffer, sizeof(Word)));
+		m_buffer = new char[BufSize() + sizeof(MaxSizeWord)];
+		Markup(AlignUp(m_buffer, sizeof(MaxSizeWord)));
 
 		memcpy(m_letters, s.m_letters, MaxChar * sizeof(*m_letters));
 		memcpy(m_final, s.m_final, m.finalTableSize * sizeof(*m_final));
@@ -442,9 +442,9 @@ private:
 		// check if it is possible to setup shortcuts
 		for (size_t i = 0; i != Size(); ++i) {
 			State st = IndexToState(i);
-			Word* ptr = Header(st).ExitMasks;
-			Word* end = ptr + ScannerRowHeader::ExitMaskCount;
-			Word lastMask = FromShort(ScannerRowHeader::NO_EXIT_MASK);
+			MaxSizeWord* ptr = Header(st).ExitMasks;
+			MaxSizeWord* end = ptr + ScannerRowHeader::ExitMaskCount;
+			MaxSizeWord lastMask = MaxSizeFromShort(ScannerRowHeader::NO_EXIT_MASK);
 			size_t let = HEADER_SIZE;
 			for (; let != LettersCount() + HEADER_SIZE; ++let) {
 				// Check if the transition is not the same state
@@ -453,13 +453,13 @@ private:
 						break;
 					// For each character setup a mask
 					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit)
-						*ptr++ = lastMask = FillWord(*chit);
+						*ptr++ = lastMask = FillMaxSizeWord(*chit);
 				}
 			}
 
 			if (let != LettersCount() + HEADER_SIZE) {
 				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
-				lastMask = FromShort(ScannerRowHeader::NO_SHORTCUT_MASK);
+				lastMask = MaxSizeFromShort(ScannerRowHeader::NO_SHORTCUT_MASK);
 				ptr = Header(st).ExitMasks;
 			}
 			// Fill the rest of the shortcut masks with the last used mask
@@ -505,16 +505,16 @@ private:
 
 template<unsigned N>
 struct MaskCheckerBase {
-	static inline bool Check(const Word* mptr, Word chunk)
+	static inline bool Check(const MaxSizeWord* mptr, Word chunk)
 	{
-		Word mask = CheckBytes(mptr[N], chunk);
+		Word mask = CheckBytes(*(const Word*)(mptr + N), chunk);
 		for (int i = N-1; i >= 0; --i) {
-			mask = Or(mask, CheckBytes(mptr[i], chunk));
+			mask = Or(mask, CheckBytes(*(const Word*)(mptr + i), chunk));
 		}
 		return !IsAnySet(mask);
 	}
 
-	static inline const Word* DoRun(const Word* mptr, const Word* begin, const Word* end)
+	static inline const Word* DoRun(const MaxSizeWord* mptr, const Word* begin, const Word* end)
 	{
 		for (; begin != end && Check(mptr, ToLittleEndian(*begin)); ++begin) {}
 		return begin;
@@ -526,7 +526,7 @@ struct MaskChecker : MaskCheckerBase<N>  {
 	typedef MaskCheckerBase<N> Base;
 	typedef MaskChecker<N+1, Nmax> Next;
 
-	static inline const Word* Run(const Word* mptr, const Word* begin, const Word* end)
+	static inline const Word* Run(const MaxSizeWord* mptr, const Word* begin, const Word* end)
 	{
 		if (GetSizeT(mptr + N) == GetSizeT(mptr + N + 1))
 			return Base::DoRun(mptr, begin, end);
@@ -539,7 +539,7 @@ template<unsigned N>
 struct MaskChecker<N, N> : MaskCheckerBase<N>  {
 	typedef MaskCheckerBase<N> Base;
 
-	static inline const Word* Run(const Word* mptr, const Word* begin, const Word* end)
+	static inline const Word* Run(const MaxSizeWord* mptr, const Word* begin, const Word* end)
 	{
 		return Base::DoRun(mptr, begin, end);
 	}
