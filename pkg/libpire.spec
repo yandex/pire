@@ -1,7 +1,7 @@
 %define pkgname libpire
 
 Name: libpire
-Version: 0.0.3
+Version: 0.0.4
 Release: my1
 
 Summary: Perl Incompatible Regular Expressions library
@@ -10,7 +10,7 @@ Group: System/Libraries
 Url: http://wiki.yandex-team.ru/DmitrijjProkopcev/pire
 Packager: Dmitry Prokoptsev <dprokoptsev@yandex-team.ru>
 
-Source: pire-0.0.3.tar.gz
+Source: pire-0.0.4.tar.gz
 
 Provides: libpire = %version-%release
 
@@ -63,6 +63,12 @@ programs which use %pkgname.
 %_libdir/libpire.a
 
 %changelog
+* Wed Nov 17 2010 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.4-my1
+- Implemented SSE2-bases shortcutting, resulting
+  in dramatic performance boost on simple regexps;
+- Fixed a few build issues;
+- Made Pire work on ia64 and armel.
+
 * Thu Nov 11 2010 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.3-my1
 - Lots of performance optimizations.
 
