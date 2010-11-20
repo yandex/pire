@@ -52,6 +52,12 @@ bool Matches2(const Scanner& scanner, const char* str)
 	return Pire::Matches(scanner, str, str + strlen(str));
 }
 
+bool ParticularMatch(Pire::Scanner& sc, Pire::Scanner::State st, size_t idx)
+{
+	std::pair<const size_t*, const size_t*> p = sc.AcceptedRegexps(st);
+	return std::distance(p.first, p.second) == 1 && *p.first == idx;
+}
+
 SIMPLE_UNIT_TEST(Inline)
 {
 	Pire::Scanner scanner = PIRE_REGEXP("http://([a-z0-9]+\\.)+[a-z]{2,4}/?", "is");
@@ -63,6 +69,15 @@ SIMPLE_UNIT_TEST(Inline)
 	UNIT_ASSERT(Matches2(scanner2, "http://domain.vasya.ru/"));
 	UNIT_ASSERT(!Matches2(scanner2, "prefix http://domain.vasya.ru/"));
 	UNIT_ASSERT(!Matches2(scanner2, "http://127.0.0.1/"));
+}
+ 
+SIMPLE_UNIT_TEST(InlineGlue)
+{
+	Pire::Scanner sc = PIRE_REGEXP("foo", "", "bar", "", "baz", "");
+	UNIT_ASSERT(ParticularMatch(sc, Pire::Runner(sc).Run("foo").State(), 0));
+	UNIT_ASSERT(ParticularMatch(sc, Pire::Runner(sc).Run("bar").State(), 1));
+	UNIT_ASSERT(ParticularMatch(sc, Pire::Runner(sc).Run("baz").State(), 2));
+	UNIT_ASSERT(!Matches2(sc, "xxx"));
 }
 
 }

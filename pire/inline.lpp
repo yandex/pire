@@ -134,12 +134,18 @@ Die DieHelper() {
 <Regexp>","              { args.push_back(ystring()); }
 <Regexp>")" {
 
-
-	Pire::Lexer lexer(args[0].c_str(), args[0].c_str() + args[0].size());
-	bool surround = false;
-	bool greedy = false;
-	if (args.size() > 1)
-		for (const char* option = args[1].c_str(); *option; ++option)
+	if (args.size() & 1 || args.empty())
+		Die() << "Usage: PIRE_REGEXP(\"regexp1\", \"flags1\" [, \"regexp2\", \"flags2\" [,...] ])";
+	
+	bool first = true;
+	Pire::Scanner sc;
+	ystring pattern;
+	for (yvector<ystring>::iterator i = args.begin(), ie = args.end(); i != ie; i += 2) {
+		
+		Pire::Lexer lexer(i->c_str(), i->c_str() + i->size());
+		bool surround = false;
+		bool greedy = false;
+		for (const char* option = (i+1)->c_str(); *option; ++option) {
 			if (*option == 'i')
 				lexer.AddFeature(Pire::Features::CaseInsensitive());
 			else if (*option == 'u')
@@ -152,26 +158,39 @@ Die DieHelper() {
 				greedy = true;
 			else
 				Die() << "unknown option " <<  *option << "";
-	Pire::Fsm fsm;
-	try {
-		fsm = lexer.Parse();
+		}
+		
+		Pire::Fsm fsm;
+		try {
+			fsm = lexer.Parse();
+		}
+		catch (std::exception& e) {
+			Die() << "" << filename << ":" <<  line << ": " <<  e.what() << "";
+		}
+		if (greedy && surround)
+			Die() << "greedy and surround options are incompatible";
+		if (greedy)
+			fsm = ~fsm.Surrounded() + fsm;
+		else if (surround)
+			fsm.Surround();
+		
+		Pire::Scanner tsc(fsm);
+		if (first) {
+			pattern = *i;
+			first = false;
+			tsc.Swap(sc);
+		} else {
+			sc = Pire::Scanner::Glue(sc, tsc);
+			pattern += " | ";
+			pattern += *i;
+		}
 	}
-	catch (std::exception& e) {
-		Die() << "" << filename << ":" <<  line << ": " <<  e.what() << "";
-	}
-	if (greedy && surround)
-		Die() << "greedy and surround options are incompatible";
-	if (greedy)
-		fsm = ~fsm.Surrounded() + fsm;
-	else if (surround)
-		fsm.Surround();
-
 
 	BufferOutput buf;
 	AlignedOutput stream(&buf);
-	Save(&stream, fsm.Compile<Pire::Scanner>());
+	Save(&stream, sc);
 
-	fprintf(yyout, "Pire::MmappedScanner<Pire::Scanner>( // %s \n    \"", args[0].c_str());
+	fprintf(yyout, "Pire::MmappedScanner<Pire::Scanner>( // %s \n    \"", pattern.c_str());
 	size_t pos = 5;
 	for (BufferIterator i = buf.Buffer().Begin(), ie = buf.Buffer().End(); i != ie; ++i) {
 		pos += fprintf(yyout, "\\x%02X", static_cast<unsigned char>(*i));
