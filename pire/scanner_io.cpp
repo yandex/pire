@@ -44,7 +44,7 @@ namespace Impl {
 		Impl::AlignSave(s, sizeof(mc));
 		SavePodType(s, Settings());
 		Impl::AlignSave(s, sizeof(Settings));
-		Impl::AlignedSaveArray(s, AlignUp(m_buffer, sizeof(Word)), BufSize());
+		Impl::AlignedSaveArray(s, AlignUp(m_buffer, sizeof(MaxSizeWord)), BufSize());
 	}
 
 	template<>
@@ -59,9 +59,9 @@ namespace Impl {
 		Impl::AlignLoad(s, sizeof(actual));
 		if (actual != required)
 			throw std::runtime_error("This scanner was compiled for an incompatible platform");
-		sc.m_buffer = new char[sc.BufSize() + sizeof(Word)];
-		Impl::AlignedLoadArray(s, AlignUp(sc.m_buffer, sizeof(Word)), sc.BufSize());
-		sc.Markup(AlignUp(sc.m_buffer, sizeof(Word)));
+		sc.m_buffer = new char[sc.BufSize() + sizeof(MaxSizeWord)];
+		Impl::AlignedLoadArray(s, AlignUp(sc.m_buffer, sizeof(MaxSizeWord)), sc.BufSize());
+		sc.Markup(AlignUp(sc.m_buffer, sizeof(MaxSizeWord)));
 		sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
 		Swap(sc);
 	}

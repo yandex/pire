@@ -86,6 +86,17 @@ run_multi multi
 
 run_all simple
 
+bench -t nonreloc '`$'
+bench -t nonreloc '[`#]$'
+bench -t nonreloc '[`#}]$'
+bench -t nonreloc '[A]$'
+bench -t nonreloc '[AB]$'
+bench -t nonreloc '[ABC]$'
+bench -t nonreloc '[a]$'
+bench -t nonreloc '[ah]$'
+bench -t nonreloc '[ahv]$'
+bench -t nonreloc 'PIRE$ rules$'
+
 if [ -z "$KEEPFILE" ]; then
 	echo "Removing test file $BIGFILE"
 	rm -f $BIGFILE
