@@ -1,27 +1,65 @@
 #!/bin/sh -e
 
 BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
-BIGFILE_SIZE=1000000000
+BIGFILE_SIZE=300000000
 
 
 usage() {
 	echo "Usage: `basename $0` [-f big-file] [-k]" >&2
 	echo "  -f big-file  - specifies path to a big text file (1GB would be enough)" >&2
 	echo "  -k           - do not generate the file if it exists and do not delete it on exit" >&2
+	echo "  -r           - use regexps from RE2 tests" >&2
 	exit 1
 }
 
 bench() {
-	echo "$*"
+	echo "$2	'$3'"
 	echo -n "    "
-	$BENCH $* | tail -1
+	$BENCH "$1" "$2" "$3"  | tail -1
 }
 
-ARGS=`getopt f:k $*` || usage
+run_all() {	
+if [ -z "$RE2_TESTS" ]; then
+	# 1, 2 and 3 characters that are not present in the test file
+	bench -t $1 "`printf \\\\100`$"
+	bench -t $1 "[`printf \\\\100\\\\77`]$"
+	bench -t $1 "[`printf \\\\100\\\\77\\\\74`]$"
+
+	# 1, 2 and 3 characters that are not frequent in the test file
+	bench -t $1 '[A]$'
+	bench -t $1 '[AB]$'
+	bench -t $1 '[ABC]$'
+
+	# 1, 2 and 3 characters that are frequent in the test file
+	bench -t $1 '[e]$'
+	bench -t $1 '[ne]$'
+	bench -t $1 '[net]$'
+else
+	# regexps from RE2 paper
+	bench -t $1 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
+	bench -t $1 '[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
+	bench -t $1 '[ -~]*ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
+	bench -t $1 '(\d{3}-|\(\d{3}\)\s+)(\d{3}-\d{4})$'
+fi
+}
+
+run_multi() {
+	echo "$1 with multiple regexps"
+	echo -n "    "
+	$BENCH -t $1 \
+		'ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
+		'[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
+		'[ -~]*ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
+		'(\d{3}-|\(\d{3}\)\s+)(\d{3}-\d{4})$' \
+	| tail -1
+}
+
+ARGS=`getopt f:kr $*` || usage
 set -- $ARGS
 while [ "$1" != "--" ]; do
 	if [ "$1" = "-f" ]; then BIGFILE=$2; shift 2
 	elif [ "$1" = "-k" ]; then KEEPFILE=y; shift
+	elif [ "$1" = "-r" ]; then RE2_TESTS=y; shift
 	fi
 done
 
@@ -31,18 +69,25 @@ if [ -z "$KEEPFILE" ] || ! [ -r $BIGFILE ]; then
 	echo "Preparing a big file..."
 	cat $0 > $BIGFILE
 	while [ `stat -c '%s' $BIGFILE` -lt $BIGFILE_SIZE ]; do
-		cat $BIGFILE $BIGFILE $BIGFILE > $BIGFILE.new
+		cat $BIGFILE $BIGFILE > $BIGFILE.new
 		mv -f $BIGFILE.new $BIGFILE
 	done
 fi
 
-bench -t nonreloc 'A$'
-bench -t multi 'A$'
-bench -t nonreloc "`printf \\\\100`"
-bench -t nonreloc 'ABC''DE'
-bench -t nonreloc 'KEEPFILE'
+printf "Using test file:\n\t%s\n\n" "`ls -sh $BIGFILE`"
+
+cat $BIGFILE > /dev/null
+
+run_all nonreloc
+run_multi nonreloc
+
+run_all multi
+run_multi multi
+
+run_all simple
 
 if [ -z "$KEEPFILE" ]; then
+	echo "Removing test file $BIGFILE"
 	rm -f $BIGFILE
 fi
 
