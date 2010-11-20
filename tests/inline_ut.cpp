@@ -73,7 +73,15 @@ SIMPLE_UNIT_TEST(Inline)
  
 SIMPLE_UNIT_TEST(InlineGlue)
 {
-	Pire::Scanner sc = PIRE_REGEXP("foo", "", "bar", "", "baz", "");
+	// Check whether pire_inline handles comments as well:
+	
+	/* - a C-style comment outside a regexp; */
+	Pire::Scanner sc = PIRE_REGEXP(
+		"foo", "", /* - a C-style comment inside a regexp; */
+		"bar", "", // - a C++-style comment inside a regexp;
+		"baz", ""
+	);
+	// - a C++-style comment outside a regexp.
 	UNIT_ASSERT(ParticularMatch(sc, Pire::Runner(sc).Run("foo").State(), 0));
 	UNIT_ASSERT(ParticularMatch(sc, Pire::Runner(sc).Run("bar").State(), 1));
 	UNIT_ASSERT(ParticularMatch(sc, Pire::Runner(sc).Run("baz").State(), 2));

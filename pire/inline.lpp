@@ -62,6 +62,9 @@ Die DieHelper() {
 	return Die();
 }
 
+void putChar(char c) { putc(c, yyout); }
+void suppressChar(char) {}
+void eatComment(void (*action)(char));
 
 #define YY_FATAL_ERROR(msg) DieHelper() << msg
 %}
@@ -69,29 +72,10 @@ Die DieHelper() {
 %%
 
 
-"/*" {
-	int c;
-	fputs("/*", yyout);
-	for (;;) {
-		while ((c = yyinput()) != EOF && c != '*') {
-			if (c == '\n')
-				++line;
-			putc(c, yyout);
-		}
-		if (c == '*') {
-			putc('*', yyout);
-			while ((c = yyinput()) == '*')
-				putc(c, yyout);
-			if (c == '/') {
-				putc(c, yyout);
-				break;
-			}
-		}
-		if (c == EOF)
-			Die() << "EOF in comment";
-	}
-}
-"//".*\n                 { ++line; fprintf(yyout, "%s", yytext); }
+<INITIAL>"/*"            { eatComment(putChar); }
+<Regexp>"/*"             { eatComment(suppressChar); }
+<INITIAL>"//".*\n        { ++line; fprintf(yyout, "%s\n", yytext); }
+<Regexp>"//".*\n         { ++line; }
 "\""([^\"]|\\.)*"\""     { fprintf(yyout, "%s", yytext); }
 \n                       { ++line; putc('\n', yyout); }
 
@@ -210,6 +194,29 @@ Die DieHelper() {
 
 %%
 
+void eatComment(void (*action)(char))
+{
+	int c;
+	action('/'); action('*');
+	for (;;) {
+		while ((c = yyinput()) != EOF && c != '*') {
+			if (c == '\n')
+				++line;
+			action(c);
+		}
+		if (c == '*') {
+			action(c);
+			while ((c = yyinput()) == '*')
+				action(c);
+			if (c == '/') {
+				action(c);
+				break;
+			}
+		}
+		if (c == EOF)
+			Die() << "EOF in comment";
+	}
+}
 
 int yywrap() { return 1; }
 
