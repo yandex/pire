@@ -271,6 +271,12 @@ SIMPLE_UNIT_TEST(Ranges)
 		ACCEPTS("a,");
 		DENIES("ab");
 	}
+	
+	try {
+		REGEXP("abc[def") {}
+		UNIT_ASSERT(!"Should report syntax error");
+	}
+	catch (Pire::Error&) {}
 }
 
 SIMPLE_UNIT_TEST(Reverse)

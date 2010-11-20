@@ -217,7 +217,7 @@ namespace {
 				ch = CorrectChar(GetChar(), controls);
 			}
 
-			for (; ch != (Control | ']'); ch = CorrectChar(GetChar(), controls)) {
+			for (; ch != End && ch != (Control | ']'); ch = CorrectChar(GetChar(), controls)) {
 				if ((ch & ControlMask) != Control && CorrectChar(PeekChar(), controls) == (Control | '-')) {
 					GetChar();
 					wchar32 end = CorrectChar(GetChar(), controls);
@@ -234,6 +234,8 @@ namespace {
 				else
 					Error("Wrong character in range");
 			}
+			if (ch == End)
+				Error("Unexpected end of pattern");
 
 			return Term(TokenTypes::Letters, cs);
 		}

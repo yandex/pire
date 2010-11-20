@@ -101,6 +101,7 @@ pire_stubdir = $(includedir)/pire/stub
 pire_stub_HEADERS = \
 	stub/stl.h \
 	stub/defaults.h \
+	stub/memstreams.h \
 	stub/singleton.h \
 	stub/saveload.h \
 	stub/lexical_cast.h
