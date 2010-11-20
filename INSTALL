@@ -35,7 +35,7 @@ On *nix, from VCS:
 
 On Windows:
 
-	Unpack the tarball and run `nmake -f pkg\Makefile win32 all'.
+	Unpack the tarball and run `nmake -f pkg\Makefile.win32 all'.
 
 	If you want to build bleeding edge version from VCS, you'll need to install bison, flex,
 	cppunit and create a project on your own.
