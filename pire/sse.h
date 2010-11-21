@@ -23,7 +23,40 @@
 #ifndef PIRE_SSE_H_INCLUDED
 #define PIRE_SSE_H_INCLUDED
 
+#include "stub/defaults.h"
 #include "static_assert.h"
+
+#ifdef _MSC_VER
+#include <stdio.h>
+#include <stdarg.h>
+
+namespace Pire {
+
+#ifdef _WIN64
+typedef i64 ssize_t;
+#else
+typedef i32 ssize_t;
+#endif
+
+inline int snprintf(char *str, size_t size, const char *format, ...)
+{
+	va_list argptr;
+	va_start(argptr, format);
+	int i = _vsnprintf(str, size-1, format, argptr);
+	va_end(argptr);
+
+	// A workaround for some bug
+	if (i < 0) {
+		str[size - 1] = '\x00';
+		i = (int)size;
+	} else if (i < (int)size) {
+		str[i] = '\x00';
+	}
+	return i;
+}
+
+}
+#endif
 
 namespace Pire {
 namespace Impl {

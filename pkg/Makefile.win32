@@ -1,6 +1,8 @@
 
 OBJDIR = obj
 SRCDIR = pire
+SAMPLESDIR = samples
+TOOLSDIR = tools
 
 PIRE_OBJS = \
 	$(OBJDIR)\classes.obj \
@@ -12,15 +14,13 @@ PIRE_OBJS = \
 	$(OBJDIR)\scanner_io.obj \
 	$(OBJDIR)\utf8.obj
 
-CXXFLAGS = -O2 -EHsc
+CXXFLAGS = -O2 -EHsc /D __SSE2__ /arch:SSE2 /MTd /Zi
+LDFLAGS = /DEBUG
 
-all: pire.lib pigrep.exe
+all: pire.lib pigrep.exe blacklist.exe validator.exe bench.exe
 
 pire.lib: $(OBJDIR)\dir $(PIRE_OBJS)
 	lib /nologo /out:pire.lib $(PIRE_OBJS)
-
-pigrep.exe: $(OBJDIR)\pigrep.obj
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
 
 {$(SRCDIR)\}.cpp{$(OBJDIR)\}.obj:
 	$(CXX) -I$(SRCDIR) $(CXXFLAGS) /nologo /c /Fo$@ $<
@@ -28,13 +28,51 @@ pigrep.exe: $(OBJDIR)\pigrep.obj
 $(OBJDIR)\utf8.obj: $(SRCDIR)\stub\utf8.cpp
 	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ $**
 
+pire_inline.exe: pire.lib $(OBJDIR)\pire_inline.obj
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
+
+$(OBJDIR)\pire_inline.obj: $(SRCDIR)\inline.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . /I $(SRCDIR) /D YY_NO_UNISTD_H $**
+
+pigrep.exe: $(OBJDIR)\pigrep.obj
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
+
+$(OBJDIR)\pigrep.obj: $(SAMPLESDIR)\pigrep\pigrep.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . $**
+
+blacklist.exe: $(OBJDIR)\blacklist.obj
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
+
+$(OBJDIR)\blacklist.obj: $(SAMPLESDIR)\blacklist\blacklist.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . $**
+
+validator.exe: $(OBJDIR)\validator.obj
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
+
+$(OBJDIR)\validator.obj: $(OBJDIR)\validator.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . $**
+
+$(OBJDIR)\validator.cpp: pire_inline.exe $(SAMPLESDIR)\inline\validator.cpp
+	pire_inline.exe < $(SAMPLESDIR)\inline\validator.cpp > $(OBJDIR)\validator.cpp 
+
+bench.exe: pire.lib $(OBJDIR)\bench.obj
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
+
+$(OBJDIR)\bench.obj: $(TOOLSDIR)\bench\bench.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . $**
+
+
 $(OBJDIR)\dir:
 	mkdir $(OBJDIR)
 	echo stamp >$(OBJDIR)\dir
 
 clean:
 	del $(PIRE_OBJS) pire.lib
-	del pigrep.exe $(OBJDIR)\pigrep.obj
+	del pire_inline.exe pire_inline.ilk pire_inline.pdb $(OBJDIR)\pire_inline.obj
+	del pigrep.exe pigrep.ilk pigrep.pdb $(OBJDIR)\pigrep.obj
+	del blacklist.exe blacklist.ilk blacklist.pdb $(OBJDIR)\blacklist.obj
+	del validator.exe validator.ilk validator.pdb $(OBJDIR)\validator.cpp $(OBJDIR)\validator.obj
+	del bench.exe bench.ilk bench.pdb $(OBJDIR)\bench.obj
 	del $(OBJDIR)\dir
 	rmdir $(OBJDIR)
 

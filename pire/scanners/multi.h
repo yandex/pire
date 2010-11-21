@@ -490,7 +490,8 @@ private:
 		return e - b;
 	}
 
-	friend void BuildScanner<Scanner>(const Fsm&, Scanner&);
+	template <class Scanner>
+	friend void Pire::BuildScanner(const Fsm&, Scanner&);
 
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;

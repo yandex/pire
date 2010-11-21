@@ -46,7 +46,7 @@ namespace Pire {
 	typedef MemBuffer::Iterator BufferIterator; // For compatibility with Arcadia
     
 
-	class BufferOutput: public std::ostream {
+	class BufferOutputBase {
 	private:
 		class StreamBuf: public std::basic_streambuf<char> {
 		public:
@@ -69,14 +69,20 @@ namespace Pire {
 			std::vector<char> buf;
 		};
 
+	protected:
 		StreamBuf m_rdbuf;
 		
 	public:
-		BufferOutput() { rdbuf(&m_rdbuf); }
+		BufferOutputBase() { }
 		MemBuffer Buffer() const { return m_rdbuf.Buf(); }
 	};
+
+	class BufferOutput: public BufferOutputBase, public std::ostream {
+	public:
+		BufferOutput() : std::ostream(&m_rdbuf) {}
+	};
     
-	class MemoryInput: public std::istream {
+	class MemoryInputBase {
 	private:
         
 		class StreamBuf: public std::basic_streambuf<char> {
@@ -90,21 +96,29 @@ namespace Pire {
 		protected:
 			std::streamsize xsgetn(char* ptr, std::streamsize size)
 			{
-				size = std::min(size, egptr() - gptr());
+				size = std::min<std::streamsize>(size, egptr() - gptr());
 				memcpy(ptr, gptr(), size);
 				gbump(size);
 				return size;
 			}
 		};
+
+	protected:
 		StreamBuf m_rdbuf;
         
 	public:
-		MemoryInput(const char* data, size_t size): m_rdbuf(data, size)
+		MemoryInputBase(const char* data, size_t size): m_rdbuf(data, size) {}
+	};	
+
+	class MemoryInput : protected MemoryInputBase, public std::istream {
+	public:
+		MemoryInput(const char* data, size_t size)
+			: MemoryInputBase(data, size)
+			, std::istream(&m_rdbuf)
 		{
-			rdbuf(&m_rdbuf);
 			exceptions(badbit | eofbit);
 		}
-	};	
+	};
 }
 
 #endif

@@ -20,33 +20,53 @@
  * along with Pire.  If not, see <http://www.gnu.org/licenses>.
  */
 
-
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/time.h>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <pire/pire.h>
+#include "../common/filemap.h"
+
+#ifndef _WIN32
+#include <sys/time.h>
+
+long long GetUsec()
+{
+	struct timeval tm;
+	gettimeofday(&tm, 0);
+	long long usec = tm.tv_sec * 1000000 + tm.tv_usec;
+	return usec;	
+}
+
+#else // _WIN32
+#include <windows.h>
+
+long long GetUsec()
+{
+	FILETIME ft;
+  	long long res = 0;
+	GetSystemTimeAsFileTime(&ft);
+	res = ft.dwHighDateTime;
+	res <<= 32;
+	res |= ft.dwLowDateTime;
+	return res/10;
+}
+
+#endif // _WIN32
 
 class Timer {
 public:
-	Timer(const std::string& msg, size_t sz): m_msg(msg), m_sz(sz) { gettimeofday(&m_tv, 0); }
+	Timer(const std::string& msg, size_t sz): m_msg(msg), m_sz(sz) { m_tv = GetUsec(); }
     
 	~Timer()
 	{
-		struct timeval end;
-		gettimeofday(&end, 0);
-		long long usec = (end.tv_sec - m_tv.tv_sec) * 1000000 + (end.tv_usec - m_tv.tv_usec);
+		long long usec = GetUsec() - m_tv;
 		float bw = m_sz *1.0 / usec;
 		std::cout << m_msg << ": " << usec << " us\t" << bw << " MB/sec" <<  std::endl;
 	}
     
 private:
 	std::string m_msg;
-	struct timeval m_tv;
+	long long m_tv;
 	size_t m_sz;
 };
 
@@ -160,54 +180,6 @@ private:
 	Scanner2 sc2;
 };
 
-
-class FileMmap {
-public:
-	explicit FileMmap(const char *name)
-		: m_fd(0)
-		, m_mmap(0)
-		, m_len(0)
-	{
-		try {
-			int fd = open(name, O_RDONLY);
-			if (fd == -1)
-				throw std::runtime_error(std::string("open failed for ") + name + ": " + strerror(errno));
-			m_fd = fd;
-			struct stat fileStat;
-			int err = fstat(m_fd, &fileStat);
-			if (err)
-				throw std::runtime_error(std::string("fstat failed for") + name + ": " + strerror(errno));
-			m_len = fileStat.st_size;
-			const char* addr = (const char*)mmap(0, m_len, PROT_READ, MAP_PRIVATE, m_fd, 0);
-			if (addr == MAP_FAILED)
-				throw std::runtime_error(std::string("mmap failed for ") + name + ": " + strerror(errno));
-			m_mmap = addr;
-		} catch (...) {
-			Close();
-			throw;
-		}
-	}
-	~FileMmap() { Close(); }
-	size_t Size() const { return m_len; }
-	const char* Begin() const { return m_mmap; }
-	const char* End() const { return m_mmap + m_len; }
-
-private:
-	void Close()
-	{
-		if (m_mmap)
-			munmap((void*)m_mmap, m_len);
-		if (m_fd)
-			close(m_fd);
-		m_fd = 0;
-		m_mmap = 0;
-		m_len = 0;
-	}
-
-	int m_fd;
-	const char* m_mmap;
-	size_t m_len;
-};
 
 class MemTester: public ITester {
 public:

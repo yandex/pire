@@ -49,15 +49,10 @@
 #include <fstream>
 #include <string>
 #include <stdexcept>
-#include <libgen.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
 #include <pire/pire.h>
+#include "../../tools/common/filemap.h"
 
 void Usage()
 {
@@ -89,55 +84,38 @@ void Filter(const Pire::Scanner& sc)
 }
 
 void Use(const std::string& filename)
-{
-    int fd = -1;
-    void* ptr = MAP_FAILED;
-    struct stat st;
+{   
+	FileMmap fileMmap(filename.c_str());
     
-    try {
-        if ((fd = open(filename.c_str(), O_RDONLY)) == -1)
-            throw std::runtime_error("Cannot open() file " + filename + ": " + strerror(errno));
-        if (fstat(fd, &st))
-            throw std::runtime_error("Cannot stat() file " + filename + ": " + strerror(errno));
-        if ((ptr = mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED)
-            throw std::runtime_error("Cannot mmap() file " + filename + ": " + strerror(errno));
-        
-        Pire::Scanner sc;
-        sc.Mmap(ptr, st.st_size);
-        Filter(sc);
-        
-        if (ptr != MAP_FAILED) {
-            munmap(ptr, st.st_size);
-            ptr = MAP_FAILED;
-        }
-        if (fd != -1)
-            close(fd);
-    }
-    catch (...) {
-        if (ptr != MAP_FAILED)
-            munmap(ptr, st.st_size);
-        if (fd != -1)
-            close(fd);
-        throw;
-    }
+    Pire::Scanner sc;
+    sc.Mmap(fileMmap.Begin(), fileMmap.Size());
+    Filter(sc);
 }
+
+#ifdef _WIN32
+const char* basename(const char* name)
+{
+	return name;
+}
+#endif
 
 int main(int argc, char** argv)
 {
+    std::string myname = basename(argv[0]);
     try {
         std::ios_base::sync_with_stdio(false);
-        
-        int opt;
-        std::string filename;
+
+		std::string filename;
         void (*mode)(const std::string&) = 0;
-        while ((opt = getopt(argc, argv, "d:gu")) != -1) {
-            if (opt == 'd')
-                filename = optarg;
-            else if (opt == 'g')
+        for (--argc, ++argv; argc; --argc, ++argv) {
+            if (!strcmp(*argv, "-d") && argc >= 2) {
+                filename = argv[1];
+				++argv; --argc;
+            } else if (!strcmp(*argv, "-g")) {
                 mode = Generate;
-            else if (opt == 'u')
+            } else if (!strcmp(*argv, "-u")) {
                 mode = Use;
-            else
+            } else
                 Usage();
         }
         if (filename.empty() || !mode)
@@ -145,7 +123,7 @@ int main(int argc, char** argv)
         (*mode)(filename);
     }
     catch (std::exception& e) {
-        std::cerr << basename(argv[0]) << ": " << e.what() << std::endl;
+        std::cerr << myname << ": " << e.what() << std::endl;
         return 1;
     }
 }

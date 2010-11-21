@@ -92,7 +92,8 @@ namespace Pire {
 		class BasicAlignedInput: public std::basic_istream<Char, Traits> {
 		public:
 			BasicAlignedInput(std::basic_istream<Char, Traits>* backend)
-				: m_streambuf(backend->rdbuf())
+				: std::basic_istream<Char, Traits>(0)
+				, m_streambuf(backend->rdbuf())
 			{
 				rdbuf(&m_streambuf);
 			}
@@ -115,7 +116,8 @@ namespace Pire {
 		class BasicAlignedOutput: public std::basic_ostream<Char, Traits> {
 		public:
 			BasicAlignedOutput(std::basic_ostream<Char, Traits>* backend)
-				: m_streambuf(backend->rdbuf())
+				: std::basic_ostream<Char, Traits>(0)
+				, m_streambuf(backend->rdbuf())
 			{
 				rdbuf(&m_streambuf);
 			}

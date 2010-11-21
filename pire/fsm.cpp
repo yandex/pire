@@ -37,6 +37,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "stub/lexical_cast.h"
+#include "sse.h"
 
 namespace Pire {
 	

@@ -36,6 +36,9 @@ ystring filename = "";
 int line = 1;
 yvector<ystring> args;
 
+#ifdef _WIN32
+static int isatty(int) { return 0; }
+#endif
 
 class Die {
 public:

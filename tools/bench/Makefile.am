@@ -10,6 +10,6 @@ endif
 noinst_PROGRAMS = bench
 dist_noinst_SCRIPTS = run-bench
 
-bench_SOURCES  = bench.cpp
+bench_SOURCES  = bench.cpp ../common/filemap.h
 bench_LDADD    = ../../pire/libpire.la
 bench_CXXFLAGS = -I$(top_srcdir) $(AM_CXXFLAGS)
