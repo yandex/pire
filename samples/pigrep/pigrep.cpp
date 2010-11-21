@@ -58,26 +58,28 @@ void Usage()
 int main(int argc, char** argv)
 {
 	try {
-        int opt;
         Pire::Lexer lexer;
         std::string patternstr(1, 0);
-        while ((opt = getopt(argc, argv, "iuxe:")) != -1) {
-            if (opt == 'i')
-                lexer.AddFeature(Pire::Features::CaseInsensitive());
-            else if (opt == 'u')
-                lexer.SetEncoding(Pire::Encodings::Utf8());
-            else if (opt == 'x')
-                lexer.AddFeature(Pire::Features::AndNotSupport());
-            else if (opt == 'e')
-                patternstr = optarg;
-            else
-                Usage();
-        }
+	for (--argc, ++argv; argc; --argc, ++argv) {
+		if (!strcmp(*argv, "-i")) {
+			lexer.AddFeature(Pire::Features::CaseInsensitive());
+		} else if (!strcmp(*argv, "-u")) {
+			lexer.SetEncoding(Pire::Encodings::Utf8());
+		} else if (!strcmp(*argv, "-x")) {
+			lexer.AddFeature(Pire::Features::AndNotSupport());
+		} else if (!strcmp(*argv, "-e") && argc >= 2 && !patternstr.empty() && !patternstr[0]) {
+			patternstr = argv[1];
+			++argv; --argc;
+		} else if (argv[0] != 0 && argv[0][0] == '-') {
+			break;
+		} else if (!patternstr.empty() && !patternstr[0]) {
+			patternstr = argv[0];
+		} else {
+			break;
+		}
+	}
         if (!patternstr.empty() && !patternstr[0]) {
-            if (optind >= argc)
                 Usage();
-            else
-                patternstr = argv[optind++];
         }
         std::vector<Pire::wchar32> pattern;
         lexer.Encoding().FromLocal(patternstr.c_str(), patternstr.c_str() + patternstr.size(), std::back_inserter(pattern));
@@ -85,17 +87,17 @@ int main(int argc, char** argv)
         Pire::Scanner sc = lexer.Parse().Surround().Compile<Pire::Scanner>();
         
         std::ios_base::sync_with_stdio(false);
-        if (optind >= argc)
+        if (argc == 0)
             GrepStream(std::cin, sc, std::string());
         else {
-            for (; optind < argc; ++optind) {
-                if (argv[optind] == std::string("-"))
+            for (; argc; --argc, ++argv) {
+                if (argv[0] == std::string("-"))
                     GrepStream(std::cin, sc, "(stdin)");
                 else {
-                    std::ifstream ifs(argv[optind]);
+                    std::ifstream ifs(argv[0]);
                     if (!ifs)
-                        throw std::runtime_error("cannot open file " + std::string(argv[optind]));
-                    GrepStream(ifs, sc, std::string(argv[optind]) + ":");
+                        throw std::runtime_error("cannot open file " + std::string(argv[0]));
+                    GrepStream(ifs, sc, std::string(argv[0]) + ":");
                 }
             }
         }
