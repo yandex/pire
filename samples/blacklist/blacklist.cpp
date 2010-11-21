@@ -70,7 +70,7 @@ void Generate(const std::string& outputFile)
         re |= Pire::Fsm().Append(domain);
     re = Pire::Lexer("^([a-z]+://)?([A-Za-z0-9\\-]+\\.)*").Parse() + re + Pire::Lexer("(/.*)?$").Parse();
     
-    std::ofstream ofs(outputFile.c_str());
+    std::fstream ofs(outputFile.c_str(), std::ios::out | std::ios::binary);
     Pire::Scanner(re).Save(&ofs);
 }
 
