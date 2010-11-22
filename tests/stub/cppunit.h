@@ -25,32 +25,86 @@
 #define PIRE_STUB_CPPUNIT_H_INCLUDED
 
 #include <stub/singleton.h>
-#include <cppunit/TestCase.h>
-#include <cppunit/TestSuite.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
+#include <stub/stl.h>
 #include <string>
 
+namespace PireUnit {
+
+class TestRunner;
+
+class TestCase {
+public:
+	TestCase(const Pire::ystring& name) : mName(name) {}
+	virtual void runTest() = 0;
+	const Pire::ystring& name() const { return mName; }
+private:
+	Pire::ystring mName;
+};
+
+class TestSuite {
+public:
+	TestSuite(const Pire::ystring& name = "") : mName(name), mRunner(0) {}
+	void addTest(TestSuite* suite)  { mSubSuites.push_back(suite); }
+	void addTest(TestCase* testCase) { mTestCases.push_back(testCase); }
+	TestRunner* runner() { return mRunner; }
+
+	void doRun(TestRunner* runner);
+
+	const Pire::ystring& name() const { return mName; }
+private:
+	Pire::ystring mName;
+	Pire::yvector<TestSuite*> mSubSuites;
+	Pire::yvector<TestCase*> mTestCases;
+	TestRunner* mRunner;
+};
+
+class TestRunner {
+public:
+	TestRunner() : mSuccessCount(0), mFailCount(0) {}
+	void addTest(TestSuite* suite) { mSuites.push_back(suite); }
+	bool run(const Pire::ystring& name, bool, bool, bool);
+	void runSuite(TestSuite* suite);
+	void runCase(TestCase* testCase);
+	void checkAssertion(bool expr, const Pire::ystring& exprStr);
+private:
+	Pire::ystring testFullName();
+private:
+	Pire::yvector<TestSuite*> mSuites;
+	Pire::yvector<Pire::ystring> mRunningSuites;
+	Pire::ystring mRunningTest;
+	size_t mSuccessCount;
+	size_t mFailCount;
+};
+
 namespace Impl {
-	inline CppUnit::TestSuite* globalSuite() { return Pire::Singleton<CppUnit::TestSuite>(); }
+	inline TestSuite* globalSuite() { return Pire::Singleton<TestSuite>(); }
 }
+}
+
+#define PIREUNIT_ASSERT(x) \
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, #x);
+
+#define PIREUNIT_ASSERT_EQUAL(expected, real) \
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, ystring(#expected " != " #real));
+
 
 #define SIMPLE_UNIT_TEST_SUITE(N) \
 	namespace TestSuite_ ## N { \
-		CppUnit::TestSuite* s_suite; \
+		PireUnit::TestSuite* s_suite; \
 		struct Registration { \
 			Registration() \
 			{ \
-				s_suite = new CppUnit::TestSuite(ystring(#N)); \
-				::Impl::globalSuite()->addTest(s_suite); \
+				s_suite = new PireUnit::TestSuite(ystring(#N)); \
+				PireUnit::Impl::globalSuite()->addTest(s_suite); \
 			} \
 		} s_registry; \
 	} \
 	namespace TestSuite_ ## N
 	
 #define SIMPLE_UNIT_TEST(N) \
-	class TestCase_ ## N: public CppUnit::TestCase { \
+	class TestCase_ ## N: public PireUnit::TestCase { \
 	public: \
-		TestCase_ ## N(): CppUnit::TestCase(ystring(#N)) {} \
+		TestCase_ ## N(): PireUnit::TestCase(ystring(#N)) {} \
 		void runTest(); \
 	}; \
 	struct TestRegistration_ ## N { \
@@ -58,8 +112,8 @@ namespace Impl {
 	} s_registry_ ## N; \
 	void TestCase_ ## N::runTest()
 
-#define UNIT_ASSERT(x) CPPUNIT_ASSERT(x)
-#define UNIT_ASSERT_EQUAL(real,expected) CPPUNIT_ASSERT_EQUAL(expected,real)
+#define UNIT_ASSERT(x) PIREUNIT_ASSERT(x)
+#define UNIT_ASSERT_EQUAL(real,expected) PIREUNIT_ASSERT_EQUAL(expected,real)
 
 #endif
 
