@@ -69,8 +69,8 @@ Pire::ystring TestRunner::testFullName()
 {
 	Pire::ystring name;
 	for (Pire::yvector<Pire::ystring>::iterator sit = mRunningSuites.begin(); sit != mRunningSuites.end(); ++sit)
-		name += "::" + *sit;
-	name += mRunningTest;
+		name = name + *sit + "::";
+	name = name + mRunningTest;
 	return name;
 }
 
@@ -82,13 +82,13 @@ void TestRunner::runCase(TestCase* testCase)
 		mSuccessCount++;
 		std::cout << ".";
 	} catch (AssertionFailed& e) {
-		std::cerr << testFullName() << "Assertion failed: " << e.mExpr << std::endl;
+		std::cerr << testFullName() << " - Assertion failed: " << e.mExpr << std::endl;
 		mFailCount++;
 	} catch (std::exception& e) {
-		std::cerr << testFullName() << "ecxeption caught: " << e.what() << std::endl;
+		std::cerr << testFullName() << " - ecxeption caught: " << e.what() << std::endl;
 		mFailCount++;
 	} catch (...) {
-		std::cerr << testFullName() << "unknown ecxeption caught: " << std::endl;
+		std::cerr << testFullName() << " - unknown ecxeption caught: " << std::endl;
 		mFailCount++;
 	}	
 	mRunningTest = "";

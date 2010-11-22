@@ -3,6 +3,7 @@ OBJDIR = obj
 SRCDIR = pire
 SAMPLESDIR = samples
 TOOLSDIR = tools
+TESTSDIR = tests
 
 PIRE_OBJS = \
 	$(OBJDIR)\classes.obj \
@@ -12,12 +13,27 @@ PIRE_OBJS = \
 	$(OBJDIR)\re_lexer.obj \
 	$(OBJDIR)\re_parser.obj \
 	$(OBJDIR)\scanner_io.obj \
-	$(OBJDIR)\utf8.obj
+	$(OBJDIR)\utf8.obj \
+	$(OBJDIR)\capture.obj \
+	$(OBJDIR)\count.obj \
+	$(OBJDIR)\glyphs.obj 
+
+
+TEST_OBJS = \
+	$(OBJDIR)\pire_ut.obj \
+	$(OBJDIR)\inline_ut.obj \
+	$(OBJDIR)\count_ut.obj \
+	$(OBJDIR)\glyph_ut.obj \
+	$(OBJDIR)\capture_ut.obj \
+	$(OBJDIR)\cppunit.obj
 
 CXXFLAGS = -O2 -EHsc /D __SSE2__ /arch:SSE2 /MTd /Zi
 LDFLAGS = /DEBUG
 
 all: pire.lib pigrep.exe blacklist.exe validator.exe bench.exe
+
+check: pire_test.exe
+	pire_test.exe
 
 pire.lib: $(OBJDIR)\dir $(PIRE_OBJS)
 	lib /nologo /out:pire.lib $(PIRE_OBJS)
@@ -27,6 +43,15 @@ pire.lib: $(OBJDIR)\dir $(PIRE_OBJS)
 
 $(OBJDIR)\utf8.obj: $(SRCDIR)\stub\utf8.cpp
 	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ $**
+
+$(OBJDIR)\count.obj: $(SRCDIR)\extra\count.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /I $(SRCDIR) /Fo$@ $**
+
+$(OBJDIR)\capture.obj: $(SRCDIR)\extra\capture.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /I $(SRCDIR) /Fo$@ $**
+
+$(OBJDIR)\glyphs.obj: $(SRCDIR)\extra\glyphs.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /I $(SRCDIR) /Fo$@ $**
 
 pire_inline.exe: pire.lib $(OBJDIR)\pire_inline.obj
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib
@@ -61,18 +86,42 @@ bench.exe: pire.lib $(OBJDIR)\bench.obj
 $(OBJDIR)\bench.obj: $(TOOLSDIR)\bench\bench.cpp
 	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . $**
 
+pire_test.exe: pire.lib $(TEST_OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) /nologo /Fe$@ $** pire.lib	
+
+$(OBJDIR)\pire_ut.obj: $(TESTSDIR)\pire_ut.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . /I $(SRCDIR) $**
+
+$(OBJDIR)\inline_ut.obj: $(OBJDIR)\inline_ut_2.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I $(TESTSDIR) /I $(SRCDIR) $**
+
+$(OBJDIR)\inline_ut_2.cpp: pire_inline.exe $(TESTSDIR)\inline_ut.cpp
+	pire_inline.exe < $(TESTSDIR)\inline_ut.cpp > $(OBJDIR)\inline_ut_2.cpp 
+
+$(OBJDIR)\count_ut.obj: $(TESTSDIR)\count_ut.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . /I $(SRCDIR) $**
+
+$(OBJDIR)\capture_ut.obj: $(TESTSDIR)\capture_ut.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . /I $(SRCDIR) $**
+
+$(OBJDIR)\glyph_ut.obj: $(TESTSDIR)\glyph_ut.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . /I $(SRCDIR) $**
+
+$(OBJDIR)\cppunit.obj: $(TESTSDIR)\stub\cppunit.cpp
+	$(CXX) $(CXXFLAGS) /nologo /c /Fo$@ /I . /I $(SRCDIR) $**
 
 $(OBJDIR)\dir:
 	mkdir $(OBJDIR)
 	echo stamp >$(OBJDIR)\dir
 
 clean:
-	del $(PIRE_OBJS) pire.lib
+	del $(PIRE_OBJS) pire.lib vc100.pdb
 	del pire_inline.exe pire_inline.ilk pire_inline.pdb $(OBJDIR)\pire_inline.obj
 	del pigrep.exe pigrep.ilk pigrep.pdb $(OBJDIR)\pigrep.obj
 	del blacklist.exe blacklist.ilk blacklist.pdb $(OBJDIR)\blacklist.obj
 	del validator.exe validator.ilk validator.pdb $(OBJDIR)\validator.cpp $(OBJDIR)\validator.obj
 	del bench.exe bench.ilk bench.pdb $(OBJDIR)\bench.obj
+	del $(TEST_OBJS) pire_test.exe pire_test.ilk pire_test.pdb $(OBJDIR)\inline_ut_2.cpp
 	del $(OBJDIR)\dir
 	rmdir $(OBJDIR)
 

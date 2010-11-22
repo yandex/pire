@@ -82,10 +82,10 @@ namespace Impl {
 }
 
 #define PIREUNIT_ASSERT(x) \
-	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, #x);
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, "(" #x ") is false");
 
 #define PIREUNIT_ASSERT_EQUAL(expected, real) \
-	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, ystring(#expected " != " #real));
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, "(" #expected ") != (" #real ")");
 
 
 #define SIMPLE_UNIT_TEST_SUITE(N) \
