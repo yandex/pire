@@ -78,6 +78,10 @@ printf "Using test file:\n\t%s\n\n" "`ls -sh $BIGFILE`"
 
 cat $BIGFILE > /dev/null
 
+# Estimate memory bandwidth
+bench -t null ''
+
+# Run benchmarks
 run_all nonreloc
 run_multi nonreloc
 
@@ -85,17 +89,6 @@ run_all multi
 run_multi multi
 
 run_all simple
-
-bench -t nonreloc '`$'
-bench -t nonreloc '[`#]$'
-bench -t nonreloc '[`#}]$'
-bench -t nonreloc '[A]$'
-bench -t nonreloc '[AB]$'
-bench -t nonreloc '[ABC]$'
-bench -t nonreloc '[a]$'
-bench -t nonreloc '[ah]$'
-bench -t nonreloc '[ahv]$'
-bench -t nonreloc 'PIRE$ rules$'
 
 if [ -z "$KEEPFILE" ]; then
 	echo "Removing test file $BIGFILE"
