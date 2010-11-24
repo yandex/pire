@@ -48,7 +48,7 @@ public:
 	void addTest(TestCase* testCase) { mTestCases.push_back(testCase); }
 	TestRunner* runner() { return mRunner; }
 
-	void doRun(TestRunner* runner);
+	void doRun(TestRunner* runner, const Pire::ystring& filter);
 
 	const Pire::ystring& name() const { return mName; }
 private:
@@ -63,8 +63,8 @@ public:
 	TestRunner() : mSuccessCount(0), mFailCount(0) {}
 	void addTest(TestSuite* suite) { mSuites.push_back(suite); }
 	bool run(const Pire::ystring& name, bool, bool, bool);
-	void runSuite(TestSuite* suite);
-	void runCase(TestCase* testCase);
+	void runSuite(TestSuite* suite, const Pire::ystring& filter);
+	void runCase(TestCase* testCase, const Pire::ystring& filter);
 	void checkAssertion(bool expr, const Pire::ystring& exprStr);
 private:
 	Pire::ystring testFullName();

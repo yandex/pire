@@ -26,23 +26,28 @@
 
 namespace PireUnit {
 
-void TestSuite::doRun(TestRunner* runner)
+void TestSuite::doRun(TestRunner* runner, const Pire::ystring& filter)
 {
 	mRunner = runner;
 
 	for (Pire::yvector<TestSuite*>::iterator sit = mSubSuites.begin(); sit != mSubSuites.end(); ++sit)
-		mRunner->runSuite(*sit);
+		mRunner->runSuite(*sit, filter);
 	
 	for (Pire::yvector<TestCase*>::iterator sit = mTestCases.begin(); sit != mTestCases.end(); ++sit)
-		mRunner->runCase(*sit);
+		mRunner->runCase(*sit, filter);
 
 	mRunner = 0;
 }
 
-bool TestRunner::run(const Pire::ystring& name, bool, bool, bool)
+bool TestRunner::run(const Pire::ystring& filter, bool, bool, bool)
 {
 	for (Pire::yvector<TestSuite*>::iterator sit = mSuites.begin(); sit != mSuites.end(); ++sit)
-		runSuite(*sit);
+		runSuite(*sit, filter);
+
+	if (!filter.empty() && mSuccessCount + mFailCount == 0) {
+		std::cout << "No test named <" << filter << "> found" << std::endl;
+		return false;
+	}
 
 	std::cout << std::endl;
 	if (mFailCount == 0)
@@ -53,10 +58,16 @@ bool TestRunner::run(const Pire::ystring& name, bool, bool, bool)
 	return mFailCount == 0;
 }
 
-void TestRunner::runSuite(TestSuite* suite)
-{
+void TestRunner::runSuite(TestSuite* suite, const Pire::ystring& filter)
+{	
+	// if the name doesn't match the filter than pass the filter to subtests
+	// otherwise run them all (pass empty filter)
+	Pire::ystring subTestsFilter;
+	if (!filter.empty() && filter != suite->name())
+		subTestsFilter = filter;
+
 	mRunningSuites.push_back(suite->name());
-	suite->doRun(this);
+	suite->doRun(this, subTestsFilter);
 	mRunningSuites.resize(mRunningSuites.size() - 1);
 }
 
@@ -74,8 +85,12 @@ Pire::ystring TestRunner::testFullName()
 	return name;
 }
 
-void TestRunner::runCase(TestCase* testCase)
-{
+void TestRunner::runCase(TestCase* testCase, const Pire::ystring& filter)
+{	
+	// Skip the test if the name doesn't match the filter
+	if (!filter.empty() && filter != testCase->name())
+		return;
+
 	try {
 		mRunningTest = testCase->name();
 		testCase->runTest();
