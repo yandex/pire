@@ -371,7 +371,7 @@ private:
 	void DeepCopy(const Scanner<AnotherRelocation>& s)
 	{
 		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
-		YASSERT(sizeof(m) == sizeof(s.m));
+		PIRE_STATIC_ASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
 		m_buffer = new char[BufSize() + sizeof(MaxSizeWord)];

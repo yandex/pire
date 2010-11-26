@@ -34,13 +34,13 @@ namespace Pire {
 	namespace Impl {
 
 		template<class T>
-		inline T AlignUp(T t, size_t bound = sizeof(void*))
+		inline T AlignUp(T t, size_t bound)
 		{
 			return (T) (((size_t) t + (bound-1)) & ~(bound-1));
 		}
 
 		template<class T>
-		inline T AlignDown(T t, size_t bound = sizeof(void*))
+		inline T AlignDown(T t, size_t bound)
 		{
 			return (T) ((size_t) t & ~(bound-1));
 		}
@@ -49,7 +49,7 @@ namespace Pire {
 		{
 			size_t tail = AlignUp(size, sizeof(MaxSizeWord)) - size;
 			if (tail) {
-				static const char buf[sizeof(void*)*4] = {0};
+				static const char buf[sizeof(MaxSizeWord)] = {0};
 				SaveArray(s, buf, tail);
 			}
 		}
@@ -78,7 +78,7 @@ namespace Pire {
 		}
 
 		template<class T>
-		inline bool IsAligned(T t, size_t bound = sizeof(void*))
+		inline bool IsAligned(T t, size_t bound)
 		{
 			return ((size_t) t & (bound-1)) == 0;
 		}

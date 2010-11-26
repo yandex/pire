@@ -39,6 +39,7 @@ namespace Pire {
 		ui32 Magic;
 		ui32 Version;
 		ui32 PtrSize;
+		ui32 MaxWordSize;
 		ui32 Type;
 		size_t HdrSize;
 
@@ -49,13 +50,14 @@ namespace Pire {
 			: Magic(MAGIC)
 			, Version(RE_VERSION)
 			, PtrSize(sizeof(void*))
+			, MaxWordSize(sizeof(Impl::MaxSizeWord))
 			, Type(type)
 			, HdrSize(hdrsize)
 		{}
 
 		void Validate(ui32 type, size_t hdrsize) const
 		{
-			if (Magic != MAGIC || PtrSize != sizeof(void*))
+			if (Magic != MAGIC || PtrSize != sizeof(void*) || MaxWordSize != sizeof(Impl::MaxSizeWord))
 				throw Error("Serialized regexp incompatible with your system");
 			if (Version != RE_VERSION)
 				throw Error("You are trying to used an incompatible version of a serialized regexp");
@@ -82,7 +84,7 @@ namespace Pire {
 			Impl::AlignPtr(p, size);
 		}
 
-		inline void CheckAlign(const void* ptr, size_t bound = sizeof(void*))
+		inline void CheckAlign(const void* ptr, size_t bound = sizeof(MaxSizeWord))
 		{
 			if (!IsAligned(ptr, bound))
 				throw Error("Tried to mmap scanner at misaligned address");

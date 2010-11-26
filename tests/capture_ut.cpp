@@ -141,9 +141,12 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(!state.Captured());
 
-		CapturingScanner scanner3;
-		const void* tail = scanner3.Mmap(&wbuf.Buffer().Data()[0], wbuf.Buffer().Size());
-		UNIT_ASSERT_EQUAL(tail, (const void*) (&wbuf.Buffer().Data()[0] + wbuf.Buffer().Size()));
+		CapturingScanner scanner3;		
+		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(Pire::Impl::MaxSizeWord));
+		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(Pire::Impl::MaxSizeWord));
+		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
+		const void* tail = scanner3.Mmap(ptr, wbuf.Buffer().Size());
+		UNIT_ASSERT_EQUAL(tail, (const void*) ((size_t)ptr + wbuf.Buffer().Size()));
 
 		str = "google_id = 'abcde';";
 		state = RunRegexp(scanner3, str);
@@ -153,6 +156,13 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		str = "google_id != 'abcde';";
 		state = RunRegexp(scanner3, str);
 		UNIT_ASSERT(!state.Captured());
+
+		ptr = (const void*) ((const char*) wbuf.Buffer().Data() + 1);
+		try {
+			scanner3.Mmap(ptr, wbuf.Buffer().Size());
+			UNIT_ASSERT(!"CapturingScanner failed to check for misaligned mmaping");
+		}
+		catch (Pire::Error&) {}
 
 	}
 
