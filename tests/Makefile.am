@@ -1,5 +1,3 @@
-if WITH_UNITTESTS
-
 AM_CXXFLAGS = -Wall
 if ENABLE_DEBUG
 AM_CXXFLAGS += -DPIRE_DEBUG
@@ -37,6 +35,3 @@ CLEANFILES = inline_ut_2.cpp
 
 inline_ut_2.cpp: $(srcdir)/inline_ut.cpp
 	../pire/pire_inline -o inline_ut_2.cpp $(srcdir)/inline_ut.cpp
-
-endif
-

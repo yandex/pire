@@ -14,18 +14,13 @@ On *nix, from the tarball:
 	CapturingScanner and GlueSimilarGlyphs feature), add `--enable-extra' option
 	to ./configure.
 
-	If you want to build and run unit tests, install cppunit <http://cppunit.sourceforge.net>,
-	add `--with-cppunit' option to ./configure and run `make check'.
-
 	You will find stubs for package specs in pkg/ directories. You can use them for providing
 	a package for your favourite distribution; your contribution will be highly appreciated.
 
 
 On *nix, from VCS:
 
-	You will need GNU autotools (autoconf, automake and libtool), bison, flex and cppunit.
-	Please note that if you want to rebuild the tarball, cppunit is required, since its detection
-	and using code is needed in configure script and makefiles.
+	You will need GNU autotools (autoconf, automake and libtool), bison and flex.
 
 	Once you have all this, simply run
 	$ autoreconf --install && ./configure && make all check && sudo make install
@@ -37,5 +32,5 @@ On Windows:
 
 	Unpack the tarball and run `nmake -f pkg\Makefile.win32 all'.
 
-	If you want to build bleeding edge version from VCS, you'll need to install bison, flex,
-	cppunit and create a project on your own.
+	If you want to build bleeding edge version from VCS, you'll need to install bison, flex
+	and create a project on your own.

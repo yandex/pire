@@ -14,13 +14,6 @@ AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_LIBTOOL
 
-# Check for cppunit
-AM_PATH_CPPUNIT([0.0.0],[with_unittests=yes],[
-	AC_WARN([cppunit not found. Unit tests will not compile and run.])
-	with_unittests=no
-])
-AM_CONDITIONAL([WITH_UNITTESTS], [test x"$with_unittests" = xyes])
-
 # Just for conscience' sake
 AC_CHECK_HEADERS([stdlib.h string.h sys/time.h])
 AC_HEADER_STDBOOL
