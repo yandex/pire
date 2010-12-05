@@ -294,9 +294,8 @@ bool Matches(const Scanner& scanner, const char* begin, const char* end)
 template<class Scanner>
 Scanner MmappedScanner(const char* ptr, size_t size)
 {
-	MemoryInput inp(ptr, size);
 	Scanner s;
-	s.Load(&inp);
+	s.Mmap(ptr, size);
 	return s;
 }
 

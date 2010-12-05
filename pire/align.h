@@ -47,7 +47,7 @@ namespace Pire {
 		
 		inline void AlignSave(yostream* s, size_t size)
 		{
-			size_t tail = AlignUp(size, sizeof(MaxSizeWord)) - size;
+			size_t tail = AlignUp(size, sizeof(size_t)) - size;
 			if (tail) {
 				static const char buf[sizeof(MaxSizeWord)] = {0};
 				SaveArray(s, buf, tail);
@@ -56,7 +56,7 @@ namespace Pire {
 
 		inline void AlignLoad(yistream* s, size_t size)
 		{
-			size_t tail = AlignUp(size, sizeof(MaxSizeWord)) - size;
+			size_t tail = AlignUp(size, sizeof(size_t)) - size;
 			if (tail) {
 				char buf[sizeof(MaxSizeWord)];
 				LoadArray(s, buf, tail);
@@ -85,8 +85,8 @@ namespace Pire {
 		
 		inline const void* AlignPtr(const size_t*& p, size_t& size)
 		{
-			if (!IsAligned(p, sizeof(MaxSizeWord))) {
-				const size_t* next = AlignUp(p, sizeof(MaxSizeWord));
+			if (!IsAligned(p, sizeof(size_t))) {
+				const size_t* next = AlignUp(p, sizeof(size_t));
 				if (next > p+size)
 					throw Error("EOF reached in NPire::Impl::align");
 				size -= (next - p);

@@ -394,8 +394,8 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::Scanner fast2;
 	Pire::SimpleScanner simple2;
 	Pire::SlowScanner slow2;
-	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(Pire::Impl::MaxSizeWord));
-	const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(Pire::Impl::MaxSizeWord));
+	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t));
+	const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 	const void* end = (const void*) ((const char*) ptr + wbuf.Buffer().Size());
 	memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 

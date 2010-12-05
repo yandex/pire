@@ -84,7 +84,7 @@ namespace Pire {
 			Impl::AlignPtr(p, size);
 		}
 
-		inline void CheckAlign(const void* ptr, size_t bound = sizeof(MaxSizeWord))
+		inline void CheckAlign(const void* ptr, size_t bound = sizeof(size_t))
 		{
 			if (!IsAligned(ptr, bound))
 				throw Error("Tried to mmap scanner at misaligned address");

@@ -142,8 +142,8 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		UNIT_ASSERT(!state.Captured());
 
 		CapturingScanner scanner3;		
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(Pire::Impl::MaxSizeWord));
-		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(Pire::Impl::MaxSizeWord));
+		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t));
+		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		const void* tail = scanner3.Mmap(ptr, wbuf.Buffer().Size());
 		UNIT_ASSERT_EQUAL(tail, (const void*) ((size_t)ptr + wbuf.Buffer().Size()));

@@ -78,6 +78,14 @@ namespace Impl {
 	/// Some properties of the particular state.
 	struct ScannerRowHeader {
 		enum { ExitMaskCount = 2 };
+	private:
+		/// In order to allow transition table to be aligned at sizeof(size_t) instead of
+		/// sizeof(Word) and still be able to read Masks at Word-aligned addresses each mask
+		/// occupies 2x space and only properly aligned part of it is read
+		enum {
+			SizeTInMaxSizeWord = sizeof(MaxSizeWord) / sizeof(size_t),
+			MaskSizeInSizeT = 2 * SizeTInMaxSizeWord,
+		};
 
 		/// If this state loops for all letters except particular set
 		/// (common thing when matching something like /.*[Aa]/),
@@ -88,7 +96,31 @@ namespace Impl {
 		///
 		/// If bytes of mask hold different values, the mask is invalid
 		/// and will not be used.
-		MaxSizeWord ExitMasks[ExitMaskCount];
+		size_t ExitMasks[ExitMaskCount * MaskSizeInSizeT];
+		
+	public:
+		inline
+		const Word& Mask(size_t i, size_t alignOffset) const
+		{
+			YASSERT(i < ExitMaskCount);
+			YASSERT(alignOffset < SizeTInMaxSizeWord);
+			const Word* p = (const Word*)(ExitMasks + alignOffset + MaskSizeInSizeT * i);
+			YASSERT(IsAligned(p, sizeof(Word)));
+			return *p;
+		}
+		
+		inline
+		size_t Mask(size_t i) const
+		{
+			YASSERT(i < ExitMaskCount);
+			return ExitMasks[MaskSizeInSizeT*i];
+		}
+				
+		void SetMask(size_t i, size_t val)
+		{
+			for (size_t j = 0; j < MaskSizeInSizeT; ++j)
+				ExitMasks[MaskSizeInSizeT*i + j] = val;
+		}
 
 		enum {
 			NO_SHORTCUT_MASK = 1, // the state doensn't have shortcuts
@@ -100,7 +132,7 @@ namespace Impl {
 		ScannerRowHeader(): Flags(0)
 		{
 			for (size_t i = 0; i < ExitMaskCount; ++i)
-				ExitMasks[i] = MaxSizeFromShort(NO_SHORTCUT_MASK);
+				SetMask(i, NO_SHORTCUT_MASK);
 		}
 	};
 
@@ -238,7 +270,7 @@ public:
 	 */
 	typename Relocation::RetvalForMmap Mmap(const void* ptr, size_t size)
 	{
-		Impl::CheckAlign(ptr, sizeof(MaxSizeWord));
+		Impl::CheckAlign(ptr, sizeof(size_t));
 		Scanner s;
 
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
@@ -283,9 +315,8 @@ public:
 			MaxChar * sizeof(Letter)                           // Letters translation table
 			+ m.finalTableSize * sizeof(size_t)                // Final table
 			+ m.statesCount * sizeof(size_t)                   // Final index
-			+ sizeof(MaxSizeWord)                              // Additional space, so transition table can be aligned
 			+ RowSize() * m.statesCount * sizeof(Transition),  // Transitions table
-		sizeof(MaxSizeWord));
+		sizeof(size_t));
 	}
 
 	void Save(yostream*) const;
@@ -298,7 +329,7 @@ private:
 		
 		Settings():
 			ExitMaskCount(ScannerRowHeader::ExitMaskCount),
-			ExitMaskSize(sizeof(((ScannerRowHeader*)0)->ExitMasks[0]))
+			ExitMaskSize(sizeof(ScannerRowHeader))
 		{}
 		bool operator == (const Settings& rhs) const { return ExitMaskCount == rhs.ExitMaskCount && ExitMaskSize == rhs.ExitMaskSize; }
 		bool operator != (const Settings& rhs) const { return !(*this == rhs); }
@@ -322,7 +353,7 @@ private:
 
 	Transition* m_transitions;
 	
-	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)); }
+	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)); } // Row size should be a multiple of sizeof(MaxSizeWord)
 
 	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
 	PIRE_STATIC_ASSERT(sizeof(ScannerRowHeader) % sizeof(Transition) == 0);
@@ -336,9 +367,9 @@ private:
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
 
-		m_buffer = new char[BufSize() + sizeof(MaxSizeWord)];
-		memset(m_buffer, 0, BufSize() + sizeof(MaxSizeWord));
-		Markup(AlignUp(m_buffer, sizeof(MaxSizeWord)));
+		m_buffer = new char[BufSize() + sizeof(size_t)];
+		memset(m_buffer, 0, BufSize() + sizeof(size_t));
+		Markup(AlignUp(m_buffer, sizeof(size_t)));
 		m_finalEnd = m_final;
 
 		for (size_t i = 0; i != Size(); ++i)
@@ -357,11 +388,11 @@ private:
 	 */
 	void Markup(void* ptr)
 	{
-		Impl::CheckAlign(ptr, sizeof(MaxSizeWord));
+		Impl::CheckAlign(ptr, sizeof(size_t));
 		m_letters     = reinterpret_cast<Letter*>(ptr);
 		m_final	      = reinterpret_cast<size_t*>(m_letters + MaxChar);
 		m_finalIndex  = reinterpret_cast<size_t*>(m_final + m.finalTableSize);
-		m_transitions = AlignUp(reinterpret_cast<Transition*>(m_finalIndex + m.statesCount), sizeof(MaxSizeWord));
+		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
 	}
 
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
@@ -374,8 +405,8 @@ private:
 		PIRE_STATIC_ASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
-		m_buffer = new char[BufSize() + sizeof(MaxSizeWord)];
-		Markup(AlignUp(m_buffer, sizeof(MaxSizeWord)));
+		m_buffer = new char[BufSize() + sizeof(size_t)];
+		Markup(AlignUp(m_buffer, sizeof(size_t)));
 
 		memcpy(m_letters, s.m_letters, MaxChar * sizeof(*m_letters));
 		memcpy(m_final, s.m_final, m.finalTableSize * sizeof(*m_final));
@@ -442,29 +473,33 @@ private:
 		// check if it is possible to setup shortcuts
 		for (size_t i = 0; i != Size(); ++i) {
 			State st = IndexToState(i);
-			MaxSizeWord* ptr = Header(st).ExitMasks;
-			MaxSizeWord* end = ptr + ScannerRowHeader::ExitMaskCount;
-			MaxSizeWord lastMask = MaxSizeFromShort(ScannerRowHeader::NO_EXIT_MASK);
+			size_t ind = 0;
+			size_t lastMask = ScannerRowHeader::NO_EXIT_MASK;
 			size_t let = HEADER_SIZE;
 			for (; let != LettersCount() + HEADER_SIZE; ++let) {
 				// Check if the transition is not the same state
 				if (Relocation::Go(st, reinterpret_cast<const Transition*>(st)[let]) != st) {
-					if (ptr + letters[let].size() > end)
+					if (ind + letters[let].size() > ScannerRowHeader::ExitMaskCount)
 						break;
 					// For each character setup a mask
-					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit)
-						*ptr++ = lastMask = FillMaxSizeWord(*chit);
+					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit) {
+						lastMask = FillSizeT(*chit);
+						Header(st).SetMask(ind, lastMask);
+						++ind;
+					}
 				}
 			}
 
 			if (let != LettersCount() + HEADER_SIZE) {
 				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
-				lastMask = MaxSizeFromShort(ScannerRowHeader::NO_SHORTCUT_MASK);
-				ptr = Header(st).ExitMasks;
+				lastMask = ScannerRowHeader::NO_SHORTCUT_MASK;
+				ind = 0;
 			}
 			// Fill the rest of the shortcut masks with the last used mask
-			while (ptr != end)
-				*ptr++ = lastMask;
+			while (ind != ScannerRowHeader::ExitMaskCount) {
+				Header(st).SetMask(ind, lastMask);
+				++ind;
+			}
 		}
 	}
 
@@ -506,18 +541,18 @@ private:
 
 template<unsigned N>
 struct MaskCheckerBase {
-	static inline bool Check(const MaxSizeWord* mptr, Word chunk)
+	static inline bool Check(const ScannerRowHeader& hdr, size_t alignOffset, Word chunk)
 	{
-		Word mask = CheckBytes(*(const Word*)(mptr + N), chunk);
+		Word mask = CheckBytes(hdr.Mask(N, alignOffset), chunk);
 		for (int i = N-1; i >= 0; --i) {
-			mask = Or(mask, CheckBytes(*(const Word*)(mptr + i), chunk));
+			mask = Or(mask, CheckBytes(hdr.Mask(i, alignOffset), chunk));
 		}
 		return !IsAnySet(mask);
 	}
 
-	static inline const Word* DoRun(const MaxSizeWord* mptr, const Word* begin, const Word* end)
+	static inline const Word* DoRun(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
 	{
-		for (; begin != end && Check(mptr, ToLittleEndian(*begin)); ++begin) {}
+		for (; begin != end && Check(hdr, alignOffset, ToLittleEndian(*begin)); ++begin) {}
 		return begin;
 	}
 };
@@ -527,12 +562,12 @@ struct MaskChecker : MaskCheckerBase<N>  {
 	typedef MaskCheckerBase<N> Base;
 	typedef MaskChecker<N+1, Nmax> Next;
 
-	static inline const Word* Run(const MaxSizeWord* mptr, const Word* begin, const Word* end)
+	static inline const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
 	{
-		if (GetSizeT(mptr + N) == GetSizeT(mptr + N + 1))
-			return Base::DoRun(mptr, begin, end);
+		if (hdr.Mask(N) == hdr.Mask(N + 1))
+			return Base::DoRun(hdr, alignOffset, begin, end);
 		else
-			return Next::Run(mptr, begin, end);
+			return Next::Run(hdr, alignOffset, begin, end);
 	}
 };
 
@@ -540,9 +575,9 @@ template<unsigned N>
 struct MaskChecker<N, N> : MaskCheckerBase<N>  {
 	typedef MaskCheckerBase<N> Base;
 
-	static inline const Word* Run(const MaxSizeWord* mptr, const Word* begin, const Word* end)
+	static inline const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
 	{
-		return Base::DoRun(mptr, begin, end);
+		return Base::DoRun(hdr, alignOffset, begin, end);
 	}
 };
 
@@ -593,7 +628,7 @@ private:
 	// Compares the ExitMask[0] value without SSE reads which seems to be more optimal
 	static inline bool CheckFirstMask(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t val)
 	{
-		return (GetSizeT(scanner.Header(state).ExitMasks) == val);
+		return (scanner.Header(state).Mask(0) == val);
 	}
 	
 public:
@@ -612,6 +647,10 @@ public:
 
 		if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK))
 			return state;
+		
+		// Row size should be a multiple of MaxSizeWord size. Then alignOffset is the same for any state
+		YASSERT(scanner.RowSize() % sizeof(MaxSizeWord) == 0);
+		size_t alignOffset = (AlignUp((size_t)scanner.m_transitions, sizeof(Word)) - (size_t)scanner.m_transitions) / sizeof(size_t);
 
 		bool noShortcut = CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
 
@@ -627,7 +666,7 @@ public:
 			if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK))
 				return state;
 
-			head = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state).ExitMasks, head, tail);
+			head = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state), alignOffset, head, tail);
 			noShortcut = true;
 		}
 		

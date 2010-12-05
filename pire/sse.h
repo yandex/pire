@@ -146,14 +146,6 @@ inline Word ToLittleEndian(Word x) { return x; }
 #ifndef PIRE_WORD_DEFINED
 
 typedef size_t Word;
-
-inline size_t FillWord(char c)
-{
-	size_t w = c;
-	for (size_t i = 8; i != sizeof(size_t)*8; i <<= 1)
-		w = (w << i) | w;
-	return w;
-}
 	
 inline size_t ToShort(short s) { return s; }
 inline short FromShort(size_t x) { return (short) x; }
@@ -228,6 +220,14 @@ inline MaxSizeWord FillMaxSizeWord(char c)
 	for (size_t i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i)
 		fields[i] = c;
 	return m;
+}
+
+inline size_t FillSizeT(char c)
+{
+	size_t w = c;
+	for (size_t i = 8; i != sizeof(size_t)*8; i <<= 1)
+		w = (w << i) | w;
+	return w;
 }
 
 }}
