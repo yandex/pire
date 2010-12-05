@@ -27,7 +27,7 @@
 
 #include "stub/stl.h"
 #include "stub/saveload.h"
-#include "sse.h"
+#include "platform.h"
 
 namespace Pire {
 	

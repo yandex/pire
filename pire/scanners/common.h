@@ -27,7 +27,7 @@
 #include "../align.h"
 #include "../stub/defaults.h"
 #include "../defs.h"
-#include "../sse.h"
+#include "../platform.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
