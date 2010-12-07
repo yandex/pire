@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -82,10 +82,10 @@ namespace Impl {
 }
 
 #define PIREUNIT_ASSERT(x) \
-	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, "(" #x ") is false");
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, "(" #x ") is false")
 
 #define PIREUNIT_ASSERT_EQUAL(expected, real) \
-	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, "(" #expected ") != (" #real ")");
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, "(" #expected ") != (" #real ")")
 
 
 #define SIMPLE_UNIT_TEST_SUITE(N) \
@@ -100,7 +100,7 @@ namespace Impl {
 		} s_registry; \
 	} \
 	namespace TestSuite_ ## N
-	
+
 #define SIMPLE_UNIT_TEST(N) \
 	class TestCase_ ## N: public PireUnit::TestCase { \
 	public: \

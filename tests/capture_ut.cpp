@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -141,8 +141,9 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		state = RunRegexp(scanner, str);
 		UNIT_ASSERT(!state.Captured());
 
-		CapturingScanner scanner3;		
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t));
+		CapturingScanner scanner3;
+		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
+		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		const void* tail = scanner3.Mmap(ptr, wbuf.Buffer().Size());
@@ -164,6 +165,21 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		}
 		catch (Pire::Error&) {}
 
+		for (size_t offset = 1; offset < MaxTestOffset; ++offset) {
+			ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
+			memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
+			try {
+				scanner3.Mmap(ptr, wbuf.Buffer().Size());
+				if (offset % sizeof(size_t) != 0)
+					UNIT_ASSERT(!"CapturingScanner failed to check for misaligned mmaping");
+				else {
+					str = "google_id = 'abcde';";
+					state = RunRegexp(scanner3, str);
+					UNIT_ASSERT(state.Captured());
+				}
+			}
+			catch (Pire::Error&) {}
+		}
 	}
 
 }

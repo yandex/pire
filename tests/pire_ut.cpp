@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -271,7 +271,7 @@ SIMPLE_UNIT_TEST(Ranges)
 		ACCEPTS("a,");
 		DENIES("ab");
 	}
-	
+
 	try {
 		REGEXP("abc[def") {}
 		UNIT_ASSERT(!"Should report syntax error");
@@ -363,6 +363,21 @@ SIMPLE_UNIT_TEST(ScanTermination)
 	UNIT_ASSERT(p == &str[0] + 3);
 }
 
+struct BasicMmapTest {
+	template <class Scanner>
+	static void Match(Scanner& sc, const void* ptr, size_t sz, const char* str)
+	{
+		try {
+			sc.Mmap(ptr, sz);
+			if (!Pire::Impl::IsAligned(ptr, sizeof(size_t)))
+				UNIT_ASSERT(!"Failed to check for misaligned mmaping");
+			else
+				UNIT_ASSERT(Matches(sc, str));
+		}
+		catch (Pire::Error&) {}
+	}
+};
+
 SIMPLE_UNIT_TEST(Serialization)
 {
 	Scanners s("^regexp$");
@@ -394,14 +409,20 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::Scanner fast2;
 	Pire::SimpleScanner simple2;
 	Pire::SlowScanner slow2;
-	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t));
-	const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
-	const void* end = (const void*) ((const char*) ptr + wbuf.Buffer().Size());
+	const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
+	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+	const char* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
+	const char* end = ptr + wbuf.Buffer().Size();
 	memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 
-	ptr = fast2.Mmap(ptr, (const char*) end - (const char*) ptr);
-	ptr = simple2.Mmap(ptr, (const char*) end - (const char*) ptr);
-	ptr = slow2.Mmap(ptr, (const char*) end - (const char*) ptr);
+	const char* ptr2 = 0;
+	ptr2 = (const char*)fast2.Mmap(ptr, end - ptr);
+	size_t fastSize = ptr2 - ptr;
+	ptr = ptr2;
+	ptr2 = (const char*)simple2.Mmap(ptr, end - ptr);
+	size_t simpleSize = ptr2 - ptr;
+	ptr = ptr2;
+	ptr = (const char*)slow2.Mmap(ptr, end - ptr);
 	UNIT_ASSERT_EQUAL(ptr, end);
 
 	UNIT_ASSERT(Matches(fast2, "regexp"));
@@ -414,22 +435,16 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(!Matches(simple2, "regxp"));
 	UNIT_ASSERT(!Matches(simple2, "regexp t"));
 
-	ptr = (const void*) ((const char*) wbuf.Buffer().Data() + 1);
-	try {
-		fast2.Mmap(ptr, wbuf.Buffer().Size());
-		UNIT_ASSERT(!"FastScanner failed to check for misaligned mmaping");
+	for (size_t offset = 1; offset < MaxTestOffset; ++offset) {
+		ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
+		end = ptr + wbuf.Buffer().Size();
+		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
+		BasicMmapTest::Match(fast2, ptr, end - ptr, "regexp");
+		ptr = ptr + fastSize;
+		BasicMmapTest::Match(simple2, ptr, end - ptr, "regexp");
+		ptr = ptr + simpleSize;
+		BasicMmapTest::Match(slow2, ptr, end - ptr, "regexp");
 	}
-	catch (Pire::Error&) {}
-	try {
-		simple2.Mmap(ptr, wbuf.Buffer().Size());
-		UNIT_ASSERT(!"SimpleScanner failed to check for misaligned mmaping");
-	}
-	catch (Pire::Error&) {}
-	try {
-		slow2.Mmap(ptr, wbuf.Buffer().Size());
-		UNIT_ASSERT(!"SlowScanner failed to check for misaligned mmaping");
-	}
-	catch (Pire::Error&) {}
 }
 
 SIMPLE_UNIT_TEST(TestShortcuts)
@@ -456,11 +471,11 @@ void TestGlue()
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(2));
 
 	ypair<const size_t*, const size_t*> res;
-                                                                                                                          
+
 	res = glued.AcceptedRegexps(RunRegexp(glued, "aaa"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(*res.first, size_t(0));
-                                                                                                                          
+
 	res = glued.AcceptedRegexps(RunRegexp(glued, "bbb"));
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(*res.first, size_t(1));
