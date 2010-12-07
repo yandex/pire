@@ -92,7 +92,9 @@ void Use(const std::string& filename)
     Filter(sc);
 }
 
-#ifdef _WIN32
+#ifndef _WIN32
+#include <libgen.h>
+#else
 const char* basename(const char* name)
 {
 	return name;
