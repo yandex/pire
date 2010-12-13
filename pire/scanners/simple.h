@@ -64,6 +64,8 @@ public:
 	/// Checks whether specified state is in any of the final sets
 	bool Final(const State& state) const { return *(((const Transition*) state) - 1) != 0; }
 
+	bool Dead(const State& s) const { return false; }
+
 	/// returns an initial state for this scanner
 	void Initialize(State& state) const { state = m.initial; }
 

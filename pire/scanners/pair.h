@@ -72,10 +72,21 @@ namespace Pire {
 			return m_scanner1->Final(state.first) || m_scanner2->Final(state.second);
 		}
 
+		bool Dead(const State& state) const
+		{
+			return m_scanner1->Dead(state.first) && m_scanner2->Dead(state.second);
+		}
+
 		ypair<size_t, size_t> StateIndex(const State& state) const
 		{
 			return ymake_pair(m_scanner1->StateIndex(state.first), m_scanner2->StateIndex(state.second));
 		}
+
+		Scanner1& First() { return *m_scanner1; }
+		Scanner2& Second() { return *m_scanner2; }
+
+		const Scanner1& First() const { return *m_scanner1; }
+		const Scanner2& Second() const { return *m_scanner2; }
 
 	private:
 		const Scanner1* m_scanner1;

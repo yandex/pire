@@ -109,6 +109,8 @@ public:
 
 	bool Final(const State& /*state*/) const { return false; }
 
+	bool Dead(const State& state) const { return false; }
+
 	CountingScanner() {}
 	CountingScanner(const CountingScanner& s): LoadedScanner(s) {}
 	CountingScanner(const Fsm& re, const Fsm& sep);

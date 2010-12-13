@@ -6,6 +6,9 @@ endif
 if ENABLE_CHECKED
 AM_CXXFLAGS += -DPIRE_CHECKED
 endif
+if ENABLE_EXTRA
+AM_CXXFLAGS += -DBENCH_EXTRA_ENABLED
+endif
 
 noinst_PROGRAMS = bench
 dist_noinst_SCRIPTS = run-bench

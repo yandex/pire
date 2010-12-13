@@ -141,6 +141,11 @@ public:
 		return false;
 	}
 
+	bool Dead(const State& s) const
+	{
+		return false;
+	}
+
 	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& s) const {
 		return Final(s) ? Accept() : Deny();
 	}
