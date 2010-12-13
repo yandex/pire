@@ -24,6 +24,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <pire/pire.h>
+#include <pire/stub/lexical_cast.h>
 #include "../common/filemap.h"
 
 #ifdef BENCH_EXTRA_ENABLED
@@ -78,29 +79,43 @@ typedef std::vector<std::string> Patterns;
 
 class ITester {
 public:
+	enum Algorithm {
+		DefaultRun,
+		ShortestPrefix,
+		LongestPrefix
+	};
+
 	virtual ~ITester() {}
-	virtual void Compile(const std::vector<Patterns>& patterns) = 0;
+	virtual void Prepare(Algorithm alg, const std::vector<Patterns>& patterns) = 0;
 	virtual void Run(const char* begin, const char* end) = 0;
 };
 
+// Sinlge regexp scanner
 template<class Scanner>
 struct Compile {
-	static Scanner Do(const Patterns& patterns)
+	static Scanner Do(const Patterns& patterns, bool surround)
 	{
 		if (patterns.size() != 1)
 			throw std::runtime_error("Only one regexp is allowed for this scanner");
-		return Pire::Lexer(patterns[0]).Parse().Surround().Compile<Scanner>();
+		Pire::Fsm fsm = Pire::Lexer(patterns[0]).Parse();
+		if (surround)
+			fsm.Surround();
+		return fsm.Compile<Scanner>();
 	}
 };
 
+// Multi regexp scanner
 template<class Relocation>
 struct Compile< Pire::Impl::Scanner<Relocation> > {
-	static Pire::Impl::Scanner<Relocation> Do(const Patterns& patterns)
+	static Pire::Impl::Scanner<Relocation> Do(const Patterns& patterns, bool surround)
 	{
 		typedef Pire::Impl::Scanner<Relocation> Sc;
 		Sc sc;
 		for (Patterns::const_iterator i = patterns.begin(), ie = patterns.end(); i != ie; ++i) {
-			Sc tsc = Pire::Fsm(Pire::Lexer(patterns[0]).Parse().Surround()).Compile<Sc>();
+			Pire::Fsm fsm = Pire::Lexer(*i).Parse();
+			if (surround)
+				fsm.Surround();
+			Sc tsc = fsm.Compile<Sc>();
 			if (i == patterns.begin())
 				tsc.Swap(sc);
 			else {
@@ -116,6 +131,7 @@ struct Compile< Pire::Impl::Scanner<Relocation> > {
 	}
 };
 
+// Single regexp
 template<class Scanner>
 struct PrintResult {
 	static void Do(const Scanner& sc, typename Scanner::State st)
@@ -127,6 +143,7 @@ struct PrintResult {
 	}
 };
 
+// Multiple regexp
 template<class Relocation>
 struct PrintResult< Pire::Impl::Scanner<Relocation> > {
 	typedef Pire::Impl::Scanner<Relocation> Scanner;
@@ -141,6 +158,7 @@ struct PrintResult< Pire::Impl::Scanner<Relocation> > {
 	}
 };
 
+// Pair result
 template<class Scanner1, class Scanner2>
 struct PrintResult< Pire::ScannerPair<Scanner1, Scanner2> > {
 	typedef Pire::ScannerPair<Scanner1, Scanner2> Scanner;
@@ -155,21 +173,20 @@ struct PrintResult< Pire::ScannerPair<Scanner1, Scanner2> > {
 #ifdef BENCH_EXTRA_ENABLED
 template <>
 struct Compile<Pire::CapturingScanner> {
-	static Pire::CapturingScanner Do(const Patterns& patterns)
+	static Pire::CapturingScanner Do(const Patterns& patterns, bool surround)
 	{
 		if (patterns.size() != 1)
 			throw std::runtime_error("Only one regexp is allowed for this scanner");
-		return Pire::Lexer(patterns[0])
-			.AddFeature(Pire::Features::Capture(1))
-			.Parse()
-			.Surround()
-			.Compile<Pire::CapturingScanner>();
+		Pire::Fsm fsm = Pire::Lexer(patterns[0]).AddFeature(Pire::Features::Capture(1)).Parse();
+		if (surround)
+			fsm.Surround();
+		return fsm.Compile<Pire::CapturingScanner>();
 	}
 };
 
 template <>
 struct Compile<Pire::CountingScanner> {
-	static Pire::CountingScanner Do(const Patterns& patterns)
+	static Pire::CountingScanner Do(const Patterns& patterns, bool surround)
 	{
 		Pire::CountingScanner sc;
 		for (Patterns::const_iterator i = patterns.begin(), ie = patterns.end(); i != ie; ++i) {
@@ -211,39 +228,60 @@ struct PrintResult<Pire::CapturingScanner> {
 };
 #endif // BENCH_EXTRA_ENABLED
 
+// Common implementation for all scanners
 template<class Scanner>
 class TesterBase: public ITester {
-public:	
+public:
+	void Prepare(Algorithm a, const std::vector<Patterns>& patterns)
+	{
+		alg = a;
+		Compile(patterns, alg == DefaultRun);
+	}
+
 	void Run(const char* begin, const char* end)
 	{
-		PrintResult<Scanner>::Do(sc, Pire::Runner(sc).Begin().Run(begin, end).End().State());
+		if (alg == DefaultRun)
+			PrintResult<Scanner>::Do(sc, Pire::Runner(sc).Begin().Run(begin, end).End().State());
+		else {
+			const char* pos = (alg == ShortestPrefix ? 
+				Pire::ShortestPrefix(sc, begin, end) :
+				Pire::LongestPrefix(sc, begin, end));
+			if (pos)
+				std::cout << "Prefix end: " << pos - begin << std::endl;
+			else
+				std::cout << "No prefix" << std::endl;
+		}
 	}
+
 protected:
+	virtual void Compile(const std::vector<Patterns>& patterns, bool surround) = 0;
+
 	Scanner sc;
+	ITester::Algorithm alg;
 };
 
 template<class Scanner>
 class Tester: public TesterBase<Scanner> {
 	typedef TesterBase<Scanner> Base;
-public:
-	void Compile(const std::vector<Patterns>& patterns)
+
+	void Compile(const std::vector<Patterns>& patterns, bool surround)
 	{
 		if (patterns.size() != 1)
 			throw std::runtime_error("Only one set of regexps is allowed for this scanner");
-		Base::sc = ::Compile<Scanner>::Do(patterns[0]);
+		Base::sc = ::Compile<Scanner>::Do(patterns[0], surround);
 	}
 };
 
 template<class Scanner1, class Scanner2>
 class PairTester: public TesterBase< Pire::ScannerPair<Scanner1, Scanner2> > {
 	typedef TesterBase< Pire::ScannerPair<Scanner1, Scanner2> > Base;
-public:
-	void Compile(const std::vector<Patterns>& patterns)
+
+	void Compile(const std::vector<Patterns>& patterns, bool surround)
 	{
 		if (patterns.size() != 2)
 			throw std::runtime_error("Only two sets of regexps are allowed for this scanner");
-		sc1 = ::Compile<Scanner1>::Do(patterns[0]);
-		sc2 = ::Compile<Scanner2>::Do(patterns[1]);
+		sc1 = ::Compile<Scanner1>::Do(patterns[0], surround);
+		sc2 = ::Compile<Scanner2>::Do(patterns[1], surround);
 		typedef Pire::ScannerPair<Scanner1, Scanner2> Pair;
 		Base::sc = Pair(sc1, sc2);
 	}
@@ -255,7 +293,7 @@ private:
 
 class MemTester: public ITester {
 public:
-	void Compile(const std::vector<Patterns>&) {}
+	void Prepare(Algorithm, const std::vector<Patterns>&) {}
 	// Just estimates memory throughput
 	void Run(const char* begin, const char* end)
 	{
@@ -268,7 +306,7 @@ public:
 };
 
 std::runtime_error usage(
-	"Usage: bench -f file -t {"
+	"Usage: bench -f file [-c repetition_count] -t {"
 	"multi|nonreloc|simple|slow|null"
 #ifdef BENCH_EXTRA_ENABLED
 	"count|capture"
@@ -327,6 +365,9 @@ void Main(int argc, char** argv)
 	std::vector<Patterns> patterns;
 	std::vector<std::string> types;
 	std::string file;
+	std::string algName = "run";
+	int repCount = 10;
+	ITester::Algorithm alg;
 	for (--argc, ++argv; argc; --argc, ++argv) {
 		if (!strcmp(*argv, "-t") && argc >= 2) {
 			types.push_back(argv[1]);
@@ -334,6 +375,12 @@ void Main(int argc, char** argv)
 			--argc, ++argv;
 		} else if (!strcmp(*argv, "-f") && argc >= 2) {
 			file = argv[1];
+			--argc, ++argv;
+		} else if (!strcmp(*argv, "-a") && argc >= 2) {
+			algName = argv[1];
+			--argc, ++argv;
+		} else if (!strcmp(*argv, "-c") && argc >= 2) {
+			repCount = Pire::FromString<int>(argv[1]);
 			--argc, ++argv;
 		} else if (!strcmp(*argv, "-e") && argc >= 2) {
 			if (patterns.empty())
@@ -349,9 +396,18 @@ void Main(int argc, char** argv)
 	if (types.empty() || file.empty() || patterns.back().empty())
 		throw usage;
 
+	if (algName == "run")
+		alg = ITester::DefaultRun;
+	else if (algName == "shortestprefix")
+		alg = ITester::ShortestPrefix;
+	else if (algName == "longestprefix")
+		alg = ITester::LongestPrefix;
+	else 
+		throw usage;
+
 	std::auto_ptr<ITester> tester(CreateTester(types));
 
-	tester->Compile(patterns);
+	tester->Prepare(alg, patterns);
 	FileMmap fmap(file.c_str());
 
 	// Run the benchmark multiple times
@@ -359,7 +415,7 @@ void Main(int argc, char** argv)
 	for (std::vector<std::string>::iterator j = types.begin(), je = types.end(); j != je; ++j)
 		stream << *j << " ";
 	std::string typesName = stream.str();
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < repCount; ++i)
 	{
 		Timer timer(typesName, fmap.Size());
 		tester->Run(fmap.Begin(), fmap.End());
