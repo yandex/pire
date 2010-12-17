@@ -24,6 +24,8 @@
 #ifndef PIRE_DEFS_H
 #define PIRE_DEFS_H
 
+#include <pire/config.h>
+
 namespace Pire {
 
 #ifdef PIRE_DEBUG
@@ -51,7 +53,7 @@ namespace Pire {
 	using namespace SpecialChar;
 
 	namespace Impl {
-#ifndef WORDS_BIGENDIAN
+#ifndef PIRE_WORDS_BIGENDIAN
 		inline size_t ToLittleEndian(size_t val) { return val; }
 #else
 #error TODO: Please implement Pire::Impl::ToLittleEndian()

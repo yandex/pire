@@ -2,7 +2,7 @@ AC_PREREQ([2.60])
 AC_INIT([pire], [0.0.4], [dprokoptsev@yandex-team.ru])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_CONFIG_SRCDIR([pire/classes.cpp])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([config.h.in])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_LANG_CPLUSPLUS
@@ -50,4 +50,5 @@ AC_CONFIG_FILES([
 	samples/blacklist/Makefile
 	samples/pigrep/Makefile
 ])
+AC_OUTPUT_COMMANDS([sed 's/#define \([A-Z]\)/#define PIRE_\1/' < config.h.in > pire/config.h])
 AC_OUTPUT

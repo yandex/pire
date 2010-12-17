@@ -24,14 +24,11 @@
 #define PIRE_SCANNERS_COMMON_H_INCLUDED
 
 #include <stdlib.h>
+#include <pire/config.h>
 #include "../align.h"
 #include "../stub/defaults.h"
 #include "../defs.h"
 #include "../platform.h"
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 namespace Pire {
 

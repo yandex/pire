@@ -80,6 +80,8 @@ pire_hdr_HEADERS = \
 	platform.h \
 	vbitset.h
 
+nodist_pire_hdr_HEADERS = config.h
+
 if ENABLE_EXTRA
 pire_extradir = $(includedir)/pire/extra
 pire_extra_HEADERS = \
