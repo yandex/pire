@@ -306,8 +306,9 @@ public:
 };
 
 std::runtime_error usage(
-	"Usage: bench -f file [-c repetition_count] -t {"
-	"multi|nonreloc|simple|slow|null"
+	"Usage: bench -f file [-c repetition_count] "
+	"[-a run|shortestprefix|longestprefix] "
+	"-t {multi|nonreloc|simple|slow|null"
 #ifdef BENCH_EXTRA_ENABLED
 	"count|capture"
 #endif

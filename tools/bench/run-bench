@@ -2,72 +2,110 @@
 
 BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
 BIGFILE_SIZE=300000000
+REPETITION_COUNT=5
 
 
 usage() {
-	echo "Usage: `basename $0` [-f big-file] [-k]" >&2
+	echo "Usage: `basename $0` [-f big-file] [-k] [-e] [-s size] [-c count]" >&2
 	echo "  -f big-file  - specifies path to a big text file (1GB would be enough)" >&2
 	echo "  -k           - do not generate the file if it exists and do not delete it on exit" >&2
 	echo "  -r           - use regexps from RE2 tests" >&2
+	echo "  -e           - run extra benchmarks (count, capture)" >&2
+	echo "  -s           - generated test file minimum size" >&2
+	echo "  -c           - number of repetitions in each test" >&2
 	exit 1
 }
 
-bench() {
-	echo "$2	'$3'"
-	echo -n "    "
-	$BENCH "$1" "$2" "$3"  | tail -1
+print_res()
+{
+	printf "%16s %16s %40s %10.3f MB/sec\n" "$1" "$2" "$3" "$4"
 }
 
-run_all() {	
+bench() {
+	re="$3"
+	if [ ! "$2" = "run" ]; then re=".*$3"; fi
+	BW=`$BENCH -a "$2" -t "$1" "$re" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	print_res "$1" "$2" "'$re'" "$BW"
+}
+
+# Test single regexps
+run_all() {
+m="$2"
+if [ -z "$2" ]; then m="run"; fi
 if [ -z "$RE2_TESTS" ]; then
 	# 1, 2 and 3 characters that are not present in the test file
-	bench -t $1 "`printf \\\\100`$"
-	bench -t $1 "[`printf \\\\100\\\\77`]$"
-	bench -t $1 "[`printf \\\\100\\\\77\\\\74`]$"
+	bench $1 $m "@$"
+	bench $1 $m "[@Q]$"
+	bench $1 $m "[@QZ]$"
 
 	# 1, 2 and 3 characters that are not frequent in the test file
-	bench -t $1 '[A]$'
-	bench -t $1 '[AB]$'
-	bench -t $1 '[ABC]$'
+	bench $1 $m '[A]$'
+	bench $1 $m '[AB]$'
+	bench $1 $m '[ABC]$'
 
 	# 1, 2 and 3 characters that are frequent in the test file
-	bench -t $1 '[e]$'
-	bench -t $1 '[ne]$'
-	bench -t $1 '[net]$'
+	bench $1 $m '[e]$'
+	bench $1 $m '[ne]$'
+	bench $1 $m '[net]$'
 else
 	# regexps from RE2 paper
-	bench -t $1 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
-	bench -t $1 '[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
-	bench -t $1 '[ -~]*ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
-	bench -t $1 '(\d{3}-|\(\d{3}\)\s+)(\d{3}-\d{4})$'
+	bench $1 $m 'ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
+	bench $1 $m '[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
+	bench $1 $m '[ -~]*ABCDEFGHIJKLMNOPQRSTUVWXYZ$'
+	bench $1 $m '(\d{3}-|\(\d{3}\)\s+)(\d{3}-\d{4})$'
 fi
 }
 
+# Test multiple glued regexps
 run_multi() {
-	echo "$1 with multiple regexps"
-	echo -n "    "
-	$BENCH -t $1 \
+	BW=`$BENCH -t $1 \
 		'ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
 		'[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
 		'[ -~]*ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
 		'(\d{3}-|\(\d{3}\)\s+)(\d{3}-\d{4})$' \
-	| tail -1
+	| tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	print_res "$1" "run" "multiple regexps" "$BW"
 }
 
-ARGS=`getopt f:kr $*` || usage
+# Test counts
+run_count() {
+	BW=`$BENCH -a run -t count "$1" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	print_res "count" "run" "'$1'" "$BW"
+}
+
+run_multi_count() {
+	BW=`$BENCH -a run -t count "$1" "$2" "$3" "$4" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	print_res "count" "run" "'$1' '$2' '$3' '$4'" "$BW"
+}
+
+# Test capture
+run_capture() {
+	BW=`$BENCH -a run -t capture "$1" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	print_res "capture" "run" "'$1'" "$BW"
+}
+
+ARGS=`getopt f:c:kres: $*` || usage
 set -- $ARGS
 while [ "$1" != "--" ]; do
 	if [ "$1" = "-f" ]; then BIGFILE=$2; shift 2
 	elif [ "$1" = "-k" ]; then KEEPFILE=y; shift
 	elif [ "$1" = "-r" ]; then RE2_TESTS=y; shift
+	elif [ "$1" = "-e" ]; then EXTRA=y; shift
+	elif [ "$1" = "-s" ]; then BIGFILE_SIZE="$2"; shift 2
+	elif [ "$1" = "-c" ]; then REPETITION_COUNT="$2"; shift 2
 	fi
 done
 
-BENCH="tools/bench/bench -f $BIGFILE"
+BENCH="tools/bench/bench -c $REPETITION_COUNT -f $BIGFILE"
 
 if [ -z "$KEEPFILE" ] || ! [ -r $BIGFILE ]; then
 	echo "Preparing a big file..."
-	cat $0 > $BIGFILE
+	TEST_FILE=`dirname $0`/test_file
+	if [ ! -f $TEST_FILE ]; then
+		echo "Cannot find test_file \"$TEST_FILE\""
+		exit 1
+	fi
+	cat $TEST_FILE > $BIGFILE
 	while [ `stat -c '%s' $BIGFILE` -lt $BIGFILE_SIZE ]; do
 		cat $BIGFILE $BIGFILE > $BIGFILE.new
 		mv -f $BIGFILE.new $BIGFILE
@@ -79,16 +117,41 @@ printf "Using test file:\n\t%s\n\n" "`ls -sh $BIGFILE`"
 cat $BIGFILE > /dev/null
 
 # Estimate memory bandwidth
-bench -t null ''
+bench null run ''
 
 # Run benchmarks
 run_all nonreloc
 run_multi nonreloc
+run_all nonreloc longestprefix
+run_all nonreloc shortestprefix
 
 run_all multi
 run_multi multi
+run_all multi longestprefix
+run_all multi shortestprefix
 
 run_all simple
+run_all simple longestprefix
+run_all simple shortestprefix
+
+if [ "$EXTRA" = "y" ]; then
+	# Nonexisting character
+	run_count 'Q'
+	# Rare character
+	run_count 'A'
+	# Frequent character
+	run_count 'e'
+
+	run_count 'template'
+	run_multi_count 'Q' 'A' 'e' 'if'
+	run_multi_count 'm' 'a' 'e' 's'
+	run_multi_count 'class' 'include' 'template' 'typedef'
+
+	run_capture 'w(hil)e'
+	run_capture 'Q(.)Q'
+	run_capture '[^e](e)[^e]'
+	run_capture '[b-z](a)[b-z]'
+fi
 
 if [ -z "$KEEPFILE" ]; then
 	echo "Removing test file $BIGFILE"
