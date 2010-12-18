@@ -26,9 +26,6 @@ AC_CHECK_FUNCS([memset strchr])
 
 # Require little-endian platform
 AC_C_BIGENDIAN
-if test x"$ac_cv_c_bigendian" = xyes; then
-	AC_ERROR([pire has not been ported to big-endian platforms yet.])
-fi
 
 # Optional features
 AC_ARG_ENABLE([extra], AS_HELP_STRING([--enable-extra], [Add extra functionality (capturing scanner, etc...)]))
