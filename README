@@ -24,3 +24,48 @@ More information can be found in README.ru (in Russian), which is
 yet to be translated.
 
 Please report bugs to dprokoptsev@yandex-team.ru or davenger@yandex-team.ru.
+
+Quick Start
+=============
+
+#include <stdio.h>
+#include <vector>
+#include <pire/pire.h>
+
+Pire::NonrelocScanner CompileRegexp(const char* pattern)
+{
+	// Transform the pattern from UTF-8 into UCS4
+	std::vector<Pire::wchar32> ucs4;
+	Pire::Encodings::Utf8().FromLocal(pattern, pattern + strlen(pattern), std::back_inserter(ucs4));
+
+	return Pire::Lexer(ucs4.begin(), ucs4.end())
+		.AddFeature(Pire::Features::CaseInsensitive())	// enable case insensitivity
+		.SetEncoding(Pire::Encodings::Utf8())		// set input text encoding
+		.Parse() 					// create an FSM 
+		.Surround()					// PCRE_ANCHORED behavior
+		.Compile<Pire::NonrelocScanner>();		// compile the FSM
+}
+
+bool Matches(const Pire::NonrelocScanner& scanner, const char* ptr, size_t len)
+{
+	return Pire::Runner(scanner)
+		.Begin()	// '^'
+		.Run(ptr, len)	// the text 
+		.End();		// '$'
+		// implicitly cast to bool
+}
+
+int main()
+{
+	char re[] = "hello\\s+w.+d$";
+	char str[] = "Hello world";
+
+	Pire::NonrelocScanner sc = CompileRegexp(re);
+
+	bool res = Matches(sc, str, strlen(str));
+
+	printf("String \"%s\" %s \"%s\"\n", str, (res ? "matches" : "doesn't match"), re);
+		
+	return 0;
+}
+
