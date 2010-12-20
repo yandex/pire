@@ -56,7 +56,18 @@ namespace Pire {
 #ifndef PIRE_WORDS_BIGENDIAN
 		inline size_t ToLittleEndian(size_t val) { return val; }
 #else
-#error TODO: Please implement Pire::Impl::ToLittleEndian()
+		template<unsigned N>
+		inline size_t SwapBytes(size_t val)
+		{
+			static const size_t Mask = (1 << (N/2)) - 1;
+			return ((SwapBytes<N/2>(val) & Mask) << (N/2)) | SwapBytes<N/2>(val >> (N/2));
+		}
+
+		template<>
+		inline size_t SwapBytes<8>(size_t val) { return val & 0xFF; }
+
+		inline size_t ToLittleEndian(size_t val) { return SwapBytes<sizeof(val)*8>(val); }
+		
 #endif
 	}
 }

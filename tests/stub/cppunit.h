@@ -35,6 +35,7 @@ class TestRunner;
 class TestCase {
 public:
 	TestCase(const Pire::ystring& name) : mName(name) {}
+	virtual ~TestCase() {}
 	virtual void runTest() = 0;
 	const Pire::ystring& name() const { return mName; }
 private:
