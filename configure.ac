@@ -15,7 +15,7 @@ AC_PROG_YACC
 AC_PROG_LIBTOOL
 
 # Just for conscience' sake
-AC_CHECK_HEADERS([stdlib.h string.h sys/time.h])
+AC_CHECK_HEADERS([stdlib.h stdint.h string.h sys/time.h])
 AC_HEADER_STDBOOL
 AC_C_INLINE
 AC_TYPE_SIZE_T
@@ -24,8 +24,10 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([memset strchr])
 
-# Require little-endian platform
 AC_C_BIGENDIAN
+
+AC_CHECK_ALIGNOF(size_t)
+AC_CHECK_ALIGNOF(uint64_t)
 
 # Optional features
 AC_ARG_ENABLE([extra], AS_HELP_STRING([--enable-extra], [Add extra functionality (capturing scanner, etc...)]))
@@ -34,6 +36,11 @@ AC_ARG_ENABLE([checked], AS_HELP_STRING([--enable-checked], [Enable asserts]))
 AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
+
+if test x"$enable_extra" = xyes && test x"$ac_cv_alignof_size_t" != x"$ac_cv_alignof_uint64_t"; then
+	AC_ERROR([pire/extra has not been ported to platforms requiring special alignment
+	          for 64-bit integers yet. Please rebuild without --enable-extra.])
+fi
 
 AC_CONFIG_FILES([
 	Makefile
