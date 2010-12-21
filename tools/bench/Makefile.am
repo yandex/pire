@@ -12,6 +12,7 @@ endif
 
 noinst_PROGRAMS = bench
 dist_noinst_SCRIPTS = run-bench
+dist_noinst_DATA = test_file
 
 bench_SOURCES  = bench.cpp ../common/filemap.h
 bench_LDADD    = ../../pire/libpire.la

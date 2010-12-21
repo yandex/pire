@@ -4,6 +4,11 @@ BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
 BIGFILE_SIZE=300000000
 REPETITION_COUNT=5
 
+if [ `uname` = "FreeBSD" ]; then
+	PRINT_SIZE="stat -f %z"
+else
+	PRINT_SIZE="stat -c %s"
+fi
 
 usage() {
 	echo "Usage: `basename $0` [-f big-file] [-k] [-e] [-s size] [-c count]" >&2
@@ -21,10 +26,14 @@ print_res()
 	printf "%16s %16s %40s %10.3f MB/sec\n" "$1" "$2" "$3" "$4"
 }
 
+extract_bandwidth() {
+	perl -ne 's/.*\s([0-9\.]+) MB\/sec/$1/; print $_;'
+}
+
 bench() {
 	re="$3"
 	if [ ! "$2" = "run" ]; then re=".*$3"; fi
-	BW=`$BENCH -a "$2" -t "$1" "$re" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	BW=`$BENCH -a "$2" -t "$1" "$re" | tail -1 | extract_bandwidth`
 	print_res "$1" "$2" "'$re'" "$BW"
 }
 
@@ -63,24 +72,29 @@ run_multi() {
 		'[XYZ]ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
 		'[ -~]*ABCDEFGHIJKLMNOPQRSTUVWXYZ$' \
 		'(\d{3}-|\(\d{3}\)\s+)(\d{3}-\d{4})$' \
-	| tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	| tail -1 | extract_bandwidth`
 	print_res "$1" "run" "multiple regexps" "$BW"
+}
+
+run_pair() {
+	BW=`$BENCH -a run -t "$1" "$2" -t $1 "$3" | tail -1 | extract_bandwidth`
+	print_res "$1 pair" "run" "'$2' '$3'" "$BW"
 }
 
 # Test counts
 run_count() {
-	BW=`$BENCH -a run -t count "$1" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	BW=`$BENCH -a run -t count "$1" | tail -1 | extract_bandwidth`
 	print_res "count" "run" "'$1'" "$BW"
 }
 
 run_multi_count() {
-	BW=`$BENCH -a run -t count "$1" "$2" "$3" "$4" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	BW=`$BENCH -a run -t count "$1" "$2" "$3" "$4" | tail -1 | extract_bandwidth`
 	print_res "count" "run" "'$1' '$2' '$3' '$4'" "$BW"
 }
 
 # Test capture
 run_capture() {
-	BW=`$BENCH -a run -t capture "$1" | tail -1 | sed -r 's/.*\s([0-9\.]+) MB\/sec/\1/'`
+	BW=`$BENCH -a run -t capture "$1" | tail -1 | extract_bandwidth`
 	print_res "capture" "run" "'$1'" "$BW"
 }
 
@@ -106,7 +120,7 @@ if [ -z "$KEEPFILE" ] || ! [ -r $BIGFILE ]; then
 		exit 1
 	fi
 	cat $TEST_FILE > $BIGFILE
-	while [ `stat -c '%s' $BIGFILE` -lt $BIGFILE_SIZE ]; do
+	while [ `$PRINT_SIZE $BIGFILE` -lt $BIGFILE_SIZE ]; do
 		cat $BIGFILE $BIGFILE > $BIGFILE.new
 		mv -f $BIGFILE.new $BIGFILE
 	done
@@ -122,17 +136,21 @@ bench null run ''
 # Run benchmarks
 run_all nonreloc
 run_multi nonreloc
+run_pair nonreloc '[a-z]$' '[0-9]$'
 run_all nonreloc longestprefix
 run_all nonreloc shortestprefix
 
 run_all multi
 run_multi multi
+run_pair multi '[a-z]$' '[0-9]$'
 run_all multi longestprefix
 run_all multi shortestprefix
 
 run_all simple
+run_pair simple '[a-z]$' '[0-9]$'
 run_all simple longestprefix
 run_all simple shortestprefix
+
 
 if [ "$EXTRA" = "y" ]; then
 	# Nonexisting character
@@ -146,11 +164,15 @@ if [ "$EXTRA" = "y" ]; then
 	run_multi_count 'Q' 'A' 'e' 'if'
 	run_multi_count 'm' 'a' 'e' 's'
 	run_multi_count 'class' 'include' 'template' 'typedef'
+	run_pair count 'Q' 'A'
+	run_pair count '[a-z]' '[0-9]'
 
 	run_capture 'w(hil)e'
 	run_capture 'Q(.)Q'
 	run_capture '[^e](e)[^e]'
 	run_capture '[b-z](a)[b-z]'
+	run_pair capture 'w(hil)e' 'Q(.)Q'
+	run_pair capture ' ([a-z]) ' ' ([0-9]) '
 fi
 
 if [ -z "$KEEPFILE" ]; then
