@@ -27,7 +27,7 @@ print_res()
 }
 
 extract_bandwidth() {
-	perl -ne 's/.*\s([0-9\.]+) MB\/sec/$1/; print $_;'
+	awk '{print $(NF-1)}'
 }
 
 bench() {
@@ -98,15 +98,14 @@ run_capture() {
 	print_res "capture" "run" "'$1'" "$BW"
 }
 
-ARGS=`getopt f:c:kres: $*` || usage
-set -- $ARGS
-while [ "$1" != "--" ]; do
+while [ "$1" != "" ]; do
 	if [ "$1" = "-f" ]; then BIGFILE=$2; shift 2
 	elif [ "$1" = "-k" ]; then KEEPFILE=y; shift
 	elif [ "$1" = "-r" ]; then RE2_TESTS=y; shift
 	elif [ "$1" = "-e" ]; then EXTRA=y; shift
 	elif [ "$1" = "-s" ]; then BIGFILE_SIZE="$2"; shift 2
 	elif [ "$1" = "-c" ]; then REPETITION_COUNT="$2"; shift 2
+	else usage;
 	fi
 done
 
