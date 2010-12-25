@@ -53,14 +53,14 @@ public:
 	class State {
 	public:
 		bool Captured() const { return (m_begin != npos) && (m_end != npos); }
-		ui64 Begin() const { return m_begin; }
-		ui64 End() const { return m_end; }
+		size_t Begin() const { return m_begin; }
+		size_t End() const { return m_end; }
 	private:
-		static const ui64 npos = static_cast<ui64>(-1);
-		ui64 m_state;
-		ui64 m_begin;
-		ui64 m_end;
-		ui64 m_counter;
+		static const size_t npos = static_cast<size_t>(-1);
+		size_t m_state;
+		size_t m_begin;
+		size_t m_end;
+		size_t m_counter;
 		friend class CapturingScanner;
 
 #ifdef PIRE_DEBUG
@@ -136,10 +136,10 @@ private:
 	Action NextTranslated(State& s, unsigned char c) const
 	{
 		Transition x = reinterpret_cast<const Transition*>(s.m_state)[c];
-		s.m_state += SignExtend(x);
+		s.m_state += SignExtend(x.shift);
 		++s.m_counter;
 
-		return x >> ActionShift;
+		return x.action;
 	}
 			
 	void FinishBuild() {}

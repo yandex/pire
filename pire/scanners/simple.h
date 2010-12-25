@@ -138,7 +138,7 @@ public:
 		return Impl::AlignPtr(p, size);
 	}
 
-	ui64 StateIndex(State s) const
+	size_t StateIndex(State s) const
 	{
 		return (s - reinterpret_cast<size_t>(m_transitions)) / (STATE_ROW_SIZE * sizeof(Transition));
 	}
@@ -154,8 +154,8 @@ public:
 
 protected:
 	struct Locals {
-		ui32 statesCount;
-		ui64 initial;
+		size_t statesCount;
+		size_t initial;
 	} m;
 
 	char* m_buffer;

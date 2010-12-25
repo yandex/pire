@@ -159,15 +159,15 @@ private:
 	Action NextTranslated(State& s, Char c) const
 	{
 		Transition x = reinterpret_cast<const Transition*>(s.m_state)[c];
-		s.m_state += SignExtend(x /*& ShiftMask*/);
+		s.m_state += SignExtend(x.shift);
 
-		return x >> ActionShift;
+		return x.action;
 	}
 
 	void Next(InternalState& s, Char c) const
 	{
 		Transition x = reinterpret_cast<const Transition*>(s)[m_letters[c]];
-		s += SignExtend(x);
+		s += SignExtend(x.shift);
 	}
 
 	Action RemapAction(Action action)

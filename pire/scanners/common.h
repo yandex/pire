@@ -38,7 +38,7 @@ namespace Pire {
 		ui32 PtrSize;
 		ui32 MaxWordSize;
 		ui32 Type;
-		size_t HdrSize;
+		ui32 HdrSize;
 
 		static const ui32 MAGIC = 0x45524950;   // "PIRE" on litte-endian
 		static const ui32 RE_VERSION = 5;       // Should be incremented each time when the format of serialized scanner changes

@@ -49,10 +49,17 @@ namespace Pire {
 */
 class LoadedScanner {
 public:
-	typedef ui64        Transition;
 	typedef ui8         Letter;
 	typedef ui32        Action;
 	typedef ui8         Tag;
+
+	union Transition {
+		size_t raw;			// alignment hint for compiler
+		struct {
+			ui32 shift;
+			Action action;
+		};
+	};
 
 	// Override in subclass, if neccessary
 	enum { 
@@ -137,12 +144,10 @@ protected:
 
 	typedef size_t InternalState;
 
-	static const ui64 MAX_RE_COUNT        = 16;
+	static const size_t MAX_RE_COUNT      = 16;
 
 	static const Action IncrementMask     = 0x0f;
 	static const Action ResetMask         = 0x0f << MAX_RE_COUNT;
-	static const Transition ShiftMask     = 0xffffffffull & ~(sizeof(Transition) - 1);
-	static const int ActionShift          = 32;
 
 	// TODO: maybe, put fields in private section and provide data accessors
 
@@ -150,7 +155,7 @@ protected:
 		ui32 statesCount;
 		ui32 lettersCount;
 		ui32 regexpsCount;
-		ui64 initial;
+		size_t initial;
 	} m;
 	void* m_buffer;
 
@@ -215,10 +220,10 @@ protected:
 		YASSERT(newState < m.statesCount);
 
 		size_t shift = (newState - oldState) * m.lettersCount * sizeof(*m_jumps);
-
-		m_jumps[oldState * m.lettersCount + m_letters[c]] =
-			(shift & ShiftMask) |
-			(((Transition) action) << ActionShift);
+		Transition tr;
+		tr.shift = shift;
+		tr.action = action;
+		m_jumps[oldState * m.lettersCount + m_letters[c]] = tr;
 		m_actions[oldState * m.lettersCount + m_letters[c]] = action;
 	}
 
