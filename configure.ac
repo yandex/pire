@@ -37,11 +37,6 @@ AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
 
-if test x"$enable_extra" = xyes && test x"$ac_cv_alignof_size_t" != x"$ac_cv_alignof_uint64_t"; then
-	AC_ERROR([pire/extra has not been ported to platforms requiring special alignment
-	          for 64-bit integers yet. Please rebuild without --enable-extra.])
-fi
-
 AC_CONFIG_FILES([
 	Makefile
 	pire/Makefile
