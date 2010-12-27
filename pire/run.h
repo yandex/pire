@@ -58,85 +58,121 @@ void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 #ifndef PIRE_DEBUG
 
 namespace Impl {
+	
+	enum Action { Continue, Stop };
 
 	/// Effectively runs a scanner on a short data chunk, fit completely into one machine word.
-	template<class Scanner>
-	inline void RunChunk(const Scanner& scanner, typename Scanner::State& state, size_t chunk, size_t size)
+	template<class Scanner, class Pred>
+	inline Action RunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
 	{
-		YASSERT(size < 8);
+		size_t chunk = Impl::ToLittleEndian(*p) >> 8*pos;
+		const char* ptr = (const char*) p + pos;
 
-		if (size & 4) {
-			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
-			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
-			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
-			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
-		}
-		if (size & 2) {
-			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
-			Step(scanner, state, chunk & 0xFF); chunk >>= 8;
-		}
-		if (size & 1) {
+		for (size_t i = size; i != 0; --i) {
 			Step(scanner, state, chunk & 0xFF);
+			if (pred(scanner, state, ptr + (sizeof(void*)-i)) == Stop)
+				return Stop;
+			chunk >>= 8;
 		}
+		return Continue;
 	}
 	
 	template<class Scanner>
 	struct AlignedRunner {
 		
-		static inline typename Scanner::State
-		RunAligned(const Scanner& scanner, typename Scanner::State state, const size_t* begin, const size_t* end)
+		template<class Pred>
+		static inline Action
+		RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, Pred stop)
 		{
-			for (; begin != end; ++begin) {
-				size_t chunk = ToLittleEndian(*begin);
-
-				// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
-				// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
-				for (unsigned i = sizeof(void*); i != 0; --i) {
-					Step(scanner, state, chunk & 0xFF);
-					chunk >>= 8;
-				}
-			}
-			return state;
+			typename Scanner::State st = state;
+			Action ret = Continue;
+			for (; begin != end && (ret = RunChunk(scanner, st, begin, 0, sizeof(void*), stop)) == Continue; ++begin)
+				;
+			state = st;
+			return ret;
 		}
 	};
-}
 
-/// The main function: runs a scanner through given memory range.
-template<class Scanner>
-inline void Run(const Scanner& scanner, typename Scanner::State& st, const char* begin, const char* end)
-{
-	YASSERT(sizeof(void*) <= 8);
+	/// The main function: runs a scanner through given memory range.
+	template<class Scanner, class Pred>
+	inline void DoRun(const Scanner& scanner, typename Scanner::State& st, const char* begin, const char* end, Pred pred)
+	{
+		YASSERT(sizeof(void*) <= 8);
 
-	const size_t* head = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(begin)) & ~(sizeof(void*)-1));
-	const size_t* tail = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(end)) & ~(sizeof(void*)-1));
+		const size_t* head = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(begin)) & ~(sizeof(void*)-1));
+		const size_t* tail = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(end)) & ~(sizeof(void*)-1));
 
-	size_t headSize = ((const char*) head + sizeof(void*) - begin); // The distance from @p begin to the end of the word containing @p begin
-	size_t tailSize = end - (const char*) tail; // The distance from the beginning of the word containing @p end to the @p end
+		size_t headSize = ((const char*) head + sizeof(void*) - begin); // The distance from @p begin to the end of the word containing @p begin
+		size_t tailSize = end - (const char*) tail; // The distance from the beginning of the word containing @p end to the @p end
 
-	YASSERT(headSize >= 1 && headSize <= sizeof(void*));
-	YASSERT(tailSize < sizeof(void*));
+		YASSERT(headSize >= 1 && headSize <= sizeof(void*));
+		YASSERT(tailSize < sizeof(void*));
 
-	if (head == tail) {
-		Impl::RunChunk(scanner, st, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), end - begin);
-		return;
+		if (head == tail) {
+			Impl::RunChunk(scanner, st, head, sizeof(void*) - headSize, end - begin, pred);
+			return;
+		}
+
+		// st is passed by reference to this function. If we use it directly on each step the compiler will have to
+		// update it in memory because of pointer aliasing assumptions. Copying it into a local var allows the
+		// compiler to store it in a register. This saves some instructions and cycles
+		typename Scanner::State state = st;
+
+		if (begin != (const char*) head) {
+			if (Impl::RunChunk(scanner, state, head, sizeof(void*) - headSize, headSize, pred) == Stop) {
+				st = state;
+				return;
+			}
+			++head;
+		}
+
+		if (Impl::AlignedRunner<Scanner>::RunAligned(scanner, state, head, tail, pred) == Stop) {
+			st = state;
+			return;
+		}
+
+		if (tailSize)
+			Impl::RunChunk(scanner, state, tail, 0, tailSize, pred);
+
+		st = state;
 	}
+	
+	template<class Scanner>
+	struct RunPred {
+		Action operator()(const Scanner&, const typename Scanner::State&, const char*) const { return Continue; }
+	};
+	
+	template<class Scanner>
+	struct ShortestPrefixPred {
+		ShortestPrefixPred(const char*& pos): m_pos(&pos) {}
+		
+		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
+		{
+			if (sc.Final(st)) {
+				*m_pos = pos;
+				return Stop;
+			} else {
+				return Continue;
+			}
+		}
+	private:
+		const char** m_pos;
+	};
+	
+	template<class Scanner>
+	struct LongestPrefixPred {
+		LongestPrefixPred(const char*& pos): m_pos(&pos) {}
+		
+		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
+		{
+			if (sc.Final(st))
+				*m_pos = pos;
+			return (sc.Dead(st) ? Stop : Continue);
+		}
+	private:
+		const char** m_pos;
+	};
 
-	// st is passed by reference to this function. If we use it directly on each step the compiler will have to
-	// update it in memory because of pointer aliasing assumptions. Copying it into a local var allows the
-	// compiler to store it in a register. This saves some instructions and cycles
-	typename Scanner::State state = st;
-
-	if (begin != (const char*) head) {
-		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*head) >> 8*(sizeof(void*) - headSize), headSize);
-		++head;
-	}
-
-	state = Impl::AlignedRunner<Scanner>::RunAligned(scanner, state, head, tail);
-
-	if (tailSize)
-		Impl::RunChunk(scanner, state, Impl::ToLittleEndian(*tail), tailSize);
-
-	st = state;
 }
 
 /// Runs two scanners through given memory range simultaneously.
@@ -154,45 +190,54 @@ inline void Run(const Scanner1& scanner1, const Scanner2& scanner2, typename Sca
 
 #else
 
-/// A debug version of all Run() methods.
-template<class Scanner>
-inline void Run(const Scanner& scanner, typename Scanner::State& state, const char* begin, const char* end)
-{
-	Cdbg << "Running regexp on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl;
-	Cdbg << "Initial state " << StDump(scanner, state) << Endl;
+namespace Impl {
+	/// A debug version of all Run() methods.
+	template<class Scanner, class Pred>
+	inline void DoRun(const Scanner& scanner, typename Scanner::State& state, const char* begin, const char* end, Pred pred)
+	{
+		Cdbg << "Running regexp on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl;
+		Cdbg << "Initial state " << StDump(scanner, state) << Endl;
 
-	for (; begin != end; ++begin) {
-		Step(scanner, state, (unsigned char)*begin);
-		Cdbg << *begin << " => state " << StDump(scanner, state) << Endl;
+		for (; begin != end; ++begin) {
+			Step(scanner, state, (unsigned char)*begin);
+			Cdbg << *begin << " => state " << StDump(scanner, state) << Endl;
+			if (pred(scanner, state, *begin) == Stop) {
+				Cdbg << " exiting" << Endl;
+				return;
+			}
+		}
 	}
 }
 
 #endif
-
-/// Find a longest acceptable prefix of a given string.
-/// Returns its right boundary or NULL if there exists no acceptable prefix (even the empty string is rejected).
+	
 template<class Scanner>
-inline const char* LongestPrefix(const Scanner& scanner, const char* begin, const char* end)
+inline void Run(const Scanner& sc, typename Scanner::State& st, const char* begin, const char* end)
 {
-	typename Scanner::State state;
-	scanner.Initialize(state);
+	Impl::DoRun(sc, st, begin, end, Impl::RunPred<Scanner>());
+}
 
- 	PIRE_IFDEBUG(Cdbg << "Running LongestPrefix on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
-	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
-
-	const char* pos = 0;
-	while (begin != end && !scanner.Dead(state)) {
-		if (scanner.Final(state))
-			pos = begin;
-		Step(scanner, state, (unsigned char)*begin);
-		PIRE_IFDEBUG(Cdbg << *begin << " => state " << StDump(scanner, state) << Endl);
-		++begin;
-	}
-	if (scanner.Final(state))
-		pos = begin;
+template<class Scanner>
+inline const char* LongestPrefix(const Scanner& sc, const char* begin, const char* end)
+{
+	typename Scanner::State st;
+	sc.Initialize(st);
+	const char* pos = (sc.Final(st) ? begin : 0);
+	Impl::DoRun(sc, st, begin, end, Impl::LongestPrefixPred<Scanner>(pos));
 	return pos;
 }
 
+template<class Scanner>
+inline const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end)
+{
+	typename Scanner::State st;
+	sc.Initialize(st);
+	const char* pos = (sc.Final(st) ? begin : 0);
+	Impl::DoRun(sc, st, begin, end, Impl::ShortestPrefixPred<Scanner>(pos));
+	return pos;
+}
+
+	
 /// The same as above, but scans string in reverse direction
 /// (consider using Fsm::Reverse() for using in this function).
 template<class Scanner>
@@ -215,24 +260,6 @@ inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, con
 	if (scanner.Final(state))
 		pos = rbegin;
 	return pos;
-}
-
-/// Finds a first position where FSM jumps from a non-final state into a final
-/// one (i.e. finds shortest acceptable prefixx)
-template<class Scanner>
-inline const char* ShortestPrefix(const Scanner& scanner, const char* begin, const char* end)
-{
-	typename Scanner::State state;
-	scanner.Initialize(state);
-
-	PIRE_IFDEBUG(Cdbg << "Running ShortestPrefix on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl);
-	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
-
-	for (; begin != end && !scanner.Final(state); ++begin) {
-		scanner.Next(state, (unsigned char)*begin);
-		PIRE_IFDEBUG(Cdbg << *begin << " => state " << StDump(scanner, state) << Endl);
-	}
-	return scanner.Final(state) ? begin : 0;
 }
 
 /// The same as above, but scans string in reverse direction

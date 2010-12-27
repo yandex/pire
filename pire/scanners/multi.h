@@ -583,42 +583,31 @@ struct MaskChecker<N, N> : MaskCheckerBase<N>  {
 };
 
 
-// Processes a size_t-sized chunk
-template<class Relocation>
-static inline typename Scanner<Relocation>::State
-ProcessChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t chunk)
-{
-	// Comparing loop variable to 0 saves inctructions becuase "sub 1, reg" will set zero flag
-	// while in case of "for (i = 0; i < 8; ++i)" loop there will be an extra "cmp 8, reg" on each step
-	for (unsigned i = sizeof(void*); i != 0; --i) {
-		Step(scanner, state, chunk & 0xFF);
-		chunk >>= 8;
-	}
-	return state;
-}
-
 // The purpose of this template is to produce a number of ProcessChunk() calls
 // instead of writing for(...){ProcessChunk()} loop that GCC refuses to unroll.
 // Manually unrolled code proves to be faster
 template <class Relocation, unsigned Count>
 struct MultiChunk {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
-	static inline typename Scanner<Relocation>::State
-	Process(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, const size_t* p)
+	template<class Pred>
+	static inline Action
+	Process(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& state, const size_t* p, Pred pred)
 	{
-		state = ProcessChunk(scanner, state, ToLittleEndian(*p++));
-		state = MultiChunk<Relocation, Count-1>::Process(scanner, state, p);
-		return state;
+		if (RunChunk(scanner, state, p, 0, sizeof(void*), pred) == Stop)
+			return Stop;
+		else
+			return MultiChunk<Relocation, Count-1>::Process(scanner, state, ++p, pred);
 	}
 };
 
 template <class Relocation>
 struct MultiChunk<Relocation, 0> {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
-	static inline typename Scanner<Relocation>::State
-	Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State state, const size_t*)
+	template<class Pred>
+	static inline Action
+	Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State state, const size_t*, Pred)
 	{
-		return state;
+		return Continue;
 	}
 };
 
@@ -634,20 +623,25 @@ private:
 	
 public:
 	
-	static typename Scanner<Relocation>::State
-	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, const size_t* begin, const size_t* end)
+	template<class Pred>
+	static Action
+	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, const size_t* end, Pred pred)
 	{
-		if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK) || begin == end)
-			return state;
+		typename Scanner<Relocation>::State state = st;		
 		const Word* head = AlignUp((const Word*) begin, sizeof(Word));
 		const Word* tail = AlignDown((const Word*) end, sizeof(Word));
 		for (; begin != (const size_t*) head && begin != end; ++begin)
-			state = ProcessChunk(scanner, state, *begin);
+			if (RunChunk(scanner, state, begin, 0, sizeof(void*), pred) == Stop) {
+				st = state;
+				return Stop;
+			}
+		
 		if (begin == end)
-			return state;
-
-		if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK))
-			return state;
+			return Continue;
+		if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK)) {
+			st = state;
+			return Stop;
+		}
 		
 		// Row size should be a multiple of MaxSizeWord size. Then alignOffset is the same for any state
 		YASSERT(scanner.RowSize() % sizeof(MaxSizeWord) == 0);
@@ -657,23 +651,34 @@ public:
 
 		while (true) {
 			while (noShortcut && head != tail) {
-				state = MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, state, (const size_t*)head);
+				if (MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, state, (const size_t*) head, pred) == Stop) {
+					st = state;
+					return Stop;
+				}
 				++head;
 				noShortcut = CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
 			}
 			if (head == tail)
 				break;
 
-			if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK))
-				return state;
+			if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK)) {
+				st = state;
+				return pred(scanner, state, ((const char*) end) - 1);
+			}
 
 			head = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state), alignOffset, head, tail);
 			noShortcut = true;
 		}
 		
-		for (size_t* p = (size_t*) tail; p != end; ++p)
-			state = ProcessChunk(scanner, state, *p);
-		return state;
+		for (size_t* p = (size_t*) tail; p != end; ++p) {
+			if (RunChunk(scanner, state, p, 0, sizeof(void*), pred) == Stop) {
+				st = state;
+				return Stop;
+			}
+		}
+		
+		st = state;
+		return Continue;
 	}
 };
 
