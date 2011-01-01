@@ -66,7 +66,7 @@ public:
 	bool run(const Pire::ystring& name, bool, bool, bool);
 	void runSuite(TestSuite* suite, const Pire::ystring& filter);
 	void runCase(TestCase* testCase, const Pire::ystring& filter);
-	void checkAssertion(bool expr, const Pire::ystring& exprStr);
+	void checkAssertion(bool expr, const Pire::ystring& exprStr, const Pire::ystring& file, int line);
 private:
 	Pire::ystring testFullName();
 private:
@@ -82,11 +82,11 @@ namespace Impl {
 }
 }
 
-#define PIREUNIT_ASSERT(x) \
-	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, "(" #x ") is false")
+#define PIREUNIT_ASSERT(x, file, line) \
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, "(" #x ") is false", file, line)
 
-#define PIREUNIT_ASSERT_EQUAL(expected, real) \
-	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, "(" #expected ") != (" #real ")")
+#define PIREUNIT_ASSERT_EQUAL(expected, real, file, line) \
+	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, "(" #expected ") != (" #real ")", file, line)
 
 
 #define SIMPLE_UNIT_TEST_SUITE(N) \
@@ -113,8 +113,8 @@ namespace Impl {
 	} s_registry_ ## N; \
 	void TestCase_ ## N::runTest()
 
-#define UNIT_ASSERT(x) PIREUNIT_ASSERT(x)
-#define UNIT_ASSERT_EQUAL(real,expected) PIREUNIT_ASSERT_EQUAL(expected,real)
+#define UNIT_ASSERT(x) PIREUNIT_ASSERT(x, __FILE__, __LINE__)
+#define UNIT_ASSERT_EQUAL(real,expected) PIREUNIT_ASSERT_EQUAL(expected,real, __FILE__, __LINE__)
 
 #endif
 

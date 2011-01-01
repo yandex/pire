@@ -72,8 +72,14 @@ void TestRunner::runSuite(TestSuite* suite, const Pire::ystring& filter)
 }
 
 struct AssertionFailed {
-	explicit AssertionFailed(const Pire::ystring& e) : mExpr(e) {}
+	AssertionFailed(const Pire::ystring& e, const Pire::ystring& file, int line) 
+		: mExpr(e)
+		, mFile(file)
+		, mLine(line)
+	{}
 	Pire::ystring mExpr;
+	Pire::ystring mFile;
+	int mLine;
 };
 
 Pire::ystring TestRunner::testFullName()
@@ -97,22 +103,23 @@ void TestRunner::runCase(TestCase* testCase, const Pire::ystring& filter)
 		mSuccessCount++;
 		std::cout << ".";
 	} catch (AssertionFailed& e) {
-		std::cerr << testFullName() << " - Assertion failed: " << e.mExpr << std::endl;
+		std::cerr << std::endl << testFullName() << " at " << e.mFile << ":" << e.mLine 
+			<< " - Assertion failed: " << e.mExpr << std::endl;
 		mFailCount++;
 	} catch (std::exception& e) {
-		std::cerr << testFullName() << " - ecxeption caught: " << e.what() << std::endl;
+		std::cerr << std::endl << testFullName() << " - ecxeption caught: " << e.what() << std::endl;
 		mFailCount++;
 	} catch (...) {
-		std::cerr << testFullName() << " - unknown ecxeption caught: " << std::endl;
+		std::cerr << std::endl << testFullName() << " - unknown ecxeption caught: " << std::endl;
 		mFailCount++;
 	}	
 	mRunningTest = "";
 }
 
-void TestRunner::checkAssertion(bool expr, const Pire::ystring& exprStr)
+void TestRunner::checkAssertion(bool expr, const Pire::ystring& exprStr, const Pire::ystring& file, int line)
 {
 	if (!expr) {
-		throw  AssertionFailed(exprStr);
+		throw  AssertionFailed(exprStr, file, line);
 	}
 }
 

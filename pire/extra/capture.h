@@ -128,7 +128,7 @@ public:
 	CapturingScanner& operator = (const CapturingScanner& s) { CapturingScanner(s).Swap(*this); return *this; }
 
 #ifdef PIRE_DEBUG
-	const State& StateIndex(const State& s) const { return s; }
+	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
 #endif
 
 private:
