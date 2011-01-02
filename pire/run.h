@@ -28,6 +28,7 @@
 #include "stub/stl.h"
 #include "stub/memstreams.h"
 #include "scanners/pair.h"
+#include "platform.h"
 
 namespace Pire {
 
@@ -55,22 +56,69 @@ void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 	scanner.TakeAction(state, a);
 }
 
+namespace Impl {
+
+	enum Action { Continue, Stop };
+
+	template<class Scanner>
+	struct RunPred {
+		FORCED_INLINE
+		Action operator()(const Scanner&, const typename Scanner::State&, const char*) const { return Continue; }
+	};
+	
+	template<class Scanner>
+	struct ShortestPrefixPred {
+		explicit ShortestPrefixPred(const char*& pos): m_pos(&pos) {}
+
+		FORCED_INLINE
+		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
+		{
+			if (sc.Final(st)) {
+				*m_pos = pos;
+				return Stop;
+			} else {
+				return Continue;
+			}
+		}
+	private:
+		const char** m_pos;
+	};
+	
+	template<class Scanner>
+	struct LongestPrefixPred {
+		explicit LongestPrefixPred(const char*& pos): m_pos(&pos) {}
+		
+		FORCED_INLINE
+		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
+		{
+			if (sc.Final(st))
+				*m_pos = pos;
+			return (sc.Dead(st) ? Stop : Continue);
+		}
+	private:
+		const char** m_pos;
+	};
+
+}
+
 #ifndef PIRE_DEBUG
 
 namespace Impl {
-	
-	enum Action { Continue, Stop };
 
 	/// Effectively runs a scanner on a short data chunk, fit completely into one machine word.
 	template<class Scanner, class Pred>
 	inline Action RunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
 	{
+		YASSERT(pos <= sizeof(size_t));
+		YASSERT(size <= sizeof(size_t));
+		YASSERT(pos + size <= sizeof(size_t));
+
 		size_t chunk = Impl::ToLittleEndian(*p) >> 8*pos;
-		const char* ptr = (const char*) p + pos;
+		const char* ptr = (const char*) p + pos + size + 1;
 
 		for (size_t i = size; i != 0; --i) {
 			Step(scanner, state, chunk & 0xFF);
-			if (pred(scanner, state, ptr + (sizeof(void*)-i)) == Stop)
+			if (pred(scanner, state, ptr - i) == Stop)
 				return Stop;
 			chunk >>= 8;
 		}
@@ -136,42 +184,6 @@ namespace Impl {
 
 		st = state;
 	}
-	
-	template<class Scanner>
-	struct RunPred {
-		Action operator()(const Scanner&, const typename Scanner::State&, const char*) const { return Continue; }
-	};
-	
-	template<class Scanner>
-	struct ShortestPrefixPred {
-		ShortestPrefixPred(const char*& pos): m_pos(&pos) {}
-		
-		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
-		{
-			if (sc.Final(st)) {
-				*m_pos = pos;
-				return Stop;
-			} else {
-				return Continue;
-			}
-		}
-	private:
-		const char** m_pos;
-	};
-	
-	template<class Scanner>
-	struct LongestPrefixPred {
-		LongestPrefixPred(const char*& pos): m_pos(&pos) {}
-		
-		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
-		{
-			if (sc.Final(st))
-				*m_pos = pos;
-			return (sc.Dead(st) ? Stop : Continue);
-		}
-	private:
-		const char** m_pos;
-	};
 
 }
 
@@ -198,10 +210,15 @@ namespace Impl {
 		Cdbg << "Running regexp on string " << ystring(begin, ymin(end - begin, static_cast<ptrdiff_t>(100u))) << Endl;
 		Cdbg << "Initial state " << StDump(scanner, state) << Endl;
 
+		if (pred(scanner, state, begin) == Stop) {
+			Cdbg << " exiting" << Endl;
+			return;
+		}
+
 		for (; begin != end; ++begin) {
 			Step(scanner, state, (unsigned char)*begin);
 			Cdbg << *begin << " => state " << StDump(scanner, state) << Endl;
-			if (pred(scanner, state, *begin) == Stop) {
+			if (pred(scanner, state, begin + 1) == Stop) {
 				Cdbg << " exiting" << Endl;
 				return;
 			}
@@ -212,13 +229,13 @@ namespace Impl {
 #endif
 	
 template<class Scanner>
-inline void Run(const Scanner& sc, typename Scanner::State& st, const char* begin, const char* end)
+void Run(const Scanner& sc, typename Scanner::State& st, const char* begin, const char* end)
 {
 	Impl::DoRun(sc, st, begin, end, Impl::RunPred<Scanner>());
 }
 
 template<class Scanner>
-inline const char* LongestPrefix(const Scanner& sc, const char* begin, const char* end)
+const char* LongestPrefix(const Scanner& sc, const char* begin, const char* end)
 {
 	typename Scanner::State st;
 	sc.Initialize(st);
@@ -228,11 +245,13 @@ inline const char* LongestPrefix(const Scanner& sc, const char* begin, const cha
 }
 
 template<class Scanner>
-inline const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end)
+const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end)
 {
 	typename Scanner::State st;
 	sc.Initialize(st);
-	const char* pos = (sc.Final(st) ? begin : 0);
+	if (sc.Final(st))
+		return begin;
+	const char* pos = 0;
 	Impl::DoRun(sc, st, begin, end, Impl::ShortestPrefixPred<Scanner>(pos));
 	return pos;
 }

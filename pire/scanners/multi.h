@@ -33,6 +33,7 @@
 #include "../static_assert.h"
 #include "../stub/saveload.h"
 #include "../stub/lexical_cast.h"
+#include "../platform.h"
 
 namespace Pire {
 
@@ -593,10 +594,10 @@ struct MultiChunk {
 	static inline Action
 	Process(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& state, const size_t* p, Pred pred)
 	{
-		if (RunChunk(scanner, state, p, 0, sizeof(void*), pred) == Stop)
-			return Stop;
-		else
+		if (RunChunk(scanner, state, p, 0, sizeof(void*), pred) == Continue)
 			return MultiChunk<Relocation, Count-1>::Process(scanner, state, ++p, pred);
+		else
+			return Stop;
 	}
 };
 
@@ -620,12 +621,18 @@ private:
 	{
 		return (scanner.Header(state).Mask(0) == val);
 	}
-	
+
+	template <class Pred>
+	static inline Action RunMultiChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, Pred pred)
+	{
+		return MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, st, begin, pred);
+	}
+
 public:
-	
+
 	template<class Pred>
-	static Action
-	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, const size_t* end, Pred pred)
+	static inline Action
+	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, const size_t* end , Pred pred)
 	{
 		typename Scanner<Relocation>::State state = st;		
 		const Word* head = AlignUp((const Word*) begin, sizeof(Word));
@@ -636,11 +643,13 @@ public:
 				return Stop;
 			}
 		
-		if (begin == end)
+		if (begin == end) {
+			st = state;
 			return Continue;
+		}
 		if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK)) {
 			st = state;
-			return Stop;
+			return pred(scanner, state, ((const char*) end));
 		}
 		
 		// Row size should be a multiple of MaxSizeWord size. Then alignOffset is the same for any state
@@ -651,7 +660,7 @@ public:
 
 		while (true) {
 			while (noShortcut && head != tail) {
-				if (MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, state, (const size_t*) head, pred) == Stop) {
+				if (RunMultiChunk(scanner, state, (const size_t*)head, pred) == Stop) {
 					st = state;
 					return Stop;
 				}
@@ -663,7 +672,7 @@ public:
 
 			if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK)) {
 				st = state;
-				return pred(scanner, state, ((const char*) end) - 1);
+				return pred(scanner, state, ((const char*) end));
 			}
 
 			head = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state), alignOffset, head, tail);
