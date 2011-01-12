@@ -1,8 +1,58 @@
+/*
+ * easy.h -- Pire Easy facilities.
+ *
+ * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
+ *                          Alexander Gololobov <agololobov@gmail.com>
+ *
+ * This file is part of Pire, the Perl Incompatible
+ * Regular Expressions library.
+ *
+ * Pire is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Pire is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser Public License for more details.
+ * You should have received a copy of the GNU Lesser Public License
+ * along with Pire.  If not, see <http://www.gnu.org/licenses>.
+ */
+
+
+/**
+ * For those who never reads documentation, does not need any mysterious features
+ * there is a fast and easy way to start using Pire.
+ *
+ * Just type:
+ *
+ *    Pire::Scanner sc("pattern of (my regexp)*", Pire::UTF8 | Pire::I);
+ *    if (sc.Matches("pattern of my regexp")
+ *        std::cout << "Hooray!" << std::endl;
+ *
+ * Or, to go more crazy:
+ *
+ *    if ("pattern of my regexp" ==~ sc)
+ *        std::cout << "What a perversion..." << std::endl;
+ *
+ * Scanner's constructor takes a pattern and a "bitwise ORed" combination of "flags".
+ * Available "flags" are:
+ *    I        - case insensitivity;
+ *    ANDNOT   - support for additional operations (& and ~) inside the pattern;
+ *    UTF8     - treat pattern input sequence as UTF-8 (surprise!)
+ *    LATIN1   - guess what?
+ *
+ * (In fact, there are not "flags" and not "buitwise ORed". See code for details.)
+ */
+
 #ifndef PIRE_EASY_H_INCLUDED
 #define PIRE_EASY_H_INCLUDED
 
 #include "pire.h"
+#include "vbitset.h"
 #include "stub/stl.h"
+#include <iterator>
 
 namespace Pire {
 	
@@ -13,7 +63,7 @@ public:
 	Options(): m_encoding(&Pire::Encodings::Latin1()) {}
 	~Options() { Clear(); }
 	
-	void Add(const Encoding& encoding) { m_encoding = &encoding; }
+	void Add(const Pire::Encoding& encoding) { m_encoding = &encoding; }
 	void Add(Feature* feature) { m_features.push_back(feature); }
 	
 	struct Proxy {
@@ -40,9 +90,11 @@ public:
 	
 	template<class ArgT>
 	/*implicit*/ Options(const Option<ArgT>& option);
+	
+	const Pire::Encoding& Encoding() const { return *m_encoding; }
 
 private:
-	const Encoding* m_encoding;
+	const Pire::Encoding* m_encoding;
 	yvector<Feature*> m_features;
 	
 	void Clear()
@@ -89,36 +141,18 @@ extern const Option<Feature*> ANDNOT;
 
 class Regexp {
 public:
-	explicit Regexp(const ystring& pattern, Options options = Options())
+	template<class Pattern>
+	explicit Regexp(Pattern pattern, Options options = Options())
 	{
-		Lexer l(pattern);
-		options.Apply(l);
-		Init(l.Parse());
+		Init(PatternBounds(pattern), options);
 	}
 	
-	explicit Regexp(const char* pattern, Options options = Options())
+	template<class Pattern, class Arg>
+	Regexp(Pattern pattern, Option<Arg> option)
 	{
-		Lexer l(pattern);
-		options.Apply(l);
-		Init(l.Parse());
-	}
-
-	template<class Arg>
-	Regexp(const ystring& pattern, Option<Arg> option)
-	{
-		Lexer l(pattern);
-		(Options() | option).Apply(l);
-		Init(l.Parse());
+		Init(PatternBounds(pattern), Options() | option);
 	}
 	
-	template<class Arg>
-	Regexp(const char* pattern, Option<Arg> option)
-	{
-		Lexer l(pattern);
-		(Options() | option).Apply(l);
-		Init(l.Parse());
-	}
-
 	explicit Regexp(Scanner sc): m_scanner(sc) {}
 	explicit Regexp(SlowScanner ssc): m_slow(ssc) {}
 	
@@ -154,15 +188,65 @@ private:
 	Scanner m_scanner;
 	SlowScanner m_slow;
 	
-	void Init(Pire::Fsm fsm)
+	ypair<const char*, const char*> PatternBounds(const ystring& pattern)
 	{
-		fsm.Surround();
+		static const char c = 0;
+		return pattern.empty() ? ymake_pair(&c, &c) : ymake_pair(&pattern[0], &pattern[0] + pattern.size());
+	}
+	
+	ypair<const char*, const char*> PatternBounds(const char* pattern)
+	{
+		return ymake_pair(pattern, pattern + strlen(pattern));
+	}
+	
+	void Init(ypair<const char*, const char*> rawPattern, Options options)
+	{
+		yvector<wchar32> pattern;
+		options.Encoding().FromLocal(rawPattern.first, rawPattern.second, std::back_inserter(pattern));
+		
+		Lexer lexer(pattern);
+		options.Apply(lexer);
+		Fsm fsm = lexer.Parse();
+		
+		if (!BeginsWithCircumflex(fsm))
+			fsm.PrependAnything();
+		fsm.AppendAnything();
+		
 		if (fsm.Determine())
 			m_scanner = fsm.Compile<Scanner>();
 		else
 			m_slow = fsm.Compile<SlowScanner>();
 	}
 	
+	static bool BeginsWithCircumflex(const Fsm& fsm)
+	{
+		typedef Fsm::StatesSet Set;
+		ydeque<size_t> queue;
+		BitSet handled(fsm.Size());
+		
+		queue.push_back(fsm.Initial());
+		handled.Set(fsm.Initial());
+		
+		while (!queue.empty()) {
+			Set s = fsm.Destinations(queue.front(), SpecialChar::Epsilon);
+			for (Set::iterator i = s.begin(), ie = s.end(); i != ie; ++i) {
+				if (!handled.Test(*i)) {
+					handled.Set(*i);
+					queue.push_back(*i);
+				}
+			}
+			
+			yset<Char> lets = fsm.OutgoingLetters(queue.front());
+			lets.erase(SpecialChar::Epsilon);
+			lets.erase(SpecialChar::BeginMark);
+			if (!lets.empty())
+				return false;
+			
+			queue.pop_front();
+		}
+		
+		return true;
+	}	
 };
 
 };

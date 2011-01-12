@@ -62,7 +62,7 @@ namespace Pire {
 		/// Appends a part matching a single byte (any).
 		Fsm& AppendDot();
 
-		/// Appends and prepends the FSM with the dot (see above).
+		/// Appends and prepends the FSM with the iterated dot (see above).
 		Fsm& Surround(); // returns *this
 		Fsm Surrounded() const { Fsm copy(*this); copy.Surround(); return copy; }
 
@@ -96,6 +96,10 @@ namespace Pire {
 
 		/// Creates an FSM which matches any suffix of any word current FSM matches.
 		void MakeSuffix();
+		
+		/// Does the one way part of Surround().
+		void PrependAnything();
+		void AppendAnything();
 		
 		/// Creates an FSM which matches reversed strings matched by current FSM.
 		Fsm& Reverse();
@@ -165,6 +169,9 @@ namespace Pire {
 
 		/// Checks whether two states are connected using given letter.
 		bool Connected(size_t from, size_t to, Char c) const;
+		
+		/// Returns a set of letters on which a transition from the specified state exists
+		yset<Char> OutgoingLetters(size_t state) const;
 		
 		/// Returns a set of states where a transition from the given state using the given letter is possible
 		const StatesSet& Destinations(size_t from, Char letter) const;

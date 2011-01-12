@@ -209,6 +209,14 @@ const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 	return (i != m_transitions[from].end()) ? i->second : DefaultValue<StatesSet>();
 }
 
+yset<Char> Fsm::OutgoingLetters(size_t state) const
+{
+	yset<Char> ret;
+	for (TransitionRow::const_iterator i = m_transitions[state].begin(), ie = m_transitions[state].end(); i != ie; ++i)
+		ret.insert(i->first);
+	return ret;
+}
+
 size_t Fsm::Resize(size_t newSize)
 {
 	size_t ret = Size();
@@ -1128,26 +1136,37 @@ Fsm& Fsm::Canonize(size_t maxSize /* = 0 */)
 	return *this;
 }
 
-Fsm& Fsm::Surround()
+void Fsm::PrependAnything()
 {
-	Charset any;
-	any.set();
-	any.reset(Epsilon);
-
-	size_t begin = Size(), end = Size() + 1;
-	Resize(Size() + 2);
-	for (size_t letter = 0; letter < MaxChar; ++letter) {
-		Connect(begin, begin, letter);
-		Connect(end, end, letter);
-	}
-	Connect(begin, initial);
-	initial = begin;
-
-	ConnectFinal(end);
-	ClearFinal();
-	SetFinal(end, 1);
+	size_t newstate = Size();
+	Resize(Size() + 1);
+	for (size_t letter = 0; letter < MaxChar; ++letter)
+		Connect(newstate, newstate, letter);
+	
+	Connect(newstate, initial);
+	initial = newstate;
 
 	determined = false;
+}
+
+void Fsm::AppendAnything()
+{
+	size_t newstate = Size();
+	Resize(Size() + 1);
+	for (size_t letter = 0; letter < MaxChar; ++letter)
+		Connect(newstate, newstate, letter);
+	
+	ConnectFinal(newstate);
+	ClearFinal();
+	SetFinal(newstate, 1);
+
+	determined = false;
+}
+
+Fsm& Fsm::Surround()
+{
+	PrependAnything();
+	AppendAnything();
 	return *this;
 }
 
