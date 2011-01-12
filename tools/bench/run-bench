@@ -1,7 +1,8 @@
 #!/bin/sh -e
 
+export LC_ALL=POSIX
 BIGFILE=${TMPDIR:-/var/tmp}/pire-bigfile
-BIGFILE_SIZE=300000000
+BIGFILE_SIZE=300M
 REPETITION_COUNT=5
 
 if [ `uname` = "FreeBSD" ]; then
@@ -108,6 +109,8 @@ while [ "$1" != "" ]; do
 	else usage;
 	fi
 done
+
+BIGFILE_SIZE=`echo $BIGFILE_SIZE | sed 's/K$/000/; s/M$/000000/; s/G$/000000000/'`
 
 BENCH="tools/bench/bench -c $REPETITION_COUNT -f $BIGFILE"
 
