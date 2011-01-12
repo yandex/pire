@@ -14,6 +14,8 @@ libpire_la_SOURCES = \
 	classes.cpp \
 	defs.h \
 	determine.h \
+	easy.cpp \
+	easy.h \
 	encoding.cpp \
 	encoding.h \
 	extra.h \
@@ -66,6 +68,7 @@ pire_hdr_HEADERS = \
 	any.h \
 	defs.h \
 	determine.h \
+	easy.h \
 	encoding.h \
 	extra.h \
 	fsm.h \

@@ -12,7 +12,8 @@ pire_test_SOURCES = \
 	stub/cppunit.cpp \
 	stub/cppunit.h \
 	common.h \
-	pire_ut.cpp
+	pire_ut.cpp \
+	easy_ut.cpp
 
 if ENABLE_EXTRA
 pire_test_SOURCES += \
