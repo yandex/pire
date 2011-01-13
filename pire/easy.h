@@ -27,7 +27,7 @@
  *
  * Just type:
  *
- *    Pire::Scanner sc("pattern of (my regexp)*", Pire::UTF8 | Pire::I);
+ *    Pire::Regexp sc("pattern of (my regexp)*", Pire::UTF8 | Pire::I);
  *    if (sc.Matches("pattern of my regexp")
  *        std::cout << "Hooray!" << std::endl;
  *
