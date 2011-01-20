@@ -23,6 +23,8 @@
 
 #include "cppunit.h"
 #include <stub/stl.h>
+#include <stdlib.h>
+#include <signal.h>
 
 namespace PireUnit {
 
@@ -37,6 +39,21 @@ void TestSuite::doRun(TestRunner* runner, const Pire::ystring& filter)
 		mRunner->runCase(*sit, filter);
 
 	mRunner = 0;
+}
+	
+TestRunner::TestRunner():
+	mChkptLine(0), mSuccessCount(0), mFailCount(0)
+{
+	signal(SIGSEGV, &TestRunner::onSignal);
+	signal(SIGBUS,  &TestRunner::onSignal);
+	signal(SIGILL,  &TestRunner::onSignal);
+	signal(SIGABRT, &TestRunner::onSignal);
+}
+	
+void TestRunner::setCheckpoint(const Pire::ystring& file, int line)
+{
+	mChkptFile = file;
+	mChkptLine = line;
 }
 
 bool TestRunner::run(const Pire::ystring& filter, bool, bool, bool)
@@ -91,6 +108,30 @@ Pire::ystring TestRunner::testFullName()
 	return name;
 }
 
+void TestRunner::onSignal(int signame)
+{
+	Pire::ystring testName = "(no active test)";
+	TestRunner* self = Impl::globalSuite()->runner();
+	if (self)
+		testName = self->testFullName();
+	std::cerr << std::endl << testName << ": ";
+	if (signame == SIGSEGV)
+		std::cerr << "SIGSEGV";
+	else if (signame == SIGBUS)
+		std::cerr << "SIGBUS";
+	else if (signame == SIGILL)
+		std::cerr << "SIGILL";
+	else if (signame == SIGABRT)
+		std::cerr << "SIGABRT";
+	else
+		std::cerr << "signal " << signame;
+	
+	if (self)
+		std::cerr << " (last checkpoint: " << self->mChkptFile << ":" << self->mChkptLine << "), aborting" << std::endl;
+	
+	_Exit(128 + signame);
+}
+
 void TestRunner::runCase(TestCase* testCase, const Pire::ystring& filter)
 {	
 	// Skip the test if the name doesn't match the filter
@@ -104,13 +145,15 @@ void TestRunner::runCase(TestCase* testCase, const Pire::ystring& filter)
 		std::cout << ".";
 	} catch (AssertionFailed& e) {
 		std::cerr << std::endl << testFullName() << " at " << e.mFile << ":" << e.mLine 
-			<< " - Assertion failed: " << e.mExpr << std::endl;
+			<< ": Assertion failed: " << e.mExpr << std::endl;
 		mFailCount++;
 	} catch (std::exception& e) {
-		std::cerr << std::endl << testFullName() << " - ecxeption caught: " << e.what() << std::endl;
+		std::cerr << std::endl << testFullName() << ": ecxeption caught: " << e.what()
+		          << " (last checkpoint: " << mChkptFile << ":" << mChkptLine << ")" << std::endl;
 		mFailCount++;
 	} catch (...) {
-		std::cerr << std::endl << testFullName() << " - unknown ecxeption caught: " << std::endl;
+		std::cerr << std::endl << testFullName() << ": unknown ecxeption caught: "
+		          << " (last checkpoint: " << mChkptFile << ":" << mChkptLine << ")" << std::endl;
 		mFailCount++;
 	}	
 	mRunningTest = "";
@@ -127,7 +170,7 @@ void TestRunner::checkAssertion(bool expr, const Pire::ystring& exprStr, const P
 
 
 int main(int argc, char **argv)
-{
+{	
 	PireUnit::TestRunner runner;
 	runner.addTest(PireUnit::Impl::globalSuite());
 	return runner.run(Pire::ystring((argc >= 2) ? argv[1] : ""), false, true, true) ? 0 : 1;

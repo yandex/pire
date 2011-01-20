@@ -61,18 +61,22 @@ private:
 
 class TestRunner {
 public:
-	TestRunner() : mSuccessCount(0), mFailCount(0) {}
+	TestRunner();
 	void addTest(TestSuite* suite) { mSuites.push_back(suite); }
 	bool run(const Pire::ystring& name, bool, bool, bool);
 	void runSuite(TestSuite* suite, const Pire::ystring& filter);
 	void runCase(TestCase* testCase, const Pire::ystring& filter);
 	void checkAssertion(bool expr, const Pire::ystring& exprStr, const Pire::ystring& file, int line);
+	void setCheckpoint(const Pire::ystring& file, int line);
 private:
 	Pire::ystring testFullName();
+	static void onSignal(int signame);
 private:
 	Pire::yvector<TestSuite*> mSuites;
 	Pire::yvector<Pire::ystring> mRunningSuites;
 	Pire::ystring mRunningTest;
+	Pire::ystring mChkptFile;
+	int mChkptLine;
 	size_t mSuccessCount;
 	size_t mFailCount;
 };
@@ -82,10 +86,15 @@ namespace Impl {
 }
 }
 
+#define PIREUNIT_CHECKPOINT(file, line) \
+	PireUnit::Impl::globalSuite()->runner()->setCheckpoint(file, line)
+
 #define PIREUNIT_ASSERT(x, file, line) \
+	PireUnit::Impl::globalSuite()->runner()->setCheckpoint(file, line), \
 	PireUnit::Impl::globalSuite()->runner()->checkAssertion(x, "(" #x ") is false", file, line)
 
 #define PIREUNIT_ASSERT_EQUAL(expected, real, file, line) \
+	PireUnit::Impl::globalSuite()->runner()->setCheckpoint(file, line), \
 	PireUnit::Impl::globalSuite()->runner()->checkAssertion(expected == real, "(" #expected ") != (" #real ")", file, line)
 
 
@@ -113,6 +122,7 @@ namespace Impl {
 	} s_registry_ ## N; \
 	void TestCase_ ## N::runTest()
 
+#define UNIT_CHECKPOINT() PIREUNIT_CHECKPOINT(__FILE__, __LINE__)
 #define UNIT_ASSERT(x) PIREUNIT_ASSERT(x, __FILE__, __LINE__)
 #define UNIT_ASSERT_EQUAL(real,expected) PIREUNIT_ASSERT_EQUAL(expected,real, __FILE__, __LINE__)
 
