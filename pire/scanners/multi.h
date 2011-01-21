@@ -228,6 +228,7 @@ public:
 			m_buffer = 0;
 			m_letters = s.m_letters;
 			m_final = s.m_final;
+			m_finalEnd = s.m_finalEnd;
 			m_finalIndex = s.m_finalIndex;
 			m_transitions = s.m_transitions;
 		} else {
