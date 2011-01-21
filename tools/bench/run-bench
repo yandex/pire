@@ -114,6 +114,15 @@ BIGFILE_SIZE=`echo $BIGFILE_SIZE | sed 's/K$/000/; s/M$/000000/; s/G$/000000000/
 
 BENCH="tools/bench/bench -c $REPETITION_COUNT -f $BIGFILE"
 
+cleanup() {
+if [ -z "$KEEPFILE" ] && [ -f $BIGFILE ]; then
+	echo "Removing test file $BIGFILE"
+	rm -f $BIGFILE
+fi
+}
+
+trap 'cleanup' 0 2
+
 if [ -z "$KEEPFILE" ] || ! [ -r $BIGFILE ]; then
 	echo "Preparing a big file..."
 	TEST_FILE=`dirname $0`/test_file
@@ -177,8 +186,4 @@ if [ "$EXTRA" = "y" ]; then
 	run_pair capture ' ([a-z]) ' ' ([0-9]) '
 fi
 
-if [ -z "$KEEPFILE" ]; then
-	echo "Removing test file $BIGFILE"
-	rm -f $BIGFILE
-fi
 
