@@ -127,7 +127,8 @@ namespace Impl {
 	
 	template<class Scanner>
 	struct AlignedRunner {
-		
+
+		// Generic version for LongestPrefix()/ShortestPrefix() impelementations
 		template<class Pred>
 		static inline Action
 		RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, Pred stop)
@@ -138,6 +139,22 @@ namespace Impl {
 				;
 			state = st;
 			return ret;
+		}
+
+		// A special version for Run() impelementation that skips predicate checks
+		static inline Action
+		RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, RunPred<Scanner>)
+		{
+			typename Scanner::State st = state;
+			for (; begin != end; ++begin) {
+				size_t chunk = *begin;
+				for (size_t i = sizeof(chunk); i != 0; --i) {
+					Step(scanner, st, chunk & 0xFF);
+					chunk >>= 8;
+				}
+			}
+			state = st;
+			return Continue;
 		}
 	};
 
