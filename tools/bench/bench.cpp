@@ -186,7 +186,7 @@ struct Compile<Pire::CapturingScanner> {
 
 template <>
 struct Compile<Pire::CountingScanner> {
-	static Pire::CountingScanner Do(const Patterns& patterns, bool surround)
+	static Pire::CountingScanner Do(const Patterns& patterns, bool /*surround*/)
 	{
 		Pire::CountingScanner sc;
 		for (Patterns::const_iterator i = patterns.begin(), ie = patterns.end(); i != ie; ++i) {
@@ -218,7 +218,7 @@ struct PrintResult<Pire::CountingScanner> {
 
 template<>
 struct PrintResult<Pire::CapturingScanner> {
-	static void Do(const Pire::CapturingScanner& sc, Pire::CapturingScanner::State st)
+	static void Do(const Pire::CapturingScanner&, Pire::CapturingScanner::State st)
 	{
 		if (st.Captured())
 			std::cout << "Match: [" << st.Begin() << ", " << st.End() << "]" << std::endl;

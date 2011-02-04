@@ -53,6 +53,8 @@ public:
 	typedef ui32        Action;
 	typedef ui8         Tag;
 
+	typedef size_t InternalState;
+
 	union Transition {
 		size_t raw;			// alignment hint for compiler
 		struct {
@@ -69,7 +71,8 @@ public:
 
 	size_t Size() const { return m.statesCount; }
 
-	LoadedScanner()
+	LoadedScanner() { Alias(m_null); }
+	/*
 		: m_buffer(0)
 		, m_letters(0)
 		, m_jumps(0)
@@ -79,7 +82,8 @@ public:
 		m.lettersCount = 0;
 		m.initial = 0;
 	}
-
+	*/
+	
 	LoadedScanner(const LoadedScanner& s): m(s.m)
 	{
 		if (s.m_buffer) {
@@ -88,17 +92,13 @@ public:
 			Markup(m_buffer);
 			m.initial = (InternalState)m_jumps + (s.m.initial - (InternalState)s.m_jumps);
 		} else {
-			m_buffer = 0;
-			m_letters = s.m_letters;
-			m_jumps = s.m_jumps;
-			m_tags = s.m_tags;
-			m_actions = s.m_actions;
+			Alias(s);
 		}
 	}
 
-	size_t RegexpsCount() const {return m.regexpsCount;}
+	bool Empty() const { return m_jumps == m_null.m_jumps; }
 
-	bool Empty() const { return !Size(); }
+	size_t RegexpsCount() const { return Empty() ? 0 : m.regexpsCount; }
 
 	void Swap(LoadedScanner& s)
 	{
@@ -140,9 +140,54 @@ public:
 	void Save(yostream*) const;
 	void Load(yistream*);
 
-protected:
+		template<class Eq>
+	void Init(size_t states, const Partition<Char, Eq>& letters, size_t startState, size_t regexpsCount = 1)
+	{
+		m.statesCount = states;
+		m.lettersCount = letters.Size();
+		m.regexpsCount = regexpsCount;
+		m_buffer = malloc(BufSize());
+		memset(m_buffer, 0, BufSize());
+		Markup(m_buffer);
 
-	typedef size_t InternalState;
+		m.initial = reinterpret_cast<size_t>(m_jumps + startState * m.lettersCount);
+
+		// Build letter translation table
+		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
+		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
+			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
+				m_letters[*it2] = it->second.first;
+	}
+
+
+	void SetJump(size_t oldState, Char c, size_t newState, Action action)
+	{
+		YASSERT(m_buffer);
+		YASSERT(oldState < m.statesCount);
+		YASSERT(newState < m.statesCount);
+
+		size_t shift = (newState - oldState) * m.lettersCount * sizeof(*m_jumps);
+		Transition tr;
+		tr.shift = shift;
+		tr.action = action;
+		m_jumps[oldState * m.lettersCount + m_letters[c]] = tr;
+		m_actions[oldState * m.lettersCount + m_letters[c]] = action;
+	}
+
+	Action RemapAction(Action action) { return action; }
+
+	void SetInitial(size_t state) { YASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
+	void SetTag(size_t state, Tag tag) { YASSERT(m_buffer); m_tags[state] = tag; }
+	void FinishBuild() {}
+
+	size_t StateIdx(InternalState s) const
+	{
+		return (reinterpret_cast<Transition*>(s) - m_jumps) / m.lettersCount;
+	}
+
+	i64 SignExtend(i32 i) const { return i; }
+
+protected:
 
 	static const size_t MAX_RE_COUNT      = 16;
 
@@ -164,11 +209,7 @@ protected:
 	Action* m_actions;
 	Tag* m_tags;
 
-	virtual ~LoadedScanner() // Cannot be instantiated
-	{
-		if (m_buffer)
-			free(m_buffer);
-	}
+	virtual ~LoadedScanner();
 
 	size_t BufSize() const
 	{
@@ -180,6 +221,9 @@ protected:
 			;
 	}
 
+private:
+	static const LoadedScanner m_null;
+	
 	void Markup(void* buf)
 	{
 		m_letters = reinterpret_cast<Letter*>(buf);
@@ -187,24 +231,15 @@ protected:
 		m_actions = reinterpret_cast<Action*>(m_jumps + m.statesCount * m.lettersCount);
 		m_tags    = reinterpret_cast<Tag*>(m_actions + m.statesCount * m.lettersCount);
 	}
-
-	template<class Eq>
-	void Init(size_t states, const Partition<Char, Eq>& letters, size_t startState, size_t regexpsCount = 1)
+	
+	void Alias(const LoadedScanner& s)
 	{
-		m.statesCount = states;
-		m.lettersCount = letters.Size();
-		m.regexpsCount = regexpsCount;
-		m_buffer = malloc(BufSize());
-		memset(m_buffer, 0, BufSize());
-		Markup(m_buffer);
-
-		m.initial = reinterpret_cast<size_t>(m_jumps + startState * m.lettersCount);
-
-		// Build letter translation table
-		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
-		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first;
+		memcpy(&m, &s.m, sizeof(m));
+		m_buffer = 0;
+		m_letters = s.m_letters;
+		m_jumps = s.m_jumps;
+		m_tags = s.m_tags;
+		m_actions = s.m_actions;
 	}
 
 	template<class Eq>
@@ -213,34 +248,15 @@ protected:
 		Init(states, letters, startState, regexpsCount);
 	}
 
-	void SetJump(size_t oldState, Char c, size_t newState, Action action)
-	{
-		YASSERT(m_buffer);
-		YASSERT(oldState < m.statesCount);
-		YASSERT(newState < m.statesCount);
-
-		size_t shift = (newState - oldState) * m.lettersCount * sizeof(*m_jumps);
-		Transition tr;
-		tr.shift = shift;
-		tr.action = action;
-		m_jumps[oldState * m.lettersCount + m_letters[c]] = tr;
-		m_actions[oldState * m.lettersCount + m_letters[c]] = action;
-	}
-
-	Action RemapAction(Action action) { return action; }
-
-	void SetInitial(size_t state) { YASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
-	void SetTag(size_t state, Tag tag) { YASSERT(m_buffer); m_tags[state] = tag; }
-
-	size_t StateIdx(InternalState s) const
-	{
-		return (reinterpret_cast<Transition*>(s) - m_jumps) / m.lettersCount;
-	}
-
-	i64 SignExtend(i32 i) const { return i; }
-
-	friend class Fsm;
+	friend class Fsm;	
 };
+	
+inline LoadedScanner::~LoadedScanner()
+{
+	if (m_buffer)
+		free(m_buffer);
+}
+
 
 }
 

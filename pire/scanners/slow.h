@@ -72,18 +72,12 @@ public:
 #endif
 	};
 
-	SlowScanner()
-		: m_finals(0)
-		, m_jumps(0)
-		, m_jumpPos(0)
-	{
-		m.statesCount = 0;
-		m.lettersCount = 0;
-		m.start = 0;
-	}
+	SlowScanner() { Alias(m_null); }
 
+	bool Empty() const { return m_finals == m_null.m_finals; }
+	
 	size_t Id() const {return (size_t) -1;}
-	size_t RegexpsCount() const { return 1; }
+	size_t RegexpsCount() const { return Empty() ? 0 : 1; }
 
 	void Initialize(State& state) const
 	{
@@ -101,12 +95,12 @@ public:
 		for (yvector<unsigned>::const_iterator sit = current.states.begin(), sie = current.states.end(); sit != sie; ++sit) {
 			const unsigned* begin = 0;
 			const unsigned* end = 0;
-			if (m_vec.empty()) {
+			if (!m_vecptr) {
 				const size_t* pos = m_jumpPos + *sit * m.lettersCount + l;
 				begin = m_jumps + pos[0];
 				end = m_jumps + pos[1];
 			} else {
-				const yvector<unsigned>& v = m_vec[*sit * m.lettersCount + l];
+				const yvector<unsigned>& v = (*m_vecptr)[*sit * m.lettersCount + l];
 				if (!v.empty()) {
 					begin = &v[0];
 					end = &v[0] + v.size();
@@ -141,7 +135,7 @@ public:
 		return false;
 	}
 
-	bool Dead(const State& s) const
+	bool Dead(const State&) const
 	{
 		return false;
 	}
@@ -164,6 +158,7 @@ public:
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
 		memcpy(&s.m, locals, sizeof(s.m));
+		s.m_vecptr = 0;
 		
 		Impl::MapPtr(s.m_letters, MaxChar, p, size);
 		Impl::MapPtr(s.m_finals, s.m.statesCount, p, size);
@@ -185,18 +180,25 @@ public:
 		DoSwap(m_letters, s.m_letters);
 		DoSwap(m_pool, s.m_pool);
 		DoSwap(m_vec, s.m_vec);
+		
+		DoSwap(m_vecptr, s.m_vecptr);
+		if (m_vecptr == &s.m_vec)
+			m_vecptr = &m_vec;
+		if (s.m_vecptr == &m_vec)
+			s.m_vecptr = &s.m_vec;
 	}
 
 	SlowScanner(const SlowScanner& s)
 		: m(s.m)
 		, m_vec(s.m_vec)
 	{
-		if (m_vec.empty()) {
+		if (s.m_vec.empty()) {
 			// Empty or mmap()-ed scanner, just copy pointers
 			m_finals = s.m_finals;
 			m_jumps = s.m_jumps;
 			m_jumpPos = s.m_jumpPos;
 			m_letters = s.m_letters;
+			m_vecptr = 0;
 		} else {
 			// In-memory scanner, perform deep copy
 			alloc(m_letters, MaxChar);
@@ -205,9 +207,10 @@ public:
 			m_jumpPos = 0;
 			alloc(m_finals, m.statesCount);
 			memcpy(m_finals, s.m_finals, sizeof(*m_finals) * m.statesCount);
+			m_vecptr = &m_vec;
 		}
 	}
-
+	
 	explicit SlowScanner(Fsm& fsm)
 	{
 		fsm.RemoveEpsilons();
@@ -217,6 +220,7 @@ public:
 		m.lettersCount = fsm.Letters().Size();
 
 		m_vec.resize(m.statesCount * m.lettersCount);
+		m_vecptr = &m_vec;
 		alloc(m_letters, MaxChar);
 		m_jumps = 0;
 		m_jumpPos = 0;
@@ -262,13 +266,27 @@ private:
 	size_t* m_letters;
 
 	yvector<void*> m_pool;
-	yvector< yvector<unsigned> > m_vec;
+	yvector< yvector<unsigned> > m_vec, *m_vecptr;
+	
+	static const SlowScanner m_null;
 
 	template<class T> void alloc(T*& p, size_t size)
 	{
 		p = static_cast<T*>(malloc(size * sizeof(T)));
 		memset(p, 0, size * sizeof(T));
 		m_pool.push_back(p);
+	}
+	
+	void Alias(const SlowScanner& s)
+	{		
+		memcpy(&m, &s.m, sizeof(m));
+		m_vec.clear();
+		m_finals = s.m_finals;
+		m_jumps = s.m_jumps;
+		m_jumpPos = s.m_jumpPos;
+		m_letters = s.m_letters;
+		m_vecptr = s.m_vecptr;
+		m_pool.clear();
 	}
 	
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/)

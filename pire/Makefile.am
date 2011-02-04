@@ -40,6 +40,7 @@ libpire_la_SOURCES = \
 	scanners/simple.h \
 	scanners/common.h \
 	scanners/pair.h \
+	scanners/null.cpp \
 	stub/stl.h \
 	stub/lexical_cast.h \
 	stub/saveload.h \

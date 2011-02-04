@@ -181,5 +181,13 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 			catch (Pire::Error&) {}
 		}
 	}
+	
+	SIMPLE_UNIT_TEST(Empty)
+	{
+		Pire::CapturingScanner sc;
+		UNIT_ASSERT(sc.Empty());
+		
+		UNIT_CHECKPOINT(); RunRegexp(sc, "a string"); // Just should not crash
+	}
 
 }

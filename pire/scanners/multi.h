@@ -158,16 +158,8 @@ public:
 
 	enum ShortcutAction { Look, Shortcut, Exit };
 
-	Scanner()
-		: m_buffer(0)
-		, m_finalEnd(0)
-	{
-		m.relocationSignature = Relocation::Signature;
-		m.statesCount = 0;
-		m.lettersCount = 0;
-		m.regexpsCount = 0;
-		m.finalTableSize = 0;
-	}
+	Scanner() { Alias(m_null); }
+	
 	explicit Scanner(Fsm& fsm)
 	{
 		fsm.Canonize();
@@ -176,21 +168,13 @@ public:
 	}
 
 
-	size_t Size() const {
-		return m.statesCount;
-	}
-	bool Empty() const {
-		return !Size();
-	}
+	size_t Size() const { return m.statesCount; }
+	bool Empty() const { return m_transitions == m_null.m_transitions; }
 
 	typedef size_t State;
 
-	size_t RegexpsCount() const {
-		return m.regexpsCount;
-	}
-	size_t LettersCount() const {
-		return m.lettersCount;
-	}
+	size_t RegexpsCount() const { return Empty() ? 0 : m.regexpsCount; }
+	size_t LettersCount() const { return m.lettersCount; }
 
 	/// Checks whether specified state is in any of the final sets
 	bool Final(const State& state) const { return (Header(state).Flags & FinalFlag) != 0; }
@@ -225,13 +209,8 @@ public:
 	Scanner(const Scanner& s): m(s.m)
 	{
 		if (!s.m_buffer) {
-			// Empty or mmap()-ed scanner, just copy pointers
-			m_buffer = 0;
-			m_letters = s.m_letters;
-			m_final = s.m_final;
-			m_finalEnd = s.m_finalEnd;
-			m_finalIndex = s.m_finalIndex;
-			m_transitions = s.m_transitions;
+			// Empty or mmap()-ed scanner
+			Alias(s);
 		} else {
 			// In-memory scanner
 			DeepCopy(s);
@@ -241,7 +220,10 @@ public:
 	template<class AnotherRelocation>
 	Scanner(const Scanner<AnotherRelocation>& s)
 	{
-		DeepCopy(s);
+		if (s.Empty())
+			Alias(m_null);
+		else
+			DeepCopy(s);
 	}
 
 	void Swap(Scanner& s)
@@ -291,15 +273,22 @@ public:
 		Impl::MapPtr(actual, 1, p, size);
 		if (required != *actual)
 			throw Error("This scanner was compiled for an incompatible platform");
-
+		
+		bool empty = *((const bool*) p);
+		Impl::AdvancePtr(p, size, sizeof(empty));
 		Impl::AlignPtr(p, size);
-		if (size < s.BufSize())
-			throw Error("EOF reached while mapping NPire::Scanner");
-		s.Markup(const_cast<size_t*>(p));
-		s.m.initial += reinterpret_cast<size_t>(s.m_transitions);
+		
+		if (empty)
+			s.Alias(m_null);
+		else {
+			if (size < s.BufSize())
+				throw Error("EOF reached while mapping NPire::Scanner");
+			s.Markup(const_cast<size_t*>(p));
+			Impl::AdvancePtr(p, size, BufSize());
+			s.m.initial += reinterpret_cast<size_t>(s.m_transitions);
+		}
 
 		Swap(s);
-		Impl::AdvancePtr(p, size, BufSize());
 		return Impl::AlignPtr(p, size);
 	}
 
@@ -308,6 +297,14 @@ public:
 		return (s - reinterpret_cast<size_t>(m_transitions)) / (RowSize() * sizeof(Transition));
 	}
 
+	/**
+	 * Agglutinates two scanners together, producing a larger scanner.
+	 * Checkig a string against that scanner effectively checks them against both agglutinated regexps
+	 * (detailed information about matched regexps can be obtained with AcceptedRegexps()).
+	 *
+	 * Returns default-constructed scanner in case of failure
+	 * (consult Scanner::Empty() to find out whether the operation was successful).
+	 */
 	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0);
 
 	// Returns the size of the memory buffer used (or required) by scanner.
@@ -355,6 +352,8 @@ private:
 
 	Transition* m_transitions;
 	
+	static const Scanner<Relocation> m_null;
+	
 	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)); } // Row size should be a multiple of sizeof(MaxSizeWord)
 
 	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
@@ -400,6 +399,18 @@ private:
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
 	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
 
+	// Makes a shallow ("weak") copy of the given scanner.
+	// The copied scanner does not maintain lifetime of the original's entrails.
+	void Alias(const Scanner<Relocation>& s)
+	{
+		memcpy(&m, &s.m, sizeof(m));
+		m_buffer = 0;
+		m_letters = s.m_letters;
+		m_final = s.m_final;
+		m_finalIndex = s.m_finalIndex;
+		m_transitions = s.m_transitions;
+	}
+	
 	template<class AnotherRelocation>
 	void DeepCopy(const Scanner<AnotherRelocation>& s)
 	{
@@ -538,6 +549,10 @@ private:
 	friend struct AlignedRunner< Scanner<Relocation> >;
 #endif
 };
+	
+template<class Relocation>
+const Scanner<Relocation> Scanner<Relocation>::m_null = Fsm::MakeFalse().Compile< Scanner<Relocation> >();
+
 
 #ifndef PIRE_DEBUG
 

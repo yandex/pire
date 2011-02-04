@@ -113,7 +113,7 @@ public:
 
 	bool Final(const State& s) const { return m_tags[(reinterpret_cast<Transition*>(s.m_state) - m_jumps) / m.lettersCount] & FinalFlag; }
 
-	bool Dead(const State& state) const { return false; }
+	bool Dead(const State&) const { return false; }
 
 	CapturingScanner() {}
 	CapturingScanner(const CapturingScanner& s): LoadedScanner(s) {}
@@ -142,8 +142,6 @@ private:
 		return x.action;
 	}
 			
-	void FinishBuild() {}
-
 	friend void BuildScanner<CapturingScanner>(const Fsm&, CapturingScanner&);
 };
 namespace Features {

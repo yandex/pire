@@ -44,7 +44,10 @@ namespace Impl {
 		Impl::AlignSave(s, sizeof(mc));
 		SavePodType(s, Settings());
 		Impl::AlignSave(s, sizeof(Settings));
-		Impl::AlignedSaveArray(s, m_buffer, BufSize());
+		SavePodType(s, Empty());
+		Impl::AlignSave(s, sizeof(Empty()));
+		if (!Empty())
+			Impl::AlignedSaveArray(s, m_buffer, BufSize());
 	}
 
 	template<>
@@ -59,10 +62,18 @@ namespace Impl {
 		Impl::AlignLoad(s, sizeof(actual));
 		if (actual != required)
 			throw std::runtime_error("This scanner was compiled for an incompatible platform");
-		sc.m_buffer = new char[sc.BufSize()];
-		Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-		sc.Markup(sc.m_buffer);
-		sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
+		bool empty;
+		LoadPodType(s, empty);
+		Impl::AlignLoad(s, sizeof(empty));
+		
+		if (empty) {
+			sc.Alias(m_null);
+		} else {
+			sc.m_buffer = new char[sc.BufSize()];
+			Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
+			sc.Markup(sc.m_buffer);
+			sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
+		}
 		Swap(sc);
 	}
 	
@@ -144,6 +155,7 @@ void SlowScanner::Load(yistream* s)
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	sc.m_vec.resize(sc.m.lettersCount * sc.m.statesCount);
+	sc.m_vecptr = &sc.m_vec;
 
 	sc.alloc(sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);

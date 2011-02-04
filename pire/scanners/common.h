@@ -41,7 +41,7 @@ namespace Pire {
 		ui32 HdrSize;
 
 		static const ui32 MAGIC = 0x45524950;   // "PIRE" on litte-endian
-		static const ui32 RE_VERSION = 5;       // Should be incremented each time when the format of serialized scanner changes
+		static const ui32 RE_VERSION = 6;       // Should be incremented each time when the format of serialized scanner changes
 
 		explicit Header(ui32 type, size_t hdrsize)
 			: Magic(MAGIC)

@@ -103,6 +103,11 @@ private:
 template<class Relocation>
 Impl::Scanner<Relocation> Impl::Scanner<Relocation>::Glue(const Impl::Scanner<Relocation>& lhs, const Impl::Scanner<Relocation>& rhs, size_t maxSize /* = 0 */)
 {
+	if (lhs.Empty())
+		return rhs;
+	if (rhs.Empty())
+		return lhs;
+	
 	static const size_t DefMaxSize = 80000;
 	Impl::ScannerGlueTask< Impl::Scanner<Relocation> > task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);

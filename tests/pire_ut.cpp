@@ -566,4 +566,39 @@ SIMPLE_UNIT_TEST(Aligned)
 	}
 }
 
+SIMPLE_UNIT_TEST(EmptyScanner)
+{
+	Pire::Scanner sc;
+	UNIT_ASSERT(sc.Empty());
+	UNIT_ASSERT_EQUAL(sc.RegexpsCount(), size_t(0));
+	UNIT_CHECKPOINT(); Pire::Runner(sc).Begin().Run("a string", 7).End(); // should not crash
+	
+	Pire::Scanner sc2 = Pire::Lexer("regex").Parse().Compile<Pire::Scanner>();
+	UNIT_ASSERT_EQUAL(Pire::Scanner::Glue(sc, sc2).RegexpsCount(), size_t(1));
+	UNIT_CHECKPOINT(); Pire::Runner(sc2).Begin().Run("a string", 7).End();
+	
+	Pire::SimpleScanner simple;
+	UNIT_ASSERT(simple.Empty());
+	UNIT_CHECKPOINT(); Pire::Runner(simple).Begin().Run("a string", 7).End();
+	
+	Pire::SlowScanner slow;
+	UNIT_ASSERT(slow.Empty());
+	UNIT_CHECKPOINT(); Pire::Runner(slow).Begin().Run("a string", 7).End();
+	
+	BufferOutput wbuf;
+	UNIT_CHECKPOINT(); Save(&wbuf, sc);
+	
+	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
+	Pire::Scanner sc3;
+	/*UNIT_CHECKPOINT();*/ Load(&rbuf, sc3);
+	UNIT_ASSERT(sc3.Empty());
+	UNIT_CHECKPOINT(); Pire::Runner(sc3).Begin().Run("a string", 7).End();
+	
+	Pire::Scanner sc4;
+	/*UNIT_CHECKPOINT();*/ const char* ptr = (const char*) sc4.Mmap(wbuf.Buffer().Data(), wbuf.Buffer().Size());
+	UNIT_ASSERT(ptr == wbuf.Buffer().Data() + wbuf.Buffer().Size());
+	UNIT_ASSERT(sc4.Empty());
+	UNIT_CHECKPOINT(); Pire::Runner(sc4).Begin().Run("a string", 7).End();	
+}
+
 }

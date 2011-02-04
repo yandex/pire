@@ -45,26 +45,24 @@ public:
 	typedef ui32        Action;
 	typedef ui8         Tag;
 
-	SimpleScanner()
-		: m_buffer(0)
-	{
-		m.statesCount = 0;
-	}
+	SimpleScanner():
+		m(m_null.m), m_buffer(0), m_transitions(m_null.m_transitions)
+	{}
 	
 	explicit SimpleScanner(Fsm& fsm);
 
 	size_t Size() const { return m.statesCount; }
-	bool Empty() const { return !Size(); }
+	bool Empty() const { return m_transitions == m_null.m_transitions; }
 
 	typedef size_t State;
 
-	size_t RegexpsCount() const { return 1; }
+	size_t RegexpsCount() const { return Empty() ? 0 : 1; }
 	size_t LettersCount() const { return MaxChar; }
 
 	/// Checks whether specified state is in any of the final sets
 	bool Final(const State& state) const { return *(((const Transition*) state) - 1) != 0; }
 
-	bool Dead(const State& s) const { return false; }
+	bool Dead(const State&) const { return false; }
 
 	/// returns an initial state for this scanner
 	void Initialize(State& state) const { state = m.initial; }
@@ -161,6 +159,8 @@ protected:
 	char* m_buffer;
 
 	Transition* m_transitions;
+	
+	static const SimpleScanner m_null;
 
 	/*
 	 * Initializes pointers depending on buffer start, letters and states count

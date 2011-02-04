@@ -109,7 +109,7 @@ public:
 
 	bool Final(const State& /*state*/) const { return false; }
 
-	bool Dead(const State& state) const { return false; }
+	bool Dead(const State&) const { return false; }
 
 	CountingScanner() {}
 	CountingScanner(const CountingScanner& s): LoadedScanner(s) {}
@@ -179,8 +179,6 @@ private:
 		else
 			return 0;
 	}
-	
-	void FinishBuild() {}
 	
 	typedef LoadedScanner::InternalState InternalState;
 	friend void BuildScanner<CountingScanner>(const Fsm&, CountingScanner&);
