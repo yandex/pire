@@ -181,13 +181,32 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 			catch (Pire::Error&) {}
 		}
 	}
-	
+
 	SIMPLE_UNIT_TEST(Empty)
 	{
 		Pire::CapturingScanner sc;
 		UNIT_ASSERT(sc.Empty());
 		
 		UNIT_CHECKPOINT(); RunRegexp(sc, "a string"); // Just should not crash
+
+		// Test Save/Load/Mmap
+		BufferOutput wbuf;
+		::Save(&wbuf, sc);
+
+		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
+		Pire::CapturingScanner sc3;
+		::Load(&rbuf, sc3);
+		UNIT_CHECKPOINT(); RunRegexp(sc3, "a string");
+
+		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
+		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
+		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
+
+		Pire::CapturingScanner sc4;
+		const void* tail = sc4.Mmap(ptr, wbuf.Buffer().Size());
+		UNIT_ASSERT_EQUAL(tail, (const void*) ((size_t)ptr + wbuf.Buffer().Size()));
+		UNIT_CHECKPOINT(); RunRegexp(sc4, "a string");
 	}
 
 }

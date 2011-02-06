@@ -45,9 +45,7 @@ public:
 	typedef ui32        Action;
 	typedef ui8         Tag;
 
-	SimpleScanner():
-		m(m_null.m), m_buffer(0), m_transitions(m_null.m_transitions)
-	{}
+	SimpleScanner()	{ Alias(m_null); }
 	
 	explicit SimpleScanner(Fsm& fsm);
 
@@ -92,6 +90,15 @@ public:
 			m.initial += (m_transitions - s.m_transitions) * sizeof(Transition);
 		}
 	}
+	
+	// Makes a shallow ("weak") copy of the given scanner.
+	// The copied scanner does not maintain lifetime of the original's entrails.
+	void Alias(const SimpleScanner& s)
+	{
+		m = s.m;
+		m_buffer = 0;
+		m_transitions = s.m_transitions;
+	}
 
 	void Swap(SimpleScanner& s)
 	{
@@ -126,13 +133,21 @@ public:
 		Impl::AdvancePtr(p, size, sizeof(s.m));
 		Impl::AlignPtr(p, size);
 
-		if (size < s.BufSize())
-			throw Error("EOF reached while mapping NPire::Scanner");
-		s.Markup(const_cast<size_t*>(p));
-		s.m.initial += reinterpret_cast<size_t>(s.m_transitions);
+		bool empty = *((const bool*) p);
+		Impl::AdvancePtr(p, size, sizeof(empty));
+		Impl::AlignPtr(p, size);
+		
+		if (empty)
+			s.Alias(m_null);
+		else {
+			if (size < s.BufSize())
+				throw Error("EOF reached while mapping NPire::Scanner");
+			s.Markup(const_cast<size_t*>(p));
+			s.m.initial += reinterpret_cast<size_t>(s.m_transitions);
 
-		Swap(s);
-		Impl::AdvancePtr(p, size, BufSize());
+			Swap(s);
+			Impl::AdvancePtr(p, size, BufSize());
+		}
 		return Impl::AlignPtr(p, size);
 	}
 

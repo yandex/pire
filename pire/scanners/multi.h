@@ -284,7 +284,7 @@ public:
 			if (size < s.BufSize())
 				throw Error("EOF reached while mapping NPire::Scanner");
 			s.Markup(const_cast<size_t*>(p));
-			Impl::AdvancePtr(p, size, BufSize());
+			Impl::AdvancePtr(p, size, s.BufSize());
 			s.m.initial += reinterpret_cast<size_t>(s.m_transitions);
 		}
 

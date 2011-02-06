@@ -28,7 +28,7 @@
  * Just type:
  *
  *    Pire::Regexp sc("pattern of (my regexp)*", Pire::UTF8 | Pire::I);
- *    if (sc.Matches("pattern of my regexp")
+ *    if (sc.Matches("pattern of my regexp"))
  *        std::cout << "Hooray!" << std::endl;
  *
  * Or, to go more crazy:
@@ -43,7 +43,7 @@
  *    UTF8     - treat pattern input sequence as UTF-8 (surprise!)
  *    LATIN1   - guess what?
  *
- * (In fact, there are not "flags" and not "buitwise ORed". See code for details.)
+ * (In fact, those are not "flags" and not "buitwise ORed". See code for details.)
  */
 
 #ifndef PIRE_EASY_H_INCLUDED

@@ -158,14 +158,22 @@ public:
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
 		memcpy(&s.m, locals, sizeof(s.m));
-		s.m_vecptr = 0;
 		
-		Impl::MapPtr(s.m_letters, MaxChar, p, size);
-		Impl::MapPtr(s.m_finals, s.m.statesCount, p, size);
-		Impl::MapPtr(s.m_jumpPos, s.m.statesCount * s.m.lettersCount + 1, p, size);
-		Impl::MapPtr(s.m_jumps, s.m_jumpPos[s.m.statesCount * s.m.lettersCount], p, size);
+		bool empty = *((const bool*) p);
+		Impl::AdvancePtr(p, size, sizeof(empty));
+		Impl::AlignPtr(p, size);
 		
-		Swap(s);
+		if (empty)
+			s.Alias(m_null);
+		else {
+			s.m_vecptr = 0;
+			Impl::MapPtr(s.m_letters, MaxChar, p, size);
+			Impl::MapPtr(s.m_finals, s.m.statesCount, p, size);
+			Impl::MapPtr(s.m_jumpPos, s.m.statesCount * s.m.lettersCount + 1, p, size);
+			Impl::MapPtr(s.m_jumps, s.m_jumpPos[s.m.statesCount * s.m.lettersCount], p, size);
+			
+			Swap(s);
+		}
 		return (const void*) p;
 	}
 

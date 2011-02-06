@@ -25,6 +25,9 @@
 #include "stub/cppunit.h"
 #include <stdexcept>
 #include "common.h"
+
+#undef Run
+
 #include <easy.h>
 
 SIMPLE_UNIT_TEST_SUITE(TestPireEasy) {
