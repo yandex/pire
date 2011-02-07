@@ -72,17 +72,6 @@ public:
 	size_t Size() const { return m.statesCount; }
 
 	LoadedScanner() { Alias(m_null); }
-	/*
-		: m_buffer(0)
-		, m_letters(0)
-		, m_jumps(0)
-		, m_tags(0)
-	{
-		m.statesCount = 0;
-		m.lettersCount = 0;
-		m.initial = 0;
-	}
-	*/
 	
 	LoadedScanner(const LoadedScanner& s): m(s.m)
 	{

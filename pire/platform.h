@@ -26,6 +26,22 @@
 #include "stub/defaults.h"
 #include "static_assert.h"
 
+#ifndef FORCED_INLINE
+#ifdef __GNUC__
+#define FORCED_INLINE __attribute__((always_inline))
+#elif _MSC_VER
+#define FORCED_INLINE __forceinline
+#else
+#define FORCED_INLINE inline
+#endif
+#endif
+
+#if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2))
+#define PIRE_HOT_FUNCTION __attribute__ ((hot))
+#else
+#define PIRE_HOT_FUNCTION
+#endif
+
 #ifdef _MSC_VER
 #include <stdio.h>
 #include <stdarg.h>

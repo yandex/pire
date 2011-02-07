@@ -48,7 +48,7 @@ namespace Pire {
 namespace Pire {
 
 template<class Scanner>
-FORCED_INLINE
+FORCED_INLINE PIRE_HOT_FUNCTION
 void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 {
 	YASSERT(ch < MaxCharUnaligned);
@@ -62,7 +62,7 @@ namespace Impl {
 
 	template<class Scanner>
 	struct RunPred {
-		FORCED_INLINE
+		FORCED_INLINE PIRE_HOT_FUNCTION
 		Action operator()(const Scanner&, const typename Scanner::State&, const char*) const { return Continue; }
 	};
 	
@@ -70,7 +70,7 @@ namespace Impl {
 	struct ShortestPrefixPred {
 		explicit ShortestPrefixPred(const char*& pos): m_pos(&pos) {}
 
-		FORCED_INLINE
+		FORCED_INLINE PIRE_HOT_FUNCTION
 		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
 		{
 			if (sc.Final(st)) {
@@ -88,7 +88,7 @@ namespace Impl {
 	struct LongestPrefixPred {
 		explicit LongestPrefixPred(const char*& pos): m_pos(&pos) {}
 		
-		FORCED_INLINE
+		FORCED_INLINE PIRE_HOT_FUNCTION
 		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
 		{
 			if (sc.Final(st))
@@ -107,7 +107,8 @@ namespace Impl {
 
 	/// Effectively runs a scanner on a short data chunk, fit completely into one machine word.
 	template<class Scanner, class Pred>
-	inline Action RunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
+	FORCED_INLINE PIRE_HOT_FUNCTION
+	Action RunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
 	{
 		YASSERT(pos <= sizeof(size_t));
 		YASSERT(size <= sizeof(size_t));
@@ -130,8 +131,8 @@ namespace Impl {
 
 		// Generic version for LongestPrefix()/ShortestPrefix() impelementations
 		template<class Pred>
-		static inline Action
-		RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, Pred stop)
+		static inline PIRE_HOT_FUNCTION
+		Action RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, Pred stop)
 		{
 			typename Scanner::State st = state;
 			Action ret = Continue;
@@ -142,8 +143,8 @@ namespace Impl {
 		}
 
 		// A special version for Run() impelementation that skips predicate checks
-		static inline Action
-		RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, RunPred<Scanner>)
+		static inline PIRE_HOT_FUNCTION
+		Action RunAligned(const Scanner& scanner, typename Scanner::State& state, const size_t* begin, const size_t* end, RunPred<Scanner>)
 		{
 			typename Scanner::State st = state;
 			for (; begin != end; ++begin) {

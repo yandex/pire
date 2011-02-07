@@ -36,8 +36,4 @@ namespace Pire {
 	inline uint64_t ULL(T t) { return (uint64_t) t; }
 }
 
-#ifndef FORCED_INLINE
-#define FORCED_INLINE inline
-#endif
-
 #endif

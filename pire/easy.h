@@ -43,7 +43,7 @@
  *    UTF8     - treat pattern input sequence as UTF-8 (surprise!)
  *    LATIN1   - guess what?
  *
- * (In fact, those are not "flags" and not "buitwise ORed". See code for details.)
+ * (In fact, those are not "flags" and not "bitwise ORed". See code for details.)
  */
 
 #ifndef PIRE_EASY_H_INCLUDED

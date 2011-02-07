@@ -86,6 +86,7 @@ public:
 		state.m_updatedMask = 0;
 	}
 
+	FORCED_INLINE PIRE_HOT_FUNCTION
 	void TakeAction(State& s, Action a) const
 	{
 		if (a & IncrementMask)
@@ -124,6 +125,7 @@ public:
 
 private:
 	using LoadedScanner::Init;
+
 	void PerformIncrement(State& s, Action mask) const
 	{
 		if (mask) {

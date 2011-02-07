@@ -558,7 +558,8 @@ const Scanner<Relocation> Scanner<Relocation>::m_null = Fsm::MakeFalse().Compile
 
 template<unsigned N>
 struct MaskCheckerBase {
-	static inline bool Check(const ScannerRowHeader& hdr, size_t alignOffset, Word chunk)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool Check(const ScannerRowHeader& hdr, size_t alignOffset, Word chunk)
 	{
 		Word mask = CheckBytes(hdr.Mask(N, alignOffset), chunk);
 		for (int i = N-1; i >= 0; --i) {
@@ -567,7 +568,8 @@ struct MaskCheckerBase {
 		return !IsAnySet(mask);
 	}
 
-	static inline const Word* DoRun(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* DoRun(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
 	{
 		for (; begin != end && Check(hdr, alignOffset, ToLittleEndian(*begin)); ++begin) {}
 		return begin;
@@ -579,7 +581,8 @@ struct MaskChecker : MaskCheckerBase<N>  {
 	typedef MaskCheckerBase<N> Base;
 	typedef MaskChecker<N+1, Nmax> Next;
 
-	static inline const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
 	{
 		if (hdr.Mask(N) == hdr.Mask(N + 1))
 			return Base::DoRun(hdr, alignOffset, begin, end);
@@ -592,7 +595,8 @@ template<unsigned N>
 struct MaskChecker<N, N> : MaskCheckerBase<N>  {
 	typedef MaskCheckerBase<N> Base;
 
-	static inline const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
 	{
 		return Base::DoRun(hdr, alignOffset, begin, end);
 	}
@@ -606,8 +610,8 @@ template <class Relocation, unsigned Count>
 struct MultiChunk {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
 	template<class Pred>
-	static inline Action
-	Process(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& state, const size_t* p, Pred pred)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	Action Process(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& state, const size_t* p, Pred pred)
 	{
 		if (RunChunk(scanner, state, p, 0, sizeof(void*), pred) == Continue)
 			return MultiChunk<Relocation, Count-1>::Process(scanner, state, ++p, pred);
@@ -620,8 +624,8 @@ template <class Relocation>
 struct MultiChunk<Relocation, 0> {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
 	template<class Pred>
-	static inline Action
-	Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State state, const size_t*, Pred)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	Action Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State state, const size_t*, Pred)
 	{
 		return Continue;
 	}
@@ -632,13 +636,15 @@ template<class Relocation>
 struct AlignedRunner< Scanner<Relocation> > {
 private:
 	// Compares the ExitMask[0] value without SSE reads which seems to be more optimal
-	static inline bool CheckFirstMask(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t val)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool CheckFirstMask(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t val)
 	{
 		return (scanner.Header(state).Mask(0) == val);
 	}
 
 	template <class Pred>
-	static inline Action RunMultiChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, Pred pred)
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	Action RunMultiChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, Pred pred)
 	{
 		return MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, st, begin, pred);
 	}
@@ -646,8 +652,8 @@ private:
 public:
 
 	template<class Pred>
-	static inline Action
-	RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, const size_t* end , Pred pred)
+	static inline PIRE_HOT_FUNCTION
+	Action RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, const size_t* end , Pred pred)
 	{
 		typename Scanner<Relocation>::State state = st;		
 		const Word* head = AlignUp((const Word*) begin, sizeof(Word));
