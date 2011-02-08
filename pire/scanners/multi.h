@@ -625,7 +625,7 @@ struct MultiChunk<Relocation, 0> {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
 	template<class Pred>
 	static FORCED_INLINE PIRE_HOT_FUNCTION
-	Action Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State state, const size_t*, Pred)
+	Action Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State, const size_t*, Pred)
 	{
 		return Continue;
 	}

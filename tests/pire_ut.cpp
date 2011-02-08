@@ -387,10 +387,11 @@ struct BasicMmapTest {
 	{
 		try {
 			sc.Mmap(ptr, sz);
-			if (!Pire::Impl::IsAligned(ptr, sizeof(size_t)))
+			if (!Pire::Impl::IsAligned(ptr, sizeof(size_t))) {
 				UNIT_ASSERT(!"Failed to check for misaligned mmaping");
-			else
+			} else {
 				UNIT_ASSERT(Matches(sc, str));
+			}
 		}
 		catch (Pire::Error&) {}
 	}

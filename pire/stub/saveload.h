@@ -158,13 +158,13 @@ namespace Pire {
 	void Load(yistream* s, T& t) { t.Load(s);}
 
 	template<class T>
-	void SaveArray(yostream* s, const T* t, size_t len)
+	void SavePodArray(yostream* s, const T* t, size_t len)
 	{
 		s->write((char*) t, len * sizeof(*t));
 	}
 
 	template<class T>
-	void LoadArray(yistream* s, T* t, size_t len)
+	void LoadPodArray(yistream* s, T* t, size_t len)
 	{
 		s->read((char*) t, len * sizeof(*t));
 	}

@@ -50,7 +50,7 @@ namespace Pire {
 			size_t tail = AlignUp(size, sizeof(size_t)) - size;
 			if (tail) {
 				static const char buf[sizeof(MaxSizeWord)] = {0};
-				SaveArray(s, buf, tail);
+				SavePodArray(s, buf, tail);
 			}
 		}
 
@@ -59,21 +59,21 @@ namespace Pire {
 			size_t tail = AlignUp(size, sizeof(size_t)) - size;
 			if (tail) {
 				char buf[sizeof(MaxSizeWord)];
-				LoadArray(s, buf, tail);
+				LoadPodArray(s, buf, tail);
 			}
 		}
 		
 		template<class T>
 		inline void AlignedSaveArray(yostream* s, const T* array, size_t count)
 		{
-			SaveArray(s, array, count);
+			SavePodArray(s, array, count);
 			AlignSave(s, sizeof(*array) * count);
 		}
 
 		template<class T>
 		inline void AlignedLoadArray(yistream* s, T* array, size_t count)
 		{
-			LoadArray(s, array, count);
+			LoadPodArray(s, array, count);
 			AlignLoad(s, sizeof(*array) * count);
 		}
 

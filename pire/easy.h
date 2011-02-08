@@ -169,7 +169,7 @@ public:
 	bool Matches(const ystring& str) const
 	{
 		static const char c = 0;
-		return str.empty() ? Matches(&c, &c) : Matches(&str[0], &str[0] + str.size());
+		return str.empty() ? Matches(&c, &c) : Matches(str.c_str(), str.c_str() + str.size());
 	}
 	
 	/// A helper class allowing '==~' operator for regexps
@@ -191,7 +191,7 @@ private:
 	ypair<const char*, const char*> PatternBounds(const ystring& pattern)
 	{
 		static const char c = 0;
-		return pattern.empty() ? ymake_pair(&c, &c) : ymake_pair(&pattern[0], &pattern[0] + pattern.size());
+		return pattern.empty() ? ymake_pair(&c, &c) : ymake_pair(pattern.c_str(), pattern.c_str() + pattern.size());
 	}
 	
 	ypair<const char*, const char*> PatternBounds(const char* pattern)

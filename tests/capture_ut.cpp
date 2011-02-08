@@ -170,9 +170,9 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 			memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 			try {
 				scanner3.Mmap(ptr, wbuf.Buffer().Size());
-				if (offset % sizeof(size_t) != 0)
+				if (offset % sizeof(size_t) != 0) {
 					UNIT_ASSERT(!"CapturingScanner failed to check for misaligned mmaping");
-				else {
+				} else {
 					str = "google_id = 'abcde';";
 					state = RunRegexp(scanner3, str);
 					UNIT_ASSERT(state.Captured());

@@ -44,10 +44,12 @@ void TestSuite::doRun(TestRunner* runner, const Pire::ystring& filter)
 TestRunner::TestRunner():
 	mChkptLine(0), mSuccessCount(0), mFailCount(0)
 {
+#ifndef _WIN32
 	signal(SIGSEGV, &TestRunner::onSignal);
 	signal(SIGBUS,  &TestRunner::onSignal);
 	signal(SIGILL,  &TestRunner::onSignal);
 	signal(SIGABRT, &TestRunner::onSignal);
+#endif
 }
 	
 void TestRunner::setCheckpoint(const Pire::ystring& file, int line)
@@ -110,6 +112,7 @@ Pire::ystring TestRunner::testFullName()
 
 void TestRunner::onSignal(int signame)
 {
+#ifndef _WIN32
 	Pire::ystring testName = "(no active test)";
 	TestRunner* self = Impl::globalSuite()->runner();
 	if (self)
@@ -130,6 +133,7 @@ void TestRunner::onSignal(int signame)
 		std::cerr << " (last checkpoint: " << self->mChkptFile << ":" << self->mChkptLine << "), aborting" << std::endl;
 	
 	_Exit(128 + signame);
+#endif
 }
 
 void TestRunner::runCase(TestCase* testCase, const Pire::ystring& filter)

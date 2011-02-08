@@ -61,7 +61,7 @@ namespace Impl {
 		LoadPodType(s, actual);
 		Impl::AlignLoad(s, sizeof(actual));
 		if (actual != required)
-			throw std::runtime_error("This scanner was compiled for an incompatible platform");
+			throw Error("This scanner was compiled for an incompatible platform");
 		bool empty;
 		LoadPodType(s, empty);
 		Impl::AlignLoad(s, sizeof(empty));
@@ -97,7 +97,6 @@ namespace Impl {
 	
 void SimpleScanner::Save(yostream* s) const
 {
-	YASSERT(m_buffer);
 	SavePodType(s, Header(2, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	Locals mc = m;
@@ -106,8 +105,10 @@ void SimpleScanner::Save(yostream* s) const
 	Impl::AlignSave(s, sizeof(mc));
 	SavePodType(s, Empty());
 	Impl::AlignSave(s, sizeof(Empty()));
-	if (!Empty())
+	if (!Empty()) {
+		YASSERT(m_buffer);
 		Impl::AlignedSaveArray(s, m_buffer, BufSize());
+	}
 }
 
 void SimpleScanner::Load(yistream* s)
@@ -132,7 +133,6 @@ void SimpleScanner::Load(yistream* s)
 
 void SlowScanner::Save(yostream* s) const
 {
-	YASSERT(!m_vec.empty());
 	SavePodType(s, Header(3, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	SavePodType(s, m);
@@ -140,6 +140,7 @@ void SlowScanner::Save(yostream* s) const
 	SavePodType(s, Empty());
 	Impl::AlignSave(s, sizeof(Empty()));
 	if (!Empty()) {
+		YASSERT(!m_vec.empty());
 		Impl::AlignedSaveArray(s, m_letters, MaxChar);
 		Impl::AlignedSaveArray(s, m_finals, m.statesCount);
 
@@ -155,7 +156,7 @@ void SlowScanner::Save(yostream* s) const
 		size_t size = 0;
 		for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
 			if (!i->empty()) {
-				SaveArray(s, &(*i)[0], i->size());
+				SavePodArray(s, &(*i)[0], i->size());
 				size += sizeof(unsigned) * i->size();
 			}
 		Impl::AlignSave(s, size);
@@ -196,7 +197,7 @@ void SlowScanner::Load(yistream* s)
 		size_t size = 0;
 		for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
 			if (!i->empty()) { 
-				LoadArray(s, &(*i)[0], i->size());
+				LoadPodArray(s, &(*i)[0], i->size());
 				size += sizeof(unsigned) * i->size();
 			}
 		Impl::AlignLoad(s, size);
