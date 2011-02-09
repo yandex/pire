@@ -649,6 +649,18 @@ private:
 		return MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, st, begin, pred);
 	}
 
+	// Asserts if the scanner changes state while processing the byte range that is
+	// supposed to be skipped by a shortcut
+	static void ValidateSkip(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State st, const char* begin, const char* end)
+	{
+		typename Scanner<Relocation>::State stateBefore = st;
+		for (const char* pos = begin; pos != end; ++pos) {
+			Step(scanner, st, (unsigned char)*pos);
+			YASSERT(st == stateBefore);
+		}
+	}
+
+
 public:
 
 	template<class Pred>
@@ -696,7 +708,9 @@ public:
 				return pred(scanner, state, ((const char*) end));
 			}
 
-			head = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state), alignOffset, head, tail);
+			const Word* skipEnd = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state), alignOffset, head, tail);
+			PIRE_IF_CHECKED(ValidateSkip(scanner, state, (const char*)head, (const char*)skipEnd));
+			head = skipEnd;
 			noShortcut = true;
 		}
 		

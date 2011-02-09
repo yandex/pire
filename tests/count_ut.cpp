@@ -29,7 +29,7 @@
 #include <pire.h>
 #include <extra.h>
 #include <string.h>
-#include "common.h"
+
 
 SIMPLE_UNIT_TEST_SUITE(TestCount) {
 
@@ -208,7 +208,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		Pire::CountingScanner sc;
 		UNIT_ASSERT(sc.Empty());
 
-		UNIT_CHECKPOINT(); RunRegexp(sc, "a string"); // Just should not crash
+		UNIT_CHECKPOINT(); Run(sc, "a string"); // Just should not crash
 
 		// Test glueing empty
 		const Pire::Encoding& enc = Pire::Encodings::Latin1();
@@ -224,7 +224,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		Pire::CountingScanner sc3;
 		::Load(&rbuf, sc3);
-		UNIT_CHECKPOINT(); RunRegexp(sc3, "a string");
+		UNIT_CHECKPOINT(); Run(sc3, "a string");
 
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
 		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
@@ -234,7 +234,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		Pire::CountingScanner sc4;
 		const void* tail = sc4.Mmap(ptr, wbuf.Buffer().Size());
 		UNIT_ASSERT_EQUAL(tail, (const void*) ((size_t)ptr + wbuf.Buffer().Size()));
-		UNIT_CHECKPOINT(); RunRegexp(sc4, "a string");
+		UNIT_CHECKPOINT(); Run(sc4, "a string");
 	}
 
 }

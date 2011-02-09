@@ -33,6 +33,13 @@ namespace Pire {
 #else
 #define PIRE_IFDEBUG(x)
 #endif
+	
+#ifdef PIRE_CHECKED
+#define PIRE_IF_CHECKED(e) e
+#else
+#define PIRE_IF_CHECKED(e)
+#endif
+
 
 	typedef unsigned short Char;
 	

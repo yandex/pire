@@ -196,6 +196,7 @@ PIRE_STATIC_ASSERT(
 inline size_t FillSizeT(char c)
 {
 	size_t w = c;
+	w &= 0x0ff;
 	for (size_t i = 8; i != sizeof(size_t)*8; i <<= 1)
 		w = (w << i) | w;
 	return w;
