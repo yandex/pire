@@ -137,8 +137,10 @@ namespace Impl {
 		}
 	};
 
+template <size_t cnt> class ExitMasks;
+
 // Scanner implementation parametrized by transition table representation strategy
-template<class Relocation>
+template<class Relocation, class Shortcutting>
 class Scanner {
 protected:
 	enum {
@@ -155,8 +157,6 @@ public:
 	typedef ui16		Letter;
 	typedef ui32		Action;
 	typedef ui8		Tag;
-
-	enum ShortcutAction { Look, Shortcut, Exit };
 
 	Scanner() { Alias(m_null); }
 	
@@ -218,7 +218,7 @@ public:
 	}
 
 	template<class AnotherRelocation>
-	Scanner(const Scanner<AnotherRelocation>& s)
+	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
 		if (s.Empty())
 			Alias(m_null);
@@ -321,6 +321,9 @@ public:
 	void Save(yostream*) const;
 	void Load(yistream*);
 
+	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
+	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
+
 private:
 	struct Settings {
 		size_t ExitMaskCount;
@@ -352,7 +355,7 @@ private:
 
 	Transition* m_transitions;
 	
-	static const Scanner<Relocation> m_null;
+	static const Scanner<Relocation, Shortcutting> m_null;
 	
 	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)); } // Row size should be a multiple of sizeof(MaxSizeWord)
 
@@ -396,12 +399,9 @@ private:
 		m_transitions = reinterpret_cast<Transition*>(m_finalIndex + m.statesCount);
 	}
 
-	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
-	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
-
 	// Makes a shallow ("weak") copy of the given scanner.
 	// The copied scanner does not maintain lifetime of the original's entrails.
-	void Alias(const Scanner<Relocation>& s)
+	void Alias(const Scanner<Relocation, Shortcutting>& s)
 	{
 		memcpy(&m, &s.m, sizeof(m));
 		m_buffer = 0;
@@ -412,7 +412,7 @@ private:
 	}
 	
 	template<class AnotherRelocation>
-	void DeepCopy(const Scanner<AnotherRelocation>& s)
+	void DeepCopy(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
 		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
 		PIRE_STATIC_ASSERT(sizeof(m) == sizeof(s.m));
@@ -432,8 +432,8 @@ private:
 			size_t oldstate = s.IndexToState(st);
 			size_t newstate = IndexToState(st);
 			Header(newstate) = s.Header(oldstate);
-			const typename Scanner<AnotherRelocation>::Transition* os
-				= reinterpret_cast<const typename Scanner<AnotherRelocation>::Transition*>(oldstate);
+			const typename Scanner<AnotherRelocation, Shortcutting>::Transition* os
+				= reinterpret_cast<const typename Scanner<AnotherRelocation, Shortcutting>::Transition*>(oldstate);
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
 
 			for (size_t let = 0; let != LettersCount(); ++let)
@@ -544,14 +544,102 @@ private:
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
 	friend class ScannerGlueTask<Scanner>;
-	template<class AnotherRelocation> friend class Scanner;
+
+	template<class AnotherRelocation, class AnotherShortcutting>
+	friend class Scanner;
+
+    friend struct ScannerSaver;
+
 #ifndef PIRE_DEBUG
-	friend struct AlignedRunner< Scanner<Relocation> >;
+	friend struct AlignedRunner< Scanner<Relocation, Shortcutting> >;
 #endif
 };
+
+// Helper class for Save/Load partial specialization
+struct ScannerSaver {
+	template<class Shortcutting>
+	static void SaveScanner(const Scanner<Relocatable, Shortcutting>& scanner, yostream* s)
+	{
+		typedef Scanner<Relocatable, Shortcutting> ScannerType;
+
+		typename ScannerType::Locals mc = scanner.m;
+		mc.initial -= reinterpret_cast<size_t>(scanner.m_transitions);
+		SavePodType(s, Pire::Header(1, sizeof(mc)));
+		Impl::AlignSave(s, sizeof(Pire::Header));
+		SavePodType(s, mc);
+		Impl::AlignSave(s, sizeof(mc));
+		SavePodType(s, typename ScannerType::Settings());
+		Impl::AlignSave(s, sizeof(typename ScannerType::Settings));
+		SavePodType(s, scanner.Empty());
+		Impl::AlignSave(s, sizeof(scanner.Empty()));
+		if (!scanner.Empty())
+			Impl::AlignedSaveArray(s, scanner.m_buffer, scanner.BufSize());
+	}
+
+	template<class Shortcutting>
+	static void LoadScanner(Scanner<Relocatable, Shortcutting>& scanner, yistream* s)
+	{
+		typedef Scanner<Relocatable, Shortcutting> ScannerType;
+
+		Scanner<Relocatable, Shortcutting> sc;
+		Impl::ValidateHeader(s, 1, sizeof(sc.m));
+		LoadPodType(s, sc.m);
+		Impl::AlignLoad(s, sizeof(sc.m));
+		typename ScannerType::Settings actual, required;
+		LoadPodType(s, actual);
+		Impl::AlignLoad(s, sizeof(actual));
+		if (actual != required)
+			throw Error("This scanner was compiled for an incompatible platform");
+		bool empty;
+		LoadPodType(s, empty);
+		Impl::AlignLoad(s, sizeof(empty));
+		
+		if (empty) {
+			sc.Alias(ScannerType::m_null);
+		} else {
+			sc.m_buffer = new char[sc.BufSize()];
+			Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
+			sc.Markup(sc.m_buffer);
+			sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
+		}
+		scanner.Swap(sc);
+	}
+
+	// TODO: implement more effective serialization
+	// of nonrelocatable scanner if necessary
 	
-template<class Relocation>
-const Scanner<Relocation> Scanner<Relocation>::m_null = Fsm::MakeFalse().Compile< Scanner<Relocation> >();
+	template<class Shortcutting>
+	static void SaveScanner(const Scanner<Nonrelocatable, Shortcutting>& scanner, yostream* s)
+	{
+		Scanner<Relocatable, Shortcutting>(scanner).Save(s);
+	}
+	
+	template<class Shortcutting>
+	static void LoadScanner(Scanner<Nonrelocatable, Shortcutting>& scanner, yistream* s)
+	{
+		Scanner<Relocatable, Shortcutting> rs;
+		rs.Load(s);
+		Scanner<Nonrelocatable, Shortcutting>(rs).Swap(scanner);
+	}
+};
+
+
+template<class Relocation, class Shortcutting>
+void Scanner<Relocation, Shortcutting>::Save(yostream* s) const
+{
+	ScannerSaver::SaveScanner(*this, s);
+}
+
+template<class Relocation, class Shortcutting>
+void Scanner<Relocation, Shortcutting>::Load(yistream* s)
+{
+	ScannerSaver::LoadScanner(*this, s);
+}
+
+	
+template<class Relocation, class Shortcutting>
+const Scanner<Relocation, Shortcutting> Scanner<Relocation, Shortcutting>::m_null =
+	Fsm::MakeFalse().Compile< Scanner<Relocation, Shortcutting> >();
 
 
 #ifndef PIRE_DEBUG
@@ -606,68 +694,128 @@ struct MaskChecker<N, N> : MaskCheckerBase<N>  {
 // The purpose of this template is to produce a number of ProcessChunk() calls
 // instead of writing for(...){ProcessChunk()} loop that GCC refuses to unroll.
 // Manually unrolled code proves to be faster
-template <class Relocation, unsigned Count>
+template <class Scanner, unsigned Count>
 struct MultiChunk {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
 	template<class Pred>
 	static FORCED_INLINE PIRE_HOT_FUNCTION
-	Action Process(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& state, const size_t* p, Pred pred)
+	Action Process(const Scanner& scanner, typename Scanner::State& state, const size_t* p, Pred pred)
 	{
 		if (RunChunk(scanner, state, p, 0, sizeof(void*), pred) == Continue)
-			return MultiChunk<Relocation, Count-1>::Process(scanner, state, ++p, pred);
+			return MultiChunk<Scanner, Count-1>::Process(scanner, state, ++p, pred);
 		else
 			return Stop;
 	}
 };
 
-template <class Relocation>
-struct MultiChunk<Relocation, 0> {
+template <class Scanner>
+struct MultiChunk<Scanner, 0> {
 	// Process Word-sized chunk which consist of >=1 size_t-sized chunks
 	template<class Pred>
 	static FORCED_INLINE PIRE_HOT_FUNCTION
-	Action Process(const Scanner<Relocation>&, typename Scanner<Relocation>::State, const size_t*, Pred)
+	Action Process(const Scanner&, typename Scanner::State, const size_t*, Pred)
 	{
 		return Continue;
 	}
 };
 
 
-template<class Relocation>
-struct AlignedRunner< Scanner<Relocation> > {
+// Shortcutting policy that checks state exit masks
+template <size_t MaskCount>
+class ExitMasks {
 private:
 	// Compares the ExitMask[0] value without SSE reads which seems to be more optimal
+	template <class Relocation>
 	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool CheckFirstMask(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State state, size_t val)
+	bool CheckFirstMask(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state, size_t val)
 	{
 		return (scanner.Header(state).Mask(0) == val);
 	}
 
+public:
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoExit(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state)
+	{
+		return CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK);
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoShortcut(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state)
+	{
+		return CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* Run(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state, size_t alignOffset, const Word* begin, const Word* end)
+	{
+		return MaskChecker<0, MaskCount - 1>::Run(scanner.Header(state), alignOffset, begin, end);
+	}
+
+};
+
+
+// Shortcutting policy that doesn't do shortcuts
+struct NoShortcuts {
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoExit(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State)
+	{
+		// Cannot exit prematurely
+		return false;
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoShortcut(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State)
+	{
+		// There's no shortcut regardless of the state
+		return true;
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* Run(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State, size_t, const Word* begin, const Word*)
+	{
+		// Stop shortcutting right at the beginning
+		return begin;
+	}
+};
+
+
+
+template<class Relocation, class Shortcutting>
+struct AlignedRunner< Scanner<Relocation, Shortcutting> > {
+private:
+	typedef Scanner<Relocation, Shortcutting> ScannerType;
+
 	template <class Pred>
 	static FORCED_INLINE PIRE_HOT_FUNCTION
-	Action RunMultiChunk(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, Pred pred)
+	Action RunMultiChunk(const ScannerType& scanner, typename ScannerType::State& st, const size_t* begin, Pred pred)
 	{
-		return MultiChunk<Relocation, sizeof(Word)/sizeof(size_t)>::Process(scanner, st, begin, pred);
+		return MultiChunk<ScannerType, sizeof(Word)/sizeof(size_t)>::Process(scanner, st, begin, pred);
 	}
 
 	// Asserts if the scanner changes state while processing the byte range that is
 	// supposed to be skipped by a shortcut
-	static void ValidateSkip(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State st, const char* begin, const char* end)
+	static void ValidateSkip(const ScannerType& scanner, typename ScannerType::State st, const char* begin, const char* end)
 	{
-		typename Scanner<Relocation>::State stateBefore = st;
+		typename ScannerType::State stateBefore = st;
 		for (const char* pos = begin; pos != end; ++pos) {
 			Step(scanner, st, (unsigned char)*pos);
 			YASSERT(st == stateBefore);
 		}
 	}
 
-
 public:
 
 	template<class Pred>
 	static inline PIRE_HOT_FUNCTION
-	Action RunAligned(const Scanner<Relocation>& scanner, typename Scanner<Relocation>::State& st, const size_t* begin, const size_t* end , Pred pred)
+	Action RunAligned(const ScannerType& scanner, typename ScannerType::State& st, const size_t* begin, const size_t* end , Pred pred)
 	{
-		typename Scanner<Relocation>::State state = st;		
+		typename ScannerType::State state = st;		
 		const Word* head = AlignUp((const Word*) begin, sizeof(Word));
 		const Word* tail = AlignDown((const Word*) end, sizeof(Word));
 		for (; begin != (const size_t*) head && begin != end; ++begin)
@@ -680,7 +828,7 @@ public:
 			st = state;
 			return Continue;
 		}
-		if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK)) {
+		if (Shortcutting::NoExit(scanner, state)) {
 			st = state;
 			return pred(scanner, state, ((const char*) end));
 		}
@@ -689,7 +837,7 @@ public:
 		YASSERT(scanner.RowSize() % sizeof(MaxSizeWord) == 0);
 		size_t alignOffset = (AlignUp((size_t)scanner.m_transitions, sizeof(Word)) - (size_t)scanner.m_transitions) / sizeof(size_t);
 
-		bool noShortcut = CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
+		bool noShortcut = Shortcutting::NoShortcut(scanner, state);
 
 		while (true) {
 			while (noShortcut && head != tail) {
@@ -698,17 +846,17 @@ public:
 					return Stop;
 				}
 				++head;
-				noShortcut = CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
+				noShortcut = Shortcutting::NoShortcut(scanner, state);
 			}
 			if (head == tail)
 				break;
 
-			if (CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK)) {
+			if (Shortcutting::NoExit(scanner, state)) {
 				st = state;
 				return pred(scanner, state, ((const char*) end));
 			}
 
-			const Word* skipEnd = MaskChecker<0, ScannerRowHeader::ExitMaskCount - 1>::Run(scanner.Header(state), alignOffset, head, tail);
+			const Word* skipEnd = Shortcutting::Run(scanner, state, alignOffset, head, tail);
 			PIRE_IF_CHECKED(ValidateSkip(scanner, state, (const char*)head, (const char*)skipEnd));
 			head = skipEnd;
 			noShortcut = true;
@@ -731,9 +879,12 @@ public:
 }
 
 
-template<class Relocation>
-struct StDumper<Impl::Scanner<Relocation> > {
-	StDumper(const Impl::Scanner<Relocation>& sc, typename Impl::Scanner<Relocation>::State st): m_sc(&sc), m_st(st) {}
+template<class Relocation, class Shortcutting>
+struct StDumper< Impl::Scanner<Relocation, Shortcutting> > {
+
+	typedef Impl::Scanner<Relocation, Shortcutting> ScannerType;
+
+	StDumper(const ScannerType& sc, typename ScannerType::State st): m_sc(&sc), m_st(st) {}
 
 	void Dump(yostream& stream) const
 	{
@@ -744,8 +895,8 @@ struct StDumper<Impl::Scanner<Relocation> > {
 			stream << " [dead]";
 	}
 private:
-	const Impl::Scanner<Relocation>* m_sc;
-	typename Impl::Scanner<Relocation>::State m_st;
+	const ScannerType* m_sc;
+	typename ScannerType::State m_st;
 };
 
 
@@ -758,13 +909,15 @@ private:
  * producting a scanner which can be used for checking
  * strings against several regexps in a single pass.
  */
-typedef Impl::Scanner<Impl::Relocatable> Scanner;
+//typedef Impl::Scanner<Impl::Relocatable, Impl::ExitMasks<2> > Scanner;
+typedef Impl::Scanner<Impl::Relocatable, Impl::NoShortcuts> Scanner;
 
 /**
  * Same as above, but does not allow relocation or mmap()-ing.
  * On the other hand, runs almost twice as fast as the Scanner.
  */
-typedef Impl::Scanner<Impl::Nonrelocatable> NonrelocScanner;
+//typedef Impl::Scanner<Impl::Nonrelocatable, Impl::ExitMasks<2> > NonrelocScanner;
+typedef Impl::Scanner<Impl::Nonrelocatable, Impl::NoShortcuts> NonrelocScanner;
 
 }
 

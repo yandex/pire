@@ -105,11 +105,11 @@ struct Compile {
 };
 
 // Multi regexp scanner
-template<class Relocation>
-struct Compile< Pire::Impl::Scanner<Relocation> > {
-	static Pire::Impl::Scanner<Relocation> Do(const Patterns& patterns, bool surround)
+template<class Relocation, class Shortcutting>
+struct Compile< Pire::Impl::Scanner<Relocation, Shortcutting> > {
+	static Pire::Impl::Scanner<Relocation, Shortcutting> Do(const Patterns& patterns, bool surround)
 	{
-		typedef Pire::Impl::Scanner<Relocation> Sc;
+		typedef Pire::Impl::Scanner<Relocation, Shortcutting> Sc;
 		Sc sc;
 		for (Patterns::const_iterator i = patterns.begin(), ie = patterns.end(); i != ie; ++i) {
 			Pire::Fsm fsm = Pire::Lexer(*i).Parse();
@@ -144,9 +144,9 @@ struct PrintResult {
 };
 
 // Multiple regexp
-template<class Relocation>
-struct PrintResult< Pire::Impl::Scanner<Relocation> > {
-	typedef Pire::Impl::Scanner<Relocation> Scanner;
+template<class Relocation, class Shortcutting>
+struct PrintResult< Pire::Impl::Scanner<Relocation, Shortcutting> > {
+	typedef Pire::Impl::Scanner<Relocation, Shortcutting> Scanner;
 
 	static void Do(const Scanner& sc, typename Scanner::State st)
 	{

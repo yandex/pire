@@ -23,7 +23,6 @@
 
 #include "stub/stl.h"
 #include "stub/saveload.h"
-#include "scanners/multi.h"
 #include "scanners/slow.h"
 #include "scanners/simple.h"
 #include "scanners/loaded.h"
@@ -31,69 +30,6 @@
 #include "scanners/loaded.h"
 
 namespace Pire {
-namespace Impl {
-	
-	template<>
-	void Scanner<Relocatable>::Save(yostream* s) const
-	{
-		Locals mc = m;
-		mc.initial -= reinterpret_cast<size_t>(m_transitions);
-		SavePodType(s, Pire::Header(1, sizeof(mc)));
-		Impl::AlignSave(s, sizeof(Pire::Header));
-		SavePodType(s, mc);
-		Impl::AlignSave(s, sizeof(mc));
-		SavePodType(s, Settings());
-		Impl::AlignSave(s, sizeof(Settings));
-		SavePodType(s, Empty());
-		Impl::AlignSave(s, sizeof(Empty()));
-		if (!Empty())
-			Impl::AlignedSaveArray(s, m_buffer, BufSize());
-	}
-
-	template<>
-	void Scanner<Relocatable>::Load(yistream* s)
-	{
-		Scanner<Relocatable> sc;
-		Impl::ValidateHeader(s, 1, sizeof(sc.m));
-		LoadPodType(s, sc.m);
-		Impl::AlignLoad(s, sizeof(sc.m));
-		Settings actual, required;
-		LoadPodType(s, actual);
-		Impl::AlignLoad(s, sizeof(actual));
-		if (actual != required)
-			throw Error("This scanner was compiled for an incompatible platform");
-		bool empty;
-		LoadPodType(s, empty);
-		Impl::AlignLoad(s, sizeof(empty));
-		
-		if (empty) {
-			sc.Alias(m_null);
-		} else {
-			sc.m_buffer = new char[sc.BufSize()];
-			Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-			sc.Markup(sc.m_buffer);
-			sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
-		}
-		Swap(sc);
-	}
-	
-	// TODO: implement more effective serialization
-	// of nonrelocatable scanner if necessary
-	
-	template<>
-	void Scanner<Nonrelocatable>::Save(yostream* s) const
-	{
-		Scanner<Relocatable>(*this).Save(s);
-	}
-	
-	template<>
-	void Scanner<Nonrelocatable>::Load(yistream* s)
-	{
-		Scanner<Relocatable> rs;
-		rs.Load(s);
-		Scanner<Nonrelocatable>(rs).Swap(*this);
-	}
-}
 	
 void SimpleScanner::Save(yostream* s) const
 {
