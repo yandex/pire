@@ -73,12 +73,16 @@ struct Scanners {
 	Pire::NonrelocScanner nonreloc;
 	Pire::SimpleScanner simple;
 	Pire::SlowScanner slow;
+	Pire::ScannerNoMask fastNoMask;
+	Pire::NonrelocScannerNoMask nonrelocNoMask;
 
 	Scanners(const Pire::Fsm& fsm)
 		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>())
  		, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>())
 		, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>())
 		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>())
+		, fastNoMask(Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>())
+ 		, nonrelocNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>())
 	{}
 
 	Scanners(const char* str, const char* options = "")
@@ -88,21 +92,24 @@ struct Scanners {
 		nonreloc = Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>();
 		simple = Pire::Fsm(fsm).Compile<Pire::SimpleScanner>();
 		slow = Pire::Fsm(fsm).Compile<Pire::SlowScanner>();
+		fastNoMask = Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>();
+ 		nonrelocNoMask = Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>();
 	}
 };
 
 #ifdef PIRE_DEBUG
 
-inline ystring DbgState(const Pire::Scanner& scanner, Pire::Scanner::State state)
+template <class Scanner>
+inline ystring DbgState(const Scanner& scanner, typename Scanner::State state)
 {
 	return ToString(scanner.StateIndex(state)) + (scanner.Final(state) ? ystring(" [final]") : ystring());
 }
-
+/*
 inline ystring DbgState(const Pire::SimpleScanner& scanner, Pire::SimpleScanner::State state)
 {
 	return ToString(scanner.StateIndex(state)) + (scanner.Final(state) ? ystring(" [final]") : ystring());
 }
-
+*/
 inline ystring DbgState(const Pire::SlowScanner& scanner, const Pire::SlowScanner::State& state)
 {
 	return ystring("(") + Join(state.states.begin(), state.states.end(), ", ") + ystring(")") + (scanner.Final(state) ? ystring(" [final]") : ystring());
@@ -155,6 +162,8 @@ bool Matches(const Scanner& scanner, const char* str)
         UNIT_ASSERT(Matches(m_scanners.nonreloc, str));\
 		UNIT_ASSERT(Matches(m_scanners.simple, str));\
 		UNIT_ASSERT(Matches(m_scanners.slow, str));\
+		UNIT_ASSERT(Matches(m_scanners.fastNoMask, str));\
+		UNIT_ASSERT(Matches(m_scanners.nonrelocNoMask, str));\
 	} while (false)
 
 #define DENIES(str) \
@@ -163,6 +172,8 @@ bool Matches(const Scanner& scanner, const char* str)
         UNIT_ASSERT(!Matches(m_scanners.nonreloc, str));\
 		UNIT_ASSERT(!Matches(m_scanners.simple, str));\
 		UNIT_ASSERT(!Matches(m_scanners.slow, str));\
+		UNIT_ASSERT(!Matches(m_scanners.fastNoMask, str));\
+		UNIT_ASSERT(!Matches(m_scanners.nonrelocNoMask, str));\
 	} while (false)
 
 

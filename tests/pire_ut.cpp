@@ -405,29 +405,50 @@ SIMPLE_UNIT_TEST(Serialization)
 	Save(&wbuf, s.fast);
 	Save(&wbuf, s.simple);
 	Save(&wbuf, s.slow);
+	Save(&wbuf, s.fastNoMask);
+	Save(&wbuf, s.nonreloc);
+	Save(&wbuf, s.nonrelocNoMask);
 
 	Pire::Scanner fast;
 	Pire::SimpleScanner simple;
 	Pire::SlowScanner slow;
+	Pire::ScannerNoMask fastNoMask;
+	Pire::NonrelocScanner nonreloc;
+	Pire::NonrelocScannerNoMask nonrelocNoMask;
 
 	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 	Load(&rbuf, fast);
 	Load(&rbuf, simple);
 	Load(&rbuf, slow);
+	Load(&rbuf, fastNoMask);
+	Load(&rbuf, nonreloc);
+	Load(&rbuf, nonrelocNoMask);
 
 	UNIT_ASSERT(Matches(fast, "regexp"));
 	UNIT_ASSERT(Matches(simple, "regexp"));
 	UNIT_ASSERT(Matches(slow, "regexp"));
+	UNIT_ASSERT(Matches(fastNoMask, "regexp"));
+	UNIT_ASSERT(Matches(nonreloc, "regexp"));
+	UNIT_ASSERT(Matches(nonrelocNoMask, "regexp"));
 	UNIT_ASSERT(!Matches(fast, "regxp"));
 	UNIT_ASSERT(!Matches(simple, "regxp"));
 	UNIT_ASSERT(!Matches(slow, "regxp"));
+	UNIT_ASSERT(!Matches(fastNoMask, "regxp"));
+	UNIT_ASSERT(!Matches(nonreloc, "regxp"));
+	UNIT_ASSERT(!Matches(nonrelocNoMask, "regxp"));
 	UNIT_ASSERT(!Matches(fast, "regexp t"));
 	UNIT_ASSERT(!Matches(simple, "regexp t"));
 	UNIT_ASSERT(!Matches(slow, "regexp t"));
+	UNIT_ASSERT(!Matches(fastNoMask, "regexp t"));
+	UNIT_ASSERT(!Matches(nonreloc, "regexp t"));
+	UNIT_ASSERT(!Matches(nonrelocNoMask, "regexp t"));
 
 	Pire::Scanner fast2;
 	Pire::SimpleScanner simple2;
 	Pire::SlowScanner slow2;
+	Pire::ScannerNoMask fastNoMask2;
+	Pire::Scanner fast3;
+	Pire::ScannerNoMask fastNoMask3;
 	const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
 	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 	const char* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
@@ -441,12 +462,23 @@ SIMPLE_UNIT_TEST(Serialization)
 	ptr2 = (const char*)simple2.Mmap(ptr, end - ptr);
 	size_t simpleSize = ptr2 - ptr;
 	ptr = ptr2;
-	ptr = (const char*)slow2.Mmap(ptr, end - ptr);
+	ptr2 = (const char*)slow2.Mmap(ptr, end - ptr);
+	ptr = ptr2;
+	ptr2 = (const char*)fastNoMask2.Mmap(ptr, end - ptr);
+	ptr = ptr2;
+	// Nonreloc-s are saved as Scaner-s, so read them again
+	ptr2 = (const char*)fast3.Mmap(ptr, end - ptr);
+	ptr = ptr2;
+	ptr2 = (const char*)fastNoMask3.Mmap(ptr, end - ptr);
+	ptr = ptr2;
 	UNIT_ASSERT_EQUAL(ptr, end);
 
 	UNIT_ASSERT(Matches(fast2, "regexp"));
 	UNIT_ASSERT(!Matches(fast2, "regxp"));
 	UNIT_ASSERT(!Matches(fast2, "regexp t"));
+	UNIT_ASSERT(Matches(fastNoMask2, "regexp"));
+	UNIT_ASSERT(!Matches(fastNoMask2, "regxp"));
+	UNIT_ASSERT(!Matches(fastNoMask2, "regexp t"));
 	UNIT_ASSERT(Matches(slow2, "regexp"));
 	UNIT_ASSERT(!Matches(slow2, "regxp"));
 	UNIT_ASSERT(!Matches(slow2, "regexp t"));
@@ -454,6 +486,14 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(!Matches(simple2, "regxp"));
 	UNIT_ASSERT(!Matches(simple2, "regexp t"));
 
+	// TODO: Wtf?? Shouldn't mmaping work?
+/*	UNIT_ASSERT(Matches(fast3, "regexp"));
+	UNIT_ASSERT(!Matches(fast3, "regxp"));
+	UNIT_ASSERT(!Matches(fast3, "regexp t"));
+	UNIT_ASSERT(Matches(fastNoMask3, "regexp"));
+	UNIT_ASSERT(!Matches(fastNoMask3, "regxp"));
+	UNIT_ASSERT(!Matches(fastNoMask3, "regexp t"));
+*/
 	for (size_t offset = 1; offset < MaxTestOffset; ++offset) {
 		ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
 		end = ptr + wbuf.Buffer().Size();
@@ -532,6 +572,8 @@ SIMPLE_UNIT_TEST(Glue)
 {
 	TestGlue<Pire::Scanner>();
 	TestGlue<Pire::NonrelocScanner>();
+	TestGlue<Pire::ScannerNoMask>();
+	TestGlue<Pire::NonrelocScannerNoMask>();
 }
 
 SIMPLE_UNIT_TEST(Slow)
@@ -602,6 +644,7 @@ SIMPLE_UNIT_TEST(EmptyScanner)
 {
 	// Tests for Scanner
 	BasicTestEmptySaveLoadMmap<Pire::Scanner>();
+	BasicTestEmptySaveLoadMmap<Pire::ScannerNoMask>();
 
 	Pire::Scanner sc;
 	Pire::Scanner scsc = Pire::Scanner::Glue(sc, sc);

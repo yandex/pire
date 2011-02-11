@@ -113,8 +113,12 @@ Impl::Scanner<Relocation, Shortcutting> Impl::Scanner<Relocation, Shortcutting>:
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 
+// TODO: Can we somehow avoid explicit instantiation here?
 template Scanner Scanner::Glue(const Scanner&, const Scanner&, size_t);
 template NonrelocScanner NonrelocScanner::Glue(const NonrelocScanner&, const NonrelocScanner&, size_t);
+
+template ScannerNoMask ScannerNoMask::Glue(const ScannerNoMask&, const ScannerNoMask&, size_t);
+template NonrelocScannerNoMask NonrelocScannerNoMask::Glue(const NonrelocScannerNoMask&, const NonrelocScannerNoMask&, size_t);
 
 }
 

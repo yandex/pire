@@ -76,70 +76,10 @@ namespace Impl {
 		static Transition Diff(size_t /*from*/, size_t to) { return to; }
 	};
 
-	/// Some properties of the particular state.
-	struct ScannerRowHeader {
-		enum { ExitMaskCount = 2 };
-	private:
-		/// In order to allow transition table to be aligned at sizeof(size_t) instead of
-		/// sizeof(Word) and still be able to read Masks at Word-aligned addresses each mask
-		/// occupies 2x space and only properly aligned part of it is read
-		enum {
-			SizeTInMaxSizeWord = sizeof(MaxSizeWord) / sizeof(size_t),
-			MaskSizeInSizeT = 2 * SizeTInMaxSizeWord,
-		};
 
-		/// If this state loops for all letters except particular set
-		/// (common thing when matching something like /.*[Aa]/),
-		/// each ExitMask contains that letter in each byte of size_t.
-		///
-		/// These masks are most commonly used for fast forwarding through parts
-		/// of the string matching /.*/ somewhere in the middle regexp.
-		///
-		/// If bytes of mask hold different values, the mask is invalid
-		/// and will not be used.
-		size_t ExitMasks[ExitMaskCount * MaskSizeInSizeT];
-		
-	public:
-		inline
-		const Word& Mask(size_t i, size_t alignOffset) const
-		{
-			YASSERT(i < ExitMaskCount);
-			YASSERT(alignOffset < SizeTInMaxSizeWord);
-			const Word* p = (const Word*)(ExitMasks + alignOffset + MaskSizeInSizeT * i);
-			YASSERT(IsAligned(p, sizeof(Word)));
-			return *p;
-		}
-		
-		inline
-		size_t Mask(size_t i) const
-		{
-			YASSERT(i < ExitMaskCount);
-			return ExitMasks[MaskSizeInSizeT*i];
-		}
-				
-		void SetMask(size_t i, size_t val)
-		{
-			for (size_t j = 0; j < MaskSizeInSizeT; ++j)
-				ExitMasks[MaskSizeInSizeT*i + j] = val;
-		}
-
-		enum {
-			NO_SHORTCUT_MASK = 1, // the state doensn't have shortcuts
-			NO_EXIT_MASK  =    2  // the state has only transtions to itself
-		};
-
-		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
-
-		ScannerRowHeader(): Flags(0)
-		{
-			for (size_t i = 0; i < ExitMaskCount; ++i)
-				SetMask(i, NO_SHORTCUT_MASK);
-		}
-	};
-
-template <size_t cnt> class ExitMasks;
-
-// Scanner implementation parametrized by transition table representation strategy
+// Scanner implementation parametrized by 
+//      - transition table representation strategy
+//      - strategy for fast forwarding through memory ranges
 template<class Relocation, class Shortcutting>
 class Scanner {
 protected:
@@ -157,6 +97,22 @@ public:
 	typedef ui16		Letter;
 	typedef ui32		Action;
 	typedef ui8		Tag;
+
+	/// Some properties of the particular state.
+	struct CommonRowHeader {
+		size_t Flags; ///< Holds FinalFlag, DeadFlag, etc...
+
+		CommonRowHeader(): Flags(0) {}
+
+		template <class OtherCommonRowHeader>
+		CommonRowHeader& operator =(const OtherCommonRowHeader& other)
+		{
+			Flags = other.Flags;
+			return *this;
+		}
+	};
+
+	typedef typename Shortcutting::template ExtendedRowHeader<Scanner> ScannerRowHeader;
 
 	Scanner() { Alias(m_null); }
 	
@@ -177,11 +133,11 @@ public:
 	size_t LettersCount() const { return m.lettersCount; }
 
 	/// Checks whether specified state is in any of the final sets
-	bool Final(const State& state) const { return (Header(state).Flags & FinalFlag) != 0; }
+	bool Final(const State& state) const { return (Header(state).Common.Flags & FinalFlag) != 0; }
 
 	/// Checks whether specified state is 'dead' (i.e. scanner will never
 	/// reach any final state from current one)
-	bool Dead(const State& state) const { return (Header(state).Flags & DeadFlag) != 0; }
+	bool Dead(const State& state) const { return (Header(state).Common.Flags & DeadFlag) != 0; }
 
 	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& state) const
 	{
@@ -268,11 +224,8 @@ public:
 		Impl::AdvancePtr(p, size, sizeof(s.m));
 		Impl::AlignPtr(p, size);
 		
-		Settings required;
-		const Settings* actual;
-		Impl::MapPtr(actual, 1, p, size);
-		if (required != *actual)
-			throw Error("This scanner was compiled for an incompatible platform");
+		if (Shortcutting::Signature != s.m.shortcuttingSignature)
+			throw Error("This scanner has different shortcutting type");
 		
 		bool empty = *((const bool*) p);
 		Impl::AdvancePtr(p, size, sizeof(empty));
@@ -325,18 +278,7 @@ public:
 	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
 
 private:
-	struct Settings {
-		size_t ExitMaskCount;
-		size_t ExitMaskSize;
-		
-		Settings():
-			ExitMaskCount(ScannerRowHeader::ExitMaskCount),
-			ExitMaskSize(sizeof(ScannerRowHeader))
-		{}
-		bool operator == (const Settings& rhs) const { return ExitMaskCount == rhs.ExitMaskCount && ExitMaskSize == rhs.ExitMaskSize; }
-		bool operator != (const Settings& rhs) const { return !(*this == rhs); }
-	};
-	
+
 	struct Locals {
 		ui32 statesCount;
 		ui32 lettersCount;
@@ -344,6 +286,7 @@ private:
 		size_t initial;
 		ui32 finalTableSize;
 		size_t relocationSignature;
+		size_t shortcuttingSignature;
 	} m;
 
 	char* m_buffer;
@@ -366,6 +309,7 @@ private:
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
 	{
 		m.relocationSignature = Relocation::Signature;
+		m.shortcuttingSignature = Shortcutting::Signature;
 		m.statesCount = states;
 		m.lettersCount = letters.Size();
 		m.regexpsCount = regexpsCount;
@@ -418,6 +362,7 @@ private:
 		PIRE_STATIC_ASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
+		m.shortcuttingSignature = Shortcutting::Signature;
 		m_buffer = new char[BufSize() + sizeof(size_t)];
 		Markup(AlignUp(m_buffer, sizeof(size_t)));
 
@@ -469,7 +414,7 @@ private:
 	void SetTag(size_t state, size_t value)
 	{
 		YASSERT(m_buffer);
-		Header(IndexToState(state)).Flags = value;
+		Header(IndexToState(state)).Common.Flags = value;
 	}
 
 	// Fill shortcut masks for all the states
@@ -486,18 +431,18 @@ private:
 		// check if it is possible to setup shortcuts
 		for (size_t i = 0; i != Size(); ++i) {
 			State st = IndexToState(i);
+			ScannerRowHeader& header = Header(st);
+			Shortcutting::SetNoExit(header);
 			size_t ind = 0;
-			size_t lastMask = ScannerRowHeader::NO_EXIT_MASK;
 			size_t let = HEADER_SIZE;
 			for (; let != LettersCount() + HEADER_SIZE; ++let) {
 				// Check if the transition is not the same state
 				if (Relocation::Go(st, reinterpret_cast<const Transition*>(st)[let]) != st) {
-					if (ind + letters[let].size() > ScannerRowHeader::ExitMaskCount)
+					if (ind + letters[let].size() > Shortcutting::ExitMaskCount)
 						break;
 					// For each character setup a mask
 					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit) {
-						lastMask = FillSizeT(*chit);
-						Header(st).SetMask(ind, lastMask);
+						Shortcutting::SetMask(header, ind, *chit);
 						++ind;
 					}
 				}
@@ -505,14 +450,10 @@ private:
 
 			if (let != LettersCount() + HEADER_SIZE) {
 				// Not enough space in ExitMasks, so reset all masks (which leads to bypassing the optimization)
-				lastMask = ScannerRowHeader::NO_SHORTCUT_MASK;
-				ind = 0;
+				Shortcutting::SetNoShortcut(header);
 			}
 			// Fill the rest of the shortcut masks with the last used mask
-			while (ind != ScannerRowHeader::ExitMaskCount) {
-				Header(st).SetMask(ind, lastMask);
-				++ind;
-			}
+			Shortcutting::FinishMasks(header, ind);
 		}
 	}
 
@@ -522,7 +463,7 @@ private:
 		YASSERT(m_buffer);
 		for (size_t state = 0; state != Size(); ++state) {
 			m_finalIndex[state] = m_finalEnd - m_final;
-			if (Header(IndexToState(state)).Flags & FinalFlag)
+			if (Header(IndexToState(state)).Common.Flags & FinalFlag)
 				*m_finalEnd++ = 0;
 			*m_finalEnd++ = static_cast<size_t>(-1);
 		}
@@ -568,8 +509,6 @@ struct ScannerSaver {
 		Impl::AlignSave(s, sizeof(Pire::Header));
 		SavePodType(s, mc);
 		Impl::AlignSave(s, sizeof(mc));
-		SavePodType(s, typename ScannerType::Settings());
-		Impl::AlignSave(s, sizeof(typename ScannerType::Settings));
 		SavePodType(s, scanner.Empty());
 		Impl::AlignSave(s, sizeof(scanner.Empty()));
 		if (!scanner.Empty())
@@ -585,11 +524,8 @@ struct ScannerSaver {
 		Impl::ValidateHeader(s, 1, sizeof(sc.m));
 		LoadPodType(s, sc.m);
 		Impl::AlignLoad(s, sizeof(sc.m));
-		typename ScannerType::Settings actual, required;
-		LoadPodType(s, actual);
-		Impl::AlignLoad(s, sizeof(actual));
-		if (actual != required)
-			throw Error("This scanner was compiled for an incompatible platform");
+		if (Shortcutting::Signature != sc.m.shortcuttingSignature)
+			throw Error("This scanner has different shortcutting type");
 		bool empty;
 		LoadPodType(s, empty);
 		Impl::AlignLoad(s, sizeof(empty));
@@ -642,54 +578,251 @@ const Scanner<Relocation, Shortcutting> Scanner<Relocation, Shortcutting>::m_nul
 	Fsm::MakeFalse().Compile< Scanner<Relocation, Shortcutting> >();
 
 
-#ifndef PIRE_DEBUG
-
-template<unsigned N>
-struct MaskCheckerBase {
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool Check(const ScannerRowHeader& hdr, size_t alignOffset, Word chunk)
-	{
-		Word mask = CheckBytes(hdr.Mask(N, alignOffset), chunk);
-		for (int i = N-1; i >= 0; --i) {
-			mask = Or(mask, CheckBytes(hdr.Mask(i, alignOffset), chunk));
+// Shortcutting policy that checks state exit masks
+template <size_t MaskCount>
+class ExitMasks {
+private:
+	enum {
+		NO_SHORTCUT_MASK = 1, // the state doesn't have shortcuts
+		NO_EXIT_MASK  =    2  // the state has only transtions to itself (we can stop the scan)
+	};
+	
+	template<class ScannerRowHeader, unsigned N>
+	struct MaskCheckerBase {
+		static FORCED_INLINE PIRE_HOT_FUNCTION
+		bool Check(const ScannerRowHeader& hdr, size_t alignOffset, Word chunk)
+		{
+			Word mask = CheckBytes(hdr.Mask(N, alignOffset), chunk);
+			for (int i = N-1; i >= 0; --i) {
+				mask = Or(mask, CheckBytes(hdr.Mask(i, alignOffset), chunk));
+			}
+			return !IsAnySet(mask);
 		}
-		return !IsAnySet(mask);
+	
+		static FORCED_INLINE PIRE_HOT_FUNCTION
+		const Word* DoRun(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+		{
+			for (; begin != end && Check(hdr, alignOffset, ToLittleEndian(*begin)); ++begin) {}
+			return begin;
+		}
+	};
+	
+	template<class ScannerRowHeader, unsigned N, unsigned Nmax>
+	struct MaskChecker : MaskCheckerBase<ScannerRowHeader, N>  {
+		typedef MaskCheckerBase<ScannerRowHeader, N> Base;
+		typedef MaskChecker<ScannerRowHeader, N+1, Nmax> Next;
+	
+		static FORCED_INLINE PIRE_HOT_FUNCTION
+		const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+		{
+			if (hdr.Mask(N) == hdr.Mask(N + 1))
+				return Base::DoRun(hdr, alignOffset, begin, end);
+			else
+				return Next::Run(hdr, alignOffset, begin, end);
+		}
+	};
+	
+	template<class ScannerRowHeader, unsigned N>
+	struct MaskChecker<ScannerRowHeader, N, N> : MaskCheckerBase<ScannerRowHeader, N>  {
+		typedef MaskCheckerBase<ScannerRowHeader, N> Base;
+	
+		static FORCED_INLINE PIRE_HOT_FUNCTION
+		const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+		{
+			return Base::DoRun(hdr, alignOffset, begin, end);
+		}
+	};	
+
+	// Compares the ExitMask[0] value without SSE reads which seems to be more optimal
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool CheckFirstMask(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state, size_t val)
+	{
+		return (scanner.Header(state).Mask(0) == val);
 	}
 
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	const Word* DoRun(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
+public:
+
+	static const size_t ExitMaskCount = MaskCount;
+	static const size_t Signature = 0x2000 + MaskCount;
+
+	template <class Scanner>
+	struct ExtendedRowHeader {
+	private:
+		/// In order to allow transition table to be aligned at sizeof(size_t) instead of
+		/// sizeof(Word) and still be able to read Masks at Word-aligned addresses each mask
+		/// occupies 2x space and only properly aligned part of it is read
+		enum {
+			SizeTInMaxSizeWord = sizeof(MaxSizeWord) / sizeof(size_t),
+			MaskSizeInSizeT = 2 * SizeTInMaxSizeWord,
+		};
+
+	public:	
+		static const size_t ExitMaskCount = MaskCount;
+
+		inline
+		const Word& Mask(size_t i, size_t alignOffset) const
+		{
+			YASSERT(i < ExitMaskCount);
+			YASSERT(alignOffset < SizeTInMaxSizeWord);
+			const Word* p = (const Word*)(ExitMasks + alignOffset + MaskSizeInSizeT * i);
+			YASSERT(IsAligned(p, sizeof(Word)));
+			return *p;
+		}
+		
+		FORCED_INLINE PIRE_HOT_FUNCTION
+		size_t Mask(size_t i) const
+		{
+			YASSERT(i < ExitMaskCount);
+			return ExitMasks[MaskSizeInSizeT*i];
+		}
+				
+		void SetMask(size_t i, size_t val)
+		{
+			for (size_t j = 0; j < MaskSizeInSizeT; ++j)
+				ExitMasks[MaskSizeInSizeT*i + j] = val;
+		}
+
+		ExtendedRowHeader()
+		{
+			for (size_t i = 0; i < ExitMaskCount; ++i)
+				SetMask(i, NO_SHORTCUT_MASK);
+		}
+		
+		template <class OtherScanner>
+		ExtendedRowHeader& operator =(const ExtendedRowHeader<OtherScanner>& other)
+		{
+			PIRE_STATIC_ASSERT(ExitMaskCount == ExtendedRowHeader<OtherScanner>::ExitMaskCount);
+			Common = other.Common;
+			for (size_t i = 0; i < ExitMaskCount; ++i)
+				SetMask(i, other.Mask(i));
+			return *this;
+		}
+
+	public:
+		/// If this state loops for all letters except particular set
+		/// (common thing when matching something like /.*[Aa]/),
+		/// each ExitMask contains that letter in each byte of size_t.
+		///
+		/// These masks are most commonly used for fast forwarding through parts
+		/// of the string matching /.*/ somewhere in the middle regexp.
+		size_t ExitMasks[ExitMaskCount * MaskSizeInSizeT];
+
+		typename Scanner::CommonRowHeader Common;
+	};
+
+	template <class Header>
+	static void SetNoExit(Header& header)
 	{
-		for (; begin != end && Check(hdr, alignOffset, ToLittleEndian(*begin)); ++begin) {}
+		header.SetMask(0, NO_EXIT_MASK);
+	}
+
+	template <class Header>
+	static void SetNoShortcut(Header& header)
+	{
+		header.SetMask(0, NO_SHORTCUT_MASK);
+	}
+
+	template <class Header>
+	static void SetMask(Header& header, size_t ind, char c)
+	{
+		header.SetMask(ind, FillSizeT(c));
+	}
+
+	template <class Header>
+	static void FinishMasks(Header& header, size_t ind)
+	{
+		if (ind == 0)
+			ind = 1;
+		// Fill the rest of the shortcut masks with the last used mask
+		size_t lastMask = header.Mask(ind - 1);
+		while (ind != ExitMaskCount) {
+			header.SetMask(ind, lastMask);
+			++ind;
+		}
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoExit(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state)
+	{
+		return CheckFirstMask(scanner, state, NO_EXIT_MASK);
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoShortcut(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state)
+	{
+		return CheckFirstMask(scanner, state, NO_SHORTCUT_MASK);
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* Run(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state, size_t alignOffset, const Word* begin, const Word* end)
+	{
+		return MaskChecker<typename Scanner<Relocation, ExitMasks<MaskCount> >::ScannerRowHeader, 0, MaskCount - 1>::Run(scanner.Header(state), alignOffset, begin, end);
+	}
+
+};
+
+
+// Shortcutting policy that doesn't do shortcuts
+struct NoShortcuts {
+
+	static const size_t ExitMaskCount = 0;
+	static const size_t Signature = 0x1000;
+
+	template <class Scanner>
+	struct ExtendedRowHeader {
+		typename Scanner::CommonRowHeader Common;
+
+		template <class OtherScanner>
+		ExtendedRowHeader& operator =(const ExtendedRowHeader<OtherScanner>& other)
+		{
+			PIRE_STATIC_ASSERT(sizeof(ExtendedRowHeader) == sizeof(ExtendedRowHeader<OtherScanner>));
+			Common = other.Common;
+			return *this;
+		}
+	};
+
+	template <class Header>
+	static void SetNoExit(Header&) {}
+
+	template <class Header>
+	static void SetNoShortcut(Header&) {}
+
+	template <class Header>
+	static void SetMask(Header&, size_t, char) {}
+
+	template <class Header>
+	static void FinishMasks(Header&, size_t) {}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoExit(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State)
+	{
+		// Cannot exit prematurely
+		return false;
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	bool NoShortcut(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State)
+	{
+		// There's no shortcut regardless of the state
+		return true;
+	}
+
+	template <class Relocation>
+	static FORCED_INLINE PIRE_HOT_FUNCTION
+	const Word* Run(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State, size_t, const Word* begin, const Word*)
+	{
+		// Stop shortcutting right at the beginning
 		return begin;
 	}
 };
 
-template<unsigned N, unsigned Nmax>
-struct MaskChecker : MaskCheckerBase<N>  {
-	typedef MaskCheckerBase<N> Base;
-	typedef MaskChecker<N+1, Nmax> Next;
-
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
-	{
-		if (hdr.Mask(N) == hdr.Mask(N + 1))
-			return Base::DoRun(hdr, alignOffset, begin, end);
-		else
-			return Next::Run(hdr, alignOffset, begin, end);
-	}
-};
-
-template<unsigned N>
-struct MaskChecker<N, N> : MaskCheckerBase<N>  {
-	typedef MaskCheckerBase<N> Base;
-
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	const Word* Run(const ScannerRowHeader& hdr, size_t alignOffset, const Word* begin, const Word* end)
-	{
-		return Base::DoRun(hdr, alignOffset, begin, end);
-	}
-};
-
+#ifndef PIRE_DEBUG
 
 // The purpose of this template is to produce a number of ProcessChunk() calls
 // instead of writing for(...){ProcessChunk()} loop that GCC refuses to unroll.
@@ -719,78 +852,14 @@ struct MultiChunk<Scanner, 0> {
 	}
 };
 
-
-// Shortcutting policy that checks state exit masks
-template <size_t MaskCount>
-class ExitMasks {
-private:
-	// Compares the ExitMask[0] value without SSE reads which seems to be more optimal
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool CheckFirstMask(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state, size_t val)
-	{
-		return (scanner.Header(state).Mask(0) == val);
-	}
-
-public:
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool NoExit(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state)
-	{
-		return CheckFirstMask(scanner, state, ScannerRowHeader::NO_EXIT_MASK);
-	}
-
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool NoShortcut(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state)
-	{
-		return CheckFirstMask(scanner, state, ScannerRowHeader::NO_SHORTCUT_MASK);
-	}
-
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	const Word* Run(const Scanner<Relocation, ExitMasks<MaskCount> >& scanner, typename Scanner<Relocation, ExitMasks<MaskCount> >::State state, size_t alignOffset, const Word* begin, const Word* end)
-	{
-		return MaskChecker<0, MaskCount - 1>::Run(scanner.Header(state), alignOffset, begin, end);
-	}
-
-};
-
-
-// Shortcutting policy that doesn't do shortcuts
-struct NoShortcuts {
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool NoExit(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State)
-	{
-		// Cannot exit prematurely
-		return false;
-	}
-
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	bool NoShortcut(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State)
-	{
-		// There's no shortcut regardless of the state
-		return true;
-	}
-
-	template <class Relocation>
-	static FORCED_INLINE PIRE_HOT_FUNCTION
-	const Word* Run(const Scanner<Relocation, NoShortcuts>&, typename Scanner<Relocation, NoShortcuts>::State, size_t, const Word* begin, const Word*)
-	{
-		// Stop shortcutting right at the beginning
-		return begin;
-	}
-};
-
-
-
+// Efficiently runs a scanner through size_t-aligned memory range
 template<class Relocation, class Shortcutting>
 struct AlignedRunner< Scanner<Relocation, Shortcutting> > {
 private:
 	typedef Scanner<Relocation, Shortcutting> ScannerType;
 
+	// Processes Word-sized chuck of memory (depending on the platform a Word might
+	// consist of multiple size_t chuncks)
 	template <class Pred>
 	static FORCED_INLINE PIRE_HOT_FUNCTION
 	Action RunMultiChunk(const ScannerType& scanner, typename ScannerType::State& st, const size_t* begin, Pred pred)
@@ -840,6 +909,7 @@ public:
 		bool noShortcut = Shortcutting::NoShortcut(scanner, state);
 
 		while (true) {
+			// Do normal processing until a shortcut is possible
 			while (noShortcut && head != tail) {
 				if (RunMultiChunk(scanner, state, (const size_t*)head, pred) == Stop) {
 					st = state;
@@ -856,6 +926,7 @@ public:
 				return pred(scanner, state, ((const char*) end));
 			}
 
+			// Do fast forwarding while it is possible
 			const Word* skipEnd = Shortcutting::Run(scanner, state, alignOffset, head, tail);
 			PIRE_IF_CHECKED(ValidateSkip(scanner, state, (const char*)head, (const char*)skipEnd));
 			head = skipEnd;
@@ -909,15 +980,15 @@ private:
  * producting a scanner which can be used for checking
  * strings against several regexps in a single pass.
  */
-//typedef Impl::Scanner<Impl::Relocatable, Impl::ExitMasks<2> > Scanner;
-typedef Impl::Scanner<Impl::Relocatable, Impl::NoShortcuts> Scanner;
+typedef Impl::Scanner<Impl::Relocatable, Impl::ExitMasks<2> > Scanner;
+typedef Impl::Scanner<Impl::Relocatable, Impl::NoShortcuts> ScannerNoMask;
 
 /**
  * Same as above, but does not allow relocation or mmap()-ing.
  * On the other hand, runs almost twice as fast as the Scanner.
  */
-//typedef Impl::Scanner<Impl::Nonrelocatable, Impl::ExitMasks<2> > NonrelocScanner;
-typedef Impl::Scanner<Impl::Nonrelocatable, Impl::NoShortcuts> NonrelocScanner;
+typedef Impl::Scanner<Impl::Nonrelocatable, Impl::ExitMasks<2> > NonrelocScanner;
+typedef Impl::Scanner<Impl::Nonrelocatable, Impl::NoShortcuts> NonrelocScannerNoMask;
 
 }
 
