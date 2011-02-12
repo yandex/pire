@@ -22,7 +22,6 @@ libpire_la_SOURCES = \
 	fsm.cpp \
 	fsm.h \
 	fwd.h \
-	glue.cpp \
 	glue.h \
 	partition.h \
 	pire.h \
