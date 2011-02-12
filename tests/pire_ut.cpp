@@ -397,6 +397,36 @@ struct BasicMmapTest {
 	}
 };
 
+template <class Sc1, class Sc2>
+void TestCopyingHelper()
+{
+	Pire::Fsm fsm = ParseRegexp("^r$", "");
+	Sc1 sc1(Pire::Fsm(fsm).Compile<Sc1>());
+
+	// Test copy ctor
+	UNIT_ASSERT(Matches(Sc2(sc1), "r"));
+	UNIT_ASSERT(!Matches(Sc2(sc1), "p"));
+
+	// Test '=' operator
+	Sc2 sc2;
+	sc2 = sc1;
+	UNIT_ASSERT(Matches(sc2, "r"));
+	UNIT_ASSERT(!Matches(sc2, "p"));
+}
+
+template <class Sc1, class Sc2>
+void TestCopying()
+{
+	TestCopyingHelper<Sc1, Sc2>();
+	TestCopyingHelper<Sc2, Sc1>();
+}
+
+SIMPLE_UNIT_TEST(Copying)
+{
+	TestCopying<Pire::Scanner, Pire::NonrelocScanner>();
+	TestCopying<Pire::ScannerNoMask, Pire::NonrelocScannerNoMask>();
+}
+
 SIMPLE_UNIT_TEST(Serialization)
 {
 	Scanners s("^regexp$");
@@ -485,15 +515,13 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(Matches(simple2, "regexp"));
 	UNIT_ASSERT(!Matches(simple2, "regxp"));
 	UNIT_ASSERT(!Matches(simple2, "regexp t"));
-
-	// TODO: Wtf?? Shouldn't mmaping work?
-/*	UNIT_ASSERT(Matches(fast3, "regexp"));
+	UNIT_ASSERT(Matches(fast3, "regexp"));
 	UNIT_ASSERT(!Matches(fast3, "regxp"));
 	UNIT_ASSERT(!Matches(fast3, "regexp t"));
 	UNIT_ASSERT(Matches(fastNoMask3, "regexp"));
 	UNIT_ASSERT(!Matches(fastNoMask3, "regxp"));
 	UNIT_ASSERT(!Matches(fastNoMask3, "regexp t"));
-*/
+
 	for (size_t offset = 1; offset < MaxTestOffset; ++offset) {
 		ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
 		end = ptr + wbuf.Buffer().Size();

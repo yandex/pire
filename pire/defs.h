@@ -24,7 +24,9 @@
 #ifndef PIRE_DEFS_H
 #define PIRE_DEFS_H
 
-#include "pire/config.h"
+#ifndef PIRE_NO_CONFIG
+#include <pire/config.h>
+#endif
 
 namespace Pire {
 

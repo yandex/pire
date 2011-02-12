@@ -158,13 +158,26 @@ public:
 	/// Handles one characters
 	Action Next(State& state, Char c) const
 	{
+		PIRE_IFDEBUG(
+			YASSERT(state >= (size_t)m_transitions);
+			YASSERT(state < (size_t)(m_transitions + RowSize()*Size()));
+			YASSERT((state - (size_t)m_transitions) % (RowSize()*sizeof(Transition)) == 0);
+		);
+
 		state = Relocation::Go(state, reinterpret_cast<const Transition*>(state)[m_letters[c]]);
+
+		PIRE_IFDEBUG(
+			YASSERT(state >= (size_t)m_transitions);
+			YASSERT(state < (size_t)(m_transitions + RowSize()*Size()));
+			YASSERT((state - (size_t)m_transitions) % (RowSize()*sizeof(Transition)) == 0);
+		);
+
 		return 0;
 	}
 
 	void TakeAction(State&, Action) const {}
 
-	Scanner(const Scanner& s): m(s.m)
+	Scanner(const Scanner& s): m(s.m), m_buffer(0)
 	{
 		if (!s.m_buffer) {
 			// Empty or mmap()-ed scanner
@@ -176,7 +189,7 @@ public:
 	}
 
 	template<class AnotherRelocation>
-	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s)
+	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s) : m_buffer(0)
 	{
 		if (s.Empty())
 			Alias(m_null);
@@ -186,6 +199,8 @@ public:
 
 	void Swap(Scanner& s)
 	{
+		YASSERT(m.relocationSignature == s.m.relocationSignature);
+		YASSERT(m.shortcuttingSignature == s.m.shortcuttingSignature);
 		DoSwap(m_buffer, s.m_buffer);
 		DoSwap(m.statesCount, s.m.statesCount);
 		DoSwap(m.lettersCount, s.m.lettersCount);
@@ -301,8 +316,9 @@ private:
 	Transition* m_transitions;
 	
 	static const Scanner<Relocation, Shortcutting> m_null;
-	
-	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)); } // Row size should be a multiple of sizeof(MaxSizeWord)
+
+	// Returns transition row size in Transition's. Row size_in bytes should be a multiple of sizeof(MaxSizeWord)
+	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)/sizeof(Transition)); }
 
 	static const size_t HEADER_SIZE = sizeof(ScannerRowHeader) / sizeof(Transition);
 	PIRE_STATIC_ASSERT(sizeof(ScannerRowHeader) % sizeof(Transition) == 0);
@@ -360,6 +376,9 @@ private:
 	template<class AnotherRelocation>
 	void DeepCopy(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
+		// Don't want memory leaks, but we cannot free the buffer because there might be aliased instances
+		YASSERT(m_buffer == 0);
+
 		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
 		PIRE_STATIC_ASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
@@ -368,7 +387,12 @@ private:
 		m_buffer = new char[BufSize() + sizeof(size_t)];
 		Markup(AlignUp(m_buffer, sizeof(size_t)));
 
-		memcpy(m_letters, s.m_letters, MaxChar * sizeof(*m_letters));
+		// Values in letter-to-leterclass table take into account row header size
+		for (size_t c = 0; c < MaxChar; ++c) {
+			m_letters[c] = s.m_letters[c] - s.HEADER_SIZE + HEADER_SIZE;
+			YASSERT(c == Epsilon || m_letters[c] >= HEADER_SIZE);
+			YASSERT(c == Epsilon || m_letters[c] < RowSize());
+		}
 		memcpy(m_final, s.m_final, m.finalTableSize * sizeof(*m_final));
 		memcpy(m_finalIndex, s.m_finalIndex, m.statesCount * sizeof(*m_finalIndex));
 
@@ -383,9 +407,13 @@ private:
 				= reinterpret_cast<const typename Scanner<AnotherRelocation, Shortcutting>::Transition*>(oldstate);
 			Transition* ns = reinterpret_cast<Transition*>(newstate);
 
-			for (size_t let = 0; let != LettersCount(); ++let)
-				ns[let + HEADER_SIZE] = Relocation::Diff(newstate,
-					IndexToState(s.StateIndex(AnotherRelocation::Go(oldstate, os[let + s.HEADER_SIZE]))));
+			for (size_t let = 0; let != LettersCount(); ++let) {
+				size_t destIndex = s.StateIndex(AnotherRelocation::Go(oldstate, os[let + s.HEADER_SIZE]));
+				Transition tr = Relocation::Diff(newstate, IndexToState(destIndex));
+				ns[let + HEADER_SIZE] = tr;
+				YASSERT(Relocation::Go(newstate, tr) >= (size_t)m_transitions);
+				YASSERT(Relocation::Go(newstate, tr) < (size_t)(m_transitions + RowSize()*Size()));
+			}
 		}
 	}
 
@@ -905,7 +933,7 @@ public:
 		}
 		
 		// Row size should be a multiple of MaxSizeWord size. Then alignOffset is the same for any state
-		YASSERT(scanner.RowSize() % sizeof(MaxSizeWord) == 0);
+		YASSERT((scanner.RowSize()*sizeof(typename ScannerType::Transition)) % sizeof(MaxSizeWord) == 0);
 		size_t alignOffset = (AlignUp((size_t)scanner.m_transitions, sizeof(Word)) - (size_t)scanner.m_transitions) / sizeof(size_t);
 
 		bool noShortcut = Shortcutting::NoShortcut(scanner, state);
