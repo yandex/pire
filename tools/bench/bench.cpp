@@ -308,7 +308,7 @@ public:
 std::runtime_error usage(
 	"Usage: bench -f file [-c repetition_count] "
 	"[-a run|shortestprefix|longestprefix] "
-	"-t {multi|nonreloc|simple|slow|null"
+	"-t {multi|nonreloc|multinomask|nonrelocnomask|simple|slow|null"
 #ifdef BENCH_EXTRA_ENABLED
 	"count|capture"
 #endif
@@ -321,6 +321,10 @@ ITester* CreateTester(const std::vector<std::string>& types)
 		return new Tester<Pire::Scanner>;
 	else if (types.size() == 1 && types[0] == "nonreloc")
 		return new Tester<Pire::NonrelocScanner>;
+	else if (types.size() == 1 && types[0] == "multinomask")
+		return new Tester<Pire::ScannerNoMask>;
+	else if (types.size() == 1 && types[0] == "nonrelocnomask")
+		return new Tester<Pire::NonrelocScannerNoMask>;
 	else if (types.size() == 1 && types[0] == "simple")
 		return new Tester<Pire::SimpleScanner>;
 	else if (types.size() == 1 && types[0] == "slow")
@@ -329,6 +333,8 @@ ITester* CreateTester(const std::vector<std::string>& types)
 		return new MemTester;
 	else if (types.size() == 2 && types[0] == "multi" && types[1] == "multi")
 		return new PairTester<Pire::Scanner, Pire::Scanner>;
+	else if (types.size() == 2 && types[0] == "multinomask" && types[1] == "multinomask")
+		return new PairTester<Pire::ScannerNoMask, Pire::ScannerNoMask>;
 	else if (types.size() == 2 && types[0] == "multi" && types[1] == "simple")
 		return new PairTester<Pire::Scanner, Pire::SimpleScanner>;
 	else if (types.size() == 2 && types[0] == "multi" && types[1] == "nonreloc")
@@ -345,6 +351,8 @@ ITester* CreateTester(const std::vector<std::string>& types)
 		return new PairTester<Pire::NonrelocScanner, Pire::SimpleScanner>;
 	else if (types.size() == 2 && types[0] == "nonreloc" && types[1] == "nonreloc")
 		return new PairTester<Pire::NonrelocScanner, Pire::NonrelocScanner>;
+	else if (types.size() == 2 && types[0] == "nonrelocnomask" && types[1] == "nonrelocnomask")
+		return new PairTester<Pire::NonrelocScannerNoMask, Pire::NonrelocScannerNoMask>;
 #ifdef BENCH_EXTRA_ENABLED
 	else if (types.size() == 1 && types[0] == "count")
 		return new Tester<Pire::CountingScanner>;

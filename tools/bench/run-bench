@@ -24,7 +24,7 @@ usage() {
 
 print_res()
 {
-	printf "%16s %16s %40s %10.3f MB/sec\n" "$1" "$2" "$3" "$4"
+	printf "%30s %16s %40s %10.3f MB/sec\n" "$1" "$2" "$3" "$4"
 }
 
 extract_bandwidth() {
@@ -148,12 +148,18 @@ bench null run ''
 run_all nonreloc
 run_multi nonreloc
 run_pair nonreloc '[a-z]$' '[0-9]$'
+run_all nonrelocnomask
+run_multi nonrelocnomask
+run_pair nonrelocnomask '[a-z]$' '[0-9]$'
 run_all nonreloc longestprefix
 run_all nonreloc shortestprefix
 
 run_all multi
 run_multi multi
 run_pair multi '[a-z]$' '[0-9]$'
+run_all multinomask
+run_multi multinomask
+run_pair multinomask '[a-z]$' '[0-9]$'
 run_all multi longestprefix
 run_all multi shortestprefix
 
