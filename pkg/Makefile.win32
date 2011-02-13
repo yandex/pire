@@ -9,7 +9,6 @@ PIRE_OBJS = \
 	$(OBJDIR)\classes.obj \
 	$(OBJDIR)\encoding.obj \
 	$(OBJDIR)\fsm.obj \
-	$(OBJDIR)\glue.obj \
 	$(OBJDIR)\re_lexer.obj \
 	$(OBJDIR)\re_parser.obj \
 	$(OBJDIR)\scanner_io.obj \
@@ -38,8 +37,11 @@ all: pire.lib pigrep.exe blacklist.exe validator.exe bench.exe
 check: pire_test.exe
 	pire_test.exe
 
-pire.lib: $(OBJDIR)\dir $(PIRE_OBJS)
+pire.lib: config.h $(OBJDIR)\dir $(PIRE_OBJS)
 	lib /nologo /out:pire.lib $(PIRE_OBJS)
+
+config.h:
+	echo #pragma once > pire\config.h
 
 {$(SRCDIR)\}.cpp{$(OBJDIR)\}.obj:
 	$(CXX) -I$(SRCDIR) $(CXXFLAGS) /nologo /c /Fo$@ $<
@@ -127,6 +129,7 @@ $(OBJDIR)\dir:
 	echo stamp >$(OBJDIR)\dir
 
 clean:
+	del pire\config.h
 	del $(PIRE_OBJS) pire.lib vc100.pdb
 	del pire_inline.exe pire_inline.ilk pire_inline.pdb $(OBJDIR)\pire_inline.obj
 	del pigrep.exe pigrep.ilk pigrep.pdb $(OBJDIR)\pigrep.obj

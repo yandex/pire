@@ -695,7 +695,7 @@ public:
 		{
 			YASSERT(i < ExitMaskCount);
 			YASSERT(alignOffset < SizeTInMaxSizeWord);
-			const Word* p = (const Word*)(ExitMasks + alignOffset + MaskSizeInSizeT * i);
+			const Word* p = (const Word*)(ExitMasksArray + alignOffset + MaskSizeInSizeT * i);
 			YASSERT(IsAligned(p, sizeof(Word)));
 			return *p;
 		}
@@ -704,13 +704,13 @@ public:
 		size_t Mask(size_t i) const
 		{
 			YASSERT(i < ExitMaskCount);
-			return ExitMasks[MaskSizeInSizeT*i];
+			return ExitMasksArray[MaskSizeInSizeT*i];
 		}
 				
 		void SetMask(size_t i, size_t val)
 		{
 			for (size_t j = 0; j < MaskSizeInSizeT; ++j)
-				ExitMasks[MaskSizeInSizeT*i + j] = val;
+				ExitMasksArray[MaskSizeInSizeT*i + j] = val;
 		}
 
 		ExtendedRowHeader()
@@ -729,15 +729,16 @@ public:
 			return *this;
 		}
 
-	public:
+	private:
 		/// If this state loops for all letters except particular set
 		/// (common thing when matching something like /.*[Aa]/),
 		/// each ExitMask contains that letter in each byte of size_t.
 		///
 		/// These masks are most commonly used for fast forwarding through parts
 		/// of the string matching /.*/ somewhere in the middle regexp.
-		size_t ExitMasks[ExitMaskCount * MaskSizeInSizeT];
+		size_t ExitMasksArray[ExitMaskCount * MaskSizeInSizeT];
 
+	public:
 		typename Scanner::CommonRowHeader Common;
 	};
 
