@@ -96,9 +96,13 @@ struct BasicInstructionSet {
 	static inline bool IsAnySet(Vector mask) { return (mask != 0); }
 };
 
+}}
 
 #if defined(__SSE2__)
 #include <emmintrin.h>
+
+namespace Pire {
+namespace Impl {
 
 // SSE2-optimized mask comparison logic
 struct AvailSSE2 {
@@ -124,8 +128,13 @@ typedef AvailSSE2 AvailInstructionSet;
 
 inline AvailSSE2::Vector ToLittleEndian(AvailSSE2::Vector x) { return x; }
 
+}}
+
 #elif defined(__MMX__)
 #include <mmintrin.h>
+
+namespace Pire {
+namespace Impl {
 
 // MMX-optimized mask comparison logic
 struct AvailMMX {
@@ -156,12 +165,21 @@ typedef AvailMMX AvailInstructionSet;
 
 inline AvailMMX::Vector ToLittleEndian(AvailMMX::Vector x) { return x; }
 
+}}
+
 #else // no SSE and MMX
+
+namespace Pire {
+namespace Impl {
 
 typedef BasicInstructionSet AvailInstructionSet;
 
+}}
+
 #endif
 
+namespace Pire {
+namespace Impl {
 
 typedef AvailInstructionSet::Vector Word;
 
