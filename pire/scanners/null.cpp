@@ -5,21 +5,9 @@
 #include "loaded.h"
 
 namespace Pire {
-	
-namespace Impl {
-	class NullLoadedScanner: public Pire::LoadedScanner {
-	public:
-		explicit NullLoadedScanner(Pire::Fsm& fsm)
-		{
-			fsm.Canonize();
-			Init(fsm.Size(), fsm.Letters(), fsm.Initial());
-			BuildScanner(fsm, *this);
-		}		
-	};
-}
 
-const SimpleScanner SimpleScanner::m_null = Fsm::MakeFalse().Compile<SimpleScanner>();
-const SlowScanner   SlowScanner  ::m_null = Fsm::MakeFalse().Compile<SlowScanner>();
-const LoadedScanner LoadedScanner::m_null = Fsm::MakeFalse().Compile<Impl::NullLoadedScanner>();
+const SimpleScanner* SimpleScanner::m_null = &SimpleScanner::Null();
+const SlowScanner*   SlowScanner  ::m_null = &SlowScanner::Null();
+const LoadedScanner* LoadedScanner::m_null = &LoadedScanner::Null();
 
 }

@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include "common.h"
+#include "../fsm.h"
 #include "../partition.h"
 
 #ifdef PIRE_DEBUG
@@ -69,14 +70,13 @@ public:
 		DeadFlag  = 0
 	};
 
-	size_t Size() const { return m.statesCount; }
-
-	LoadedScanner() { Alias(m_null); }
+protected:	
+	LoadedScanner() { Alias(Null()); }
 	
 	LoadedScanner(const LoadedScanner& s): m(s.m)
 	{
 		if (s.m_buffer) {
-			m_buffer = malloc(BufSize());
+			m_buffer = new char [BufSize()];
 			memcpy(m_buffer, s.m_buffer, BufSize());
 			Markup(m_buffer);
 			m.initial = (InternalState)m_jumps + (s.m.initial - (InternalState)s.m_jumps);
@@ -84,10 +84,6 @@ public:
 			Alias(s);
 		}
 	}
-
-	bool Empty() const { return m_jumps == m_null.m_jumps; }
-
-	size_t RegexpsCount() const { return Empty() ? 0 : m.regexpsCount; }
 
 	void Swap(LoadedScanner& s)
 	{
@@ -103,6 +99,13 @@ public:
 	}
 
 	LoadedScanner& operator = (const LoadedScanner& s) { LoadedScanner(s).Swap(*this); return *this; }
+
+public:
+	size_t Size() const { return m.statesCount; }
+
+	bool Empty() const { return m_jumps == Null().m_jumps; }
+
+	size_t RegexpsCount() const { return Empty() ? 0 : m.regexpsCount; }
 
 	const void* Mmap(const void* ptr, size_t size)
 	{
@@ -135,7 +138,7 @@ public:
 		m.statesCount = states;
 		m.lettersCount = letters.Size();
 		m.regexpsCount = regexpsCount;
-		m_buffer = malloc(BufSize());
+		m_buffer = new char[BufSize()];
 		memset(m_buffer, 0, BufSize());
 		Markup(m_buffer);
 
@@ -191,7 +194,8 @@ protected:
 		ui32 regexpsCount;
 		size_t initial;
 	} m;
-	void* m_buffer;
+
+	char* m_buffer;
 
 	Letter* m_letters;
 	Transition* m_jumps;
@@ -211,7 +215,23 @@ protected:
 	}
 
 private:
-	static const LoadedScanner m_null;
+	explicit LoadedScanner(Fsm& fsm)
+	{
+		fsm.Canonize();
+		Init(fsm.Size(), fsm.Letters(), fsm.Initial());
+		BuildScanner(fsm, *this);
+	}
+
+	// Only used to force Null() call during static initialization, when Null()::n can be
+	// initialized safely by compilers that don't support thread safe static local vars
+	// initialization
+	static const LoadedScanner* m_null;
+
+	inline static const LoadedScanner& Null()
+	{
+		static const LoadedScanner n = Fsm::MakeFalse().Compile<LoadedScanner>();
+		return n;
+	}
 	
 	void Markup(void* buf)
 	{
@@ -242,10 +262,8 @@ private:
 	
 inline LoadedScanner::~LoadedScanner()
 {
-	if (m_buffer)
-		free(m_buffer);
+	delete [] m_buffer;
 }
-
 
 }
 

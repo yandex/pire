@@ -57,7 +57,7 @@ void SimpleScanner::Load(yistream* s)
 	LoadPodType(s, empty);
 	Impl::AlignLoad(s, sizeof(empty));
 	if (empty) {
-		sc.Alias(m_null);
+		sc.Alias(Null());
 	} else {
 		sc.m_buffer = new char[sc.BufSize()];
 		Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
@@ -109,7 +109,7 @@ void SlowScanner::Load(yistream* s)
 	LoadPodType(s, empty);
 	Impl::AlignLoad(s, sizeof(empty));
 	if (empty) {
-		sc.Alias(m_null);
+		sc.Alias(Null());
 	} else {
 		sc.m_vec.resize(sc.m.lettersCount * sc.m.statesCount);
 		sc.m_vecptr = &sc.m_vec;
@@ -162,7 +162,7 @@ void LoadedScanner::Load(yistream* s)
 	Impl::ValidateHeader(s, 4, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
-	sc.m_buffer = malloc(sc.BufSize());
+	sc.m_buffer = new char[sc.BufSize()];
 	sc.Markup(sc.m_buffer);
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);

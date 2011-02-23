@@ -72,9 +72,9 @@ public:
 #endif
 	};
 
-	SlowScanner() { Alias(m_null); }
+	SlowScanner() { Alias(Null()); }
 
-	bool Empty() const { return m_finals == m_null.m_finals; }
+	bool Empty() const { return m_finals == Null().m_finals; }
 	
 	size_t Id() const {return (size_t) -1;}
 	size_t RegexpsCount() const { return Empty() ? 0 : 1; }
@@ -164,7 +164,7 @@ public:
 		Impl::AlignPtr(p, size);
 		
 		if (empty)
-			s.Alias(m_null);
+			s.Alias(Null());
 		else {
 			s.m_vecptr = 0;
 			Impl::MapPtr(s.m_letters, MaxChar, p, size);
@@ -275,8 +275,17 @@ private:
 
 	yvector<void*> m_pool;
 	yvector< yvector<unsigned> > m_vec, *m_vecptr;
-	
-	static const SlowScanner m_null;
+
+	// Only used to force Null() call during static initialization, when Null()::n can be
+	// initialized safely by compilers that don't support thread safe static local vars
+	// initialization
+	static const SlowScanner* m_null;
+
+	inline static const SlowScanner& Null()
+	{
+		static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
+		return n;
+	}
 
 	template<class T> void alloc(T*& p, size_t size)
 	{

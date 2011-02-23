@@ -45,12 +45,12 @@ public:
 	typedef ui32        Action;
 	typedef ui8         Tag;
 
-	SimpleScanner()	{ Alias(m_null); }
+	SimpleScanner()	{ Alias(Null()); }
 	
 	explicit SimpleScanner(Fsm& fsm);
 
 	size_t Size() const { return m.statesCount; }
-	bool Empty() const { return m_transitions == m_null.m_transitions; }
+	bool Empty() const { return m_transitions == Null().m_transitions; }
 
 	typedef size_t State;
 
@@ -138,7 +138,7 @@ public:
 		Impl::AlignPtr(p, size);
 		
 		if (empty)
-			s.Alias(m_null);
+			s.Alias(Null());
 		else {
 			if (size < s.BufSize())
 				throw Error("EOF reached while mapping NPire::Scanner");
@@ -174,8 +174,17 @@ protected:
 	char* m_buffer;
 
 	Transition* m_transitions;
-	
-	static const SimpleScanner m_null;
+
+	// Only used to force Null() call during static initialization, when Null()::n can be
+	// initialized safely by compilers that don't support thread safe static local vars
+	// initialization
+	static const SimpleScanner* m_null;
+
+	inline static const SimpleScanner& Null()
+	{
+		static const SimpleScanner n = Fsm::MakeFalse().Compile<SimpleScanner>();
+		return n;
+	}
 
 	/*
 	 * Initializes pointers depending on buffer start, letters and states count

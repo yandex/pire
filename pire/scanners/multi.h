@@ -116,7 +116,7 @@ public:
 
 	typedef typename Shortcutting::template ExtendedRowHeader<Scanner> ScannerRowHeader;
 
-	Scanner() { Alias(m_null); }
+	Scanner() { Alias(Null()); }
 	
 	explicit Scanner(Fsm& fsm)
 	{
@@ -127,7 +127,7 @@ public:
 
 
 	size_t Size() const { return m.statesCount; }
-	bool Empty() const { return m_transitions == m_null.m_transitions; }
+	bool Empty() const { return m_transitions == Null().m_transitions; }
 
 	typedef size_t State;
 
@@ -192,7 +192,7 @@ public:
 	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s) : m_buffer(0)
 	{
 		if (s.Empty())
-			Alias(m_null);
+			Alias(Null());
 		else
 			DeepCopy(s);
 	}
@@ -249,7 +249,7 @@ public:
 		Impl::AlignPtr(p, size);
 		
 		if (empty)
-			s.Alias(m_null);
+			s.Alias(Null());
 		else {
 			if (size < s.BufSize())
 				throw Error("EOF reached while mapping NPire::Scanner");
@@ -314,8 +314,18 @@ private:
 	size_t* m_finalIndex;
 
 	Transition* m_transitions;
-	
-	static const Scanner<Relocation, Shortcutting> m_null;
+
+	// Only used to force Null() call during static initialization, when Null()::n can be
+	// initialized safely by compilers that don't support thread safe static local vars
+	// initialization
+	static const Scanner* m_null;
+
+	inline static const Scanner& Null()
+	{
+		static const Scanner n = Fsm::MakeFalse().Compile< Scanner<Relocation, Shortcutting> >();
+		// this comparison is only needed to make the compiler not completely throw away m_null 
+		return (m_null == &n ? *m_null : n);
+	}
 
 	// Returns transition row size in Transition's. Row size_in bytes should be a multiple of sizeof(MaxSizeWord)
 	size_t RowSize() const { return AlignUp(m.lettersCount + HEADER_SIZE, sizeof(MaxSizeWord)/sizeof(Transition)); }
@@ -561,7 +571,7 @@ struct ScannerSaver {
 		Impl::AlignLoad(s, sizeof(empty));
 		
 		if (empty) {
-			sc.Alias(ScannerType::m_null);
+			sc.Alias(ScannerType::Null());
 		} else {
 			sc.m_buffer = new char[sc.BufSize()];
 			Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
@@ -602,11 +612,8 @@ void Scanner<Relocation, Shortcutting>::Load(yistream* s)
 	ScannerSaver::LoadScanner(*this, s);
 }
 
-	
 template<class Relocation, class Shortcutting>
-const Scanner<Relocation, Shortcutting> Scanner<Relocation, Shortcutting>::m_null =
-	Fsm::MakeFalse().Compile< Scanner<Relocation, Shortcutting> >();
-
+const Scanner<Relocation, Shortcutting>* Scanner<Relocation, Shortcutting>::m_null = &Null();
 
 // Shortcutting policy that checks state exit masks
 template <size_t MaskCount>
