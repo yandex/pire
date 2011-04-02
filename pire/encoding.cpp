@@ -55,6 +55,7 @@ namespace {
 		}
 
 		void AppendDot(Fsm& fsm) const { fsm.AppendDot(); }
+		Latin1() : Encoding() { }
 	};
 	
 	namespace UtfRanges {
@@ -93,7 +94,7 @@ static const Latin1 latin1;
 				YASSERT(!"Pire::UTF8::toLocal(): Internal error");
 			return ret;
 		}
-
+		Utf8() : Encoding() { }
 		void AppendDot(Fsm& fsm) const
 		{
 			size_t last = fsm.Resize(fsm.Size() + UtfRanges::MaxLen);
