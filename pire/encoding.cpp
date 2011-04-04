@@ -36,6 +36,8 @@ namespace {
 
 	class Latin1: public Encoding {
 	public:
+		Latin1() : Encoding() {}
+
 		wchar32 FromLocal(const char*& begin, const char* end) const
 		{
 			if (begin == end)
@@ -74,6 +76,8 @@ static const Latin1 latin1;
 
 	class Utf8: public Encoding {
 	public:
+		Utf8() : Encoding() {}
+
 		wchar32 FromLocal(const char*& begin, const char* end) const
 		{
 			wchar32 rune;

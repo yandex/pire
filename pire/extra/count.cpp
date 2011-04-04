@@ -90,7 +90,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 				YASSERT(!"Wrong transition size for backup");
 
 			NewState ns(*mr.begin(), *br.begin());
-			NewState savedNs = ns;
+			PIRE_IFDEBUG(NewState savedNs = ns);
 			unsigned long outputs = 0;
 
 			PIRE_IFDEBUG(ystring dbgout);

@@ -19,6 +19,7 @@
 #define PIRE_STUB_DEFAULTS_H_INCLUDED
 
 #include <stdint.h>
+#include <stddef.h>
 
 namespace Pire {
 	typedef int8_t i8;
