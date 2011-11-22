@@ -248,10 +248,10 @@ int main(int argc, char** argv)
 		if (!filename.empty()) {
 			if ((yyin = fopen(filename.c_str(), "r")) == NULL)
 				Die() << "cannot open file " << filename.c_str() << "\n";
-	} else
+		} else
 			filename = "(stdin)";
 
-
+		fprintf(yyout, "#line 1 \"%s\"\n", filename.c_str());
 		yylex();
 		return 0;
 	}
