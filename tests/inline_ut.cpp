@@ -60,6 +60,9 @@ bool ParticularMatch(Pire::Scanner& sc, Pire::Scanner::State st, size_t idx)
 
 SIMPLE_UNIT_TEST(Inline)
 {
+	const char* STRING_WITH_BACKSHASHED_QUOTES = "aaa\"bbb";
+	++STRING_WITH_BACKSHASHED_QUOTES; // Suppress 'unused variable' warning
+
 	Pire::Scanner scanner = PIRE_REGEXP("http://([a-z0-9]+\\.)+[a-z]{2,4}/?", "is");
 	UNIT_ASSERT(Matches(scanner, "http://domain.vasya.ru/"));
 	UNIT_ASSERT(Matches(scanner, "prefix http://domain.vasya.ru/"));

@@ -79,6 +79,7 @@ void eatComment(void (*action)(char));
 <Regexp>"/*"             { eatComment(suppressChar); }
 <INITIAL>"//".*\n        { ++line; fprintf(yyout, "%s", yytext); }
 <Regexp>"//".*\n         { ++line; }
+<INITIAL>"\\".           { fprintf(yyout, "%s", yytext); if (yytext[1] == '\n') ++line; }
 "\""([^\"]|\\.)*"\""     { fprintf(yyout, "%s", yytext); }
 \n                       { ++line; putc('\n', yyout); }
 
