@@ -113,7 +113,7 @@ enum WC_TYPE {
 
 const size_t DEFCHAR_BUF = 58; // CCL_NUM + 1
 
-extern const i32  unicode_types[];
+extern const ui32 unicode_types[];
 extern const wchar32 decomp_mapping[];
 extern const ui32 *unicode_pages[];
 
@@ -132,7 +132,7 @@ ui32 _runeinfo(wchar32 ch)
 		return _runeinfo(0xE001);//as characters from Private Use Zone
 	return unicode_pages[(ch>>5)&0x7FF][ch&0x1F];
 }
-i32 wc_info(wchar32 ch)
+ui32 wc_info(wchar32 ch)
 {
 	return unicode_types[(_runeinfo(ch)>>TYPES_OFFSET) & TYPES_MASK];
 }

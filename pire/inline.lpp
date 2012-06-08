@@ -178,7 +178,7 @@ void eatComment(void (*action)(char));
 	AlignedOutput stream(&buf);
 	Save(&stream, sc);
 
-	fprintf(yyout, "Pire::MmappedScanner<Pire::Scanner>( // %s \n    \"", pattern.c_str());
+	fprintf(yyout, "Pire::MmappedScanner<Pire::Scanner>(PIRE_LITERAL( // %s \n    \"", pattern.c_str());
 	size_t pos = 5;
 	for (BufferIterator i = buf.Buffer().Begin(), ie = buf.Buffer().End(); i != ie; ++i) {
 		pos += fprintf(yyout, "\\x%02X", static_cast<unsigned char>(*i));
@@ -187,7 +187,7 @@ void eatComment(void (*action)(char));
 			pos = 5;
 		}
 	}
-	fprintf(yyout, "\", %u)\n#line %d \"%s\"\n",
+	fprintf(yyout, "\"), %u)\n#line %d \"%s\"\n",
 		(unsigned int) buf.Buffer().Size(), line, filename.c_str());
 	BEGIN(INITIAL);
 }

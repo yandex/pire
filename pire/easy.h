@@ -122,9 +122,9 @@ public:
 	}
 	
 	template<class Arg2>
-	friend Options operator | (const Option<Arg2>& a, const Option<Arg>& b)
+	Options operator | (const Option<Arg2>& other) const
 	{
-		return Options() | a | b;
+		return Options() | *this | other;
 	}
 
 private:

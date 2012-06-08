@@ -28,6 +28,7 @@
 #ifndef PIRE_COMPAT_H_INCLUDED
 #define PIRE_COMPAT_H_INCLUDED
 
+#include "../defs.h"
 #include <string>
 #include <vector>
 #include <deque>
@@ -199,7 +200,7 @@ namespace Pire {
 	template<class T>
 	inline const T& ymax(const T& a, const T& b) { return std::max(a, b); }
 
-	static std::ostream& Cdbg = std::clog;
+	PIRE_IFDEBUG(static std::ostream& Cdbg = std::clog);
 
 	inline yostream& Endl(yostream& s) { return std::endl(s); }
 

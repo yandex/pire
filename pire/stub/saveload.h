@@ -52,7 +52,7 @@ namespace Pire {
 				if (!Traits::eq_int_type(ret, Traits::eof())) {
 					m_ch = (Char) ret;
 					m_read += sizeof(Char);
-					setg(&m_ch, &m_ch, &m_ch+1);
+					this->setg(&m_ch, &m_ch, &m_ch+1);
 				}
 				return ret;
 			}
@@ -64,7 +64,7 @@ namespace Pire {
 				return ret;
 			}
 
-			typename Traits::int_type overflow(Char c)
+			typename Traits::int_type overflow(typename Traits::int_type c)
 			{
 				typename Traits::int_type ret = m_backend->sputc(c);
 				if (!Traits::eq_int_type(ret, Traits::eof()))
@@ -119,7 +119,7 @@ namespace Pire {
 				: std::basic_ostream<Char, Traits>(0)
 				, m_streambuf(backend->rdbuf())
 			{
-				rdbuf(&m_streambuf);
+				this->rdbuf(&m_streambuf);
 			}
 
 			void Align(size_t divisor = sizeof(void*))

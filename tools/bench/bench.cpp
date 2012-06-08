@@ -92,7 +92,7 @@ public:
 
 // Sinlge regexp scanner
 template<class Scanner>
-struct Compile {
+struct CompileRe {
 	static Scanner Do(const Patterns& patterns, bool surround)
 	{
 		if (patterns.size() != 1)
@@ -106,7 +106,7 @@ struct Compile {
 
 // Multi regexp scanner
 template<class Relocation, class Shortcutting>
-struct Compile< Pire::Impl::Scanner<Relocation, Shortcutting> > {
+struct CompileRe< Pire::Impl::Scanner<Relocation, Shortcutting> > {
 	static Pire::Impl::Scanner<Relocation, Shortcutting> Do(const Patterns& patterns, bool surround)
 	{
 		typedef Pire::Impl::Scanner<Relocation, Shortcutting> Sc;
@@ -172,7 +172,7 @@ struct PrintResult< Pire::ScannerPair<Scanner1, Scanner2> > {
 
 #ifdef BENCH_EXTRA_ENABLED
 template <>
-struct Compile<Pire::CapturingScanner> {
+struct CompileRe<Pire::CapturingScanner> {
 	static Pire::CapturingScanner Do(const Patterns& patterns, bool surround)
 	{
 		if (patterns.size() != 1)
@@ -185,7 +185,7 @@ struct Compile<Pire::CapturingScanner> {
 };
 
 template <>
-struct Compile<Pire::CountingScanner> {
+struct CompileRe<Pire::CountingScanner> {
 	static Pire::CountingScanner Do(const Patterns& patterns, bool /*surround*/)
 	{
 		Pire::CountingScanner sc;
@@ -268,7 +268,7 @@ class Tester: public TesterBase<Scanner> {
 	{
 		if (patterns.size() != 1)
 			throw std::runtime_error("Only one set of regexps is allowed for this scanner");
-		Base::sc = ::Compile<Scanner>::Do(patterns[0], surround);
+		Base::sc = ::CompileRe<Scanner>::Do(patterns[0], surround);
 	}
 };
 
@@ -280,8 +280,8 @@ class PairTester: public TesterBase< Pire::ScannerPair<Scanner1, Scanner2> > {
 	{
 		if (patterns.size() != 2)
 			throw std::runtime_error("Only two sets of regexps are allowed for this scanner");
-		sc1 = ::Compile<Scanner1>::Do(patterns[0], surround);
-		sc2 = ::Compile<Scanner2>::Do(patterns[1], surround);
+		sc1 = ::CompileRe<Scanner1>::Do(patterns[0], surround);
+		sc2 = ::CompileRe<Scanner2>::Do(patterns[1], surround);
 		typedef Pire::ScannerPair<Scanner1, Scanner2> Pair;
 		Base::sc = Pair(sc1, sc2);
 	}
