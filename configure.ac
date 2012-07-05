@@ -14,6 +14,20 @@ AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_LIBTOOL
 
+# Work around autoconf's insanity of defining YACC to nonexistent 'yacc'
+# if no yacc-like generator was found
+if ! test -r "$srcdir"/pire/re_parser.cpp && test x"$YACC" = "xyacc"; then
+	AC_CHECK_PROG([YACC_EXISTS], [yacc], [yes], [no])
+    if test x"$YACC_EXISTS" != xyes; then
+		AC_MSG_ERROR([[bison/byacc/yacc not found (and no prebuilt parser used)]])
+	fi
+fi
+
+# The same thing for lex
+if ! test -r "$srcdir"/pire/inline.cpp && test x"$LEX" = "x:"; then
+	AC_MSG_ERROR([[flex/lex not found (and no prebuilt pire-inline lexer used)]])
+fi
+
 # Just for conscience' sake
 AC_CHECK_HEADERS([stdlib.h stdint.h string.h sys/time.h])
 AC_HEADER_STDBOOL
