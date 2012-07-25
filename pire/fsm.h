@@ -116,8 +116,8 @@ namespace Pire {
 		template<class Scanner>
 		Scanner Compile();
 
-		void DumpState(yostream& s, size_t state, bool verbose) const;
-		void DumpTo(yostream& s, ystring name, bool verbose) const;
+		void DumpState(yostream& s, size_t state) const;
+		void DumpTo(yostream& s, const ystring& name = "") const;
 
 		typedef yset<size_t> StatesSet;
 		typedef ymap<size_t, StatesSet> TransitionRow;

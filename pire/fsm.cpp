@@ -63,14 +63,14 @@ ystring CharDump(Char c)
 	} else if (c == Epsilon)
 		return ystring("<Epsilon>");
 	else if (c == BeginMark)
-		return ystring("^");
+		return ystring("<Begin>");
 	else if (c == EndMark)
-		return ystring("$");
+		return ystring("<End>");
 	else
 		return ystring("<?" "?" "?>");
 }
 
-void Fsm::DumpState(yostream& s, size_t state, bool verbose) const
+void Fsm::DumpState(yostream& s, size_t state) const
 {
 	// Fill in a 'row': Q -> exp(V) (for current state)
 	yvector< ybitset<MaxChar> > row(Size());
@@ -96,15 +96,15 @@ void Fsm::DumpState(yostream& s, size_t state, bool verbose) const
 		ystring delimiter;
 		ystring label;
 		if (rit->test(Epsilon)) {
-			label += delimiter + "<Epsilon>";
+			label += delimiter + CharDump(Epsilon);
 			delimiter = " ";
 		}
 		if (rit->test(BeginMark)) {
-			label += delimiter + "^";
+			label += delimiter + CharDump(BeginMark);
 			delimiter = " ";
 		}
 		if (rit->test(EndMark)) {
-			label += delimiter + "$";
+			label += delimiter + CharDump(EndMark);
 			delimiter = " ";
 		}
 		unsigned count = 0;
@@ -113,15 +113,13 @@ void Fsm::DumpState(yostream& s, size_t state, bool verbose) const
 				++count;
 		if (count != 0 && count != 256) {
 			label += delimiter + "[";
-			bool complimentary = false;
-			if (count > 128) {
-				complimentary = true;
+			bool complementary = (count > 128);
+			if (count > 128)
 				label += "^";
-			}
 			while (begin < 256) {
-				for (begin = end; begin < 256 && (rit->test(begin) == complimentary); ++begin)
+				for (begin = end; begin < 256 && (rit->test(begin) == complementary); ++begin)
 					;
-				for (end = begin; end < 256 && (rit->test(end) == !complimentary); ++end)
+				for (end = begin; end < 256 && (rit->test(end) == !complementary); ++end)
 					;
 				if (begin + 1 == end) {
 					label += CharDump(begin);
@@ -139,10 +137,7 @@ void Fsm::DumpState(yostream& s, size_t state, bool verbose) const
 		}
 		if (!label.empty()) {
 			if (!statePrinted) {
-				s << "    " << state << "[shape=\"" << (IsFinal(state) ? "double" : "") << "circle\"";
-				s << ",label=\"";
-				if (verbose)
-					s << state;
+				s << "    " << state << "[shape=\"" << (IsFinal(state) ? "double" : "") << "circle\",label=\"" << state;
 				Tags::const_iterator ti = tags.find(state);
 				if (ti != tags.end())
 					s << " (tags: " << ti->second << ")";
@@ -177,16 +172,16 @@ void Fsm::DumpState(yostream& s, size_t state, bool verbose) const
 		s << '\n';
 }
 
-void Fsm::DumpTo(yostream& s, ystring name, bool verbose) const
+void Fsm::DumpTo(yostream& s, const ystring& name) const
 {
 	s << "digraph {\n    \"initial\"[shape=\"plaintext\",label=\"" << name << "\"]\n\n";
 	for (size_t state = 0; state < Size(); ++state) {
-		DumpState(s, state, verbose);
+		DumpState(s, state);
 	}
 	s << "}\n\n";
 }
 
-yostream& operator << (yostream& s, const Fsm& fsm) { fsm.DumpTo(s, "", true); return s; }
+yostream& operator << (yostream& s, const Fsm& fsm) { fsm.DumpTo(s); return s; }
 
 
 namespace {
