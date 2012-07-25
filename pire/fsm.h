@@ -117,7 +117,7 @@ namespace Pire {
 		Scanner Compile();
 
 		void DumpState(yostream& s, size_t state) const;
-		void DumpTo(yostream& s) const;
+		void DumpTo(yostream& s, const ystring& name = "") const;
 
 		typedef yset<size_t> StatesSet;
 		typedef ymap<size_t, StatesSet> TransitionRow;

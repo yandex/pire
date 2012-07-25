@@ -44,16 +44,21 @@ namespace Pire {
 ystring CharDump(Char c)
 {
 	char buf[8];
-	if (c >= 32 && c < 127)
+	if (c == '"')
+		return ystring("\\\"");
+	else if (c == '[' || c == ']' || c == '-' || c == '^') {
+		snprintf(buf, sizeof(buf)-1, "\\\\%c", c);
+		return ystring(buf);
+	} else if (c >= 32 && c < 127)
 		return ystring(1, static_cast<char>(c));
 	else if (c == '\n')
-		return ystring("\\n");
+		return ystring("\\\\n");
 	else if (c == '\t')
-		return ystring("\\t");
+		return ystring("\\\\t");
 	else if (c == '\r')
-		return ystring("\\r");
+		return ystring("\\\\r");
 	else if (c < 256) {
-		snprintf(buf, sizeof(buf)-1, "\\%03o", static_cast<int>(c));
+		snprintf(buf, sizeof(buf)-1, "\\\\%03o", static_cast<int>(c));
 		return ystring(buf);
 	} else if (c == Epsilon)
 		return ystring("<Epsilon>");
@@ -67,8 +72,6 @@ ystring CharDump(Char c)
 
 void Fsm::DumpState(yostream& s, size_t state) const
 {
-	s << "    ";
-
 	// Fill in a 'row': Q -> exp(V) (for current state)
 	yvector< ybitset<MaxChar> > row(Size());
 	for (TransitionRow::const_iterator rit = m_transitions[state].begin(), rie = m_transitions[state].end(); rit != rie; ++rit)
@@ -85,40 +88,65 @@ void Fsm::DumpState(yostream& s, size_t state) const
 				row[*sit].set(rit->first);
 		}
 
+	bool statePrinted = false;
 	// Display each destination state
 	for (yvector< ybitset<MaxChar> >::iterator rit = row.begin(), rie = row.end(); rit != rie; ++rit) {
 		unsigned begin = 0, end = 0;
 
-		bool empty = true;
+		ystring delimiter;
+		ystring label;
 		if (rit->test(Epsilon)) {
-			s << "<Epsilon> ";
-			empty = false;
+			label += delimiter + CharDump(Epsilon);
+			delimiter = " ";
 		}
 		if (rit->test(BeginMark)) {
-			s << "<Begin> ";
-			empty = false;
+			label += delimiter + CharDump(BeginMark);
+			delimiter = " ";
 		}
 		if (rit->test(EndMark)) {
-			s << "<End> ";
-			empty = false;
+			label += delimiter + CharDump(EndMark);
+			delimiter = " ";
 		}
-		while (begin < 256) {
-			for (begin = end; begin < 256 && !rit->test(begin); ++begin)
-				;
-			for (end = begin; end < 256 && rit->test(end); ++end)
-				;
-			if (begin + 1 == end) {
-				s << CharDump(begin);
-				empty = false;
-			} else if (begin != end) {
-				s << CharDump(begin) << ".." << (CharDump(end-1));
-				empty = false;
+		unsigned count = 0;
+		for (unsigned i = 0; i < 256; ++i)
+			if (rit->test(i))
+				++count;
+		if (count != 0 && count != 256) {
+			label += delimiter + "[";
+			bool complementary = (count > 128);
+			if (count > 128)
+				label += "^";
+			while (begin < 256) {
+				for (begin = end; begin < 256 && (rit->test(begin) == complementary); ++begin)
+					;
+				for (end = begin; end < 256 && (rit->test(end) == !complementary); ++end)
+					;
+				if (begin + 1 == end) {
+					label += CharDump(begin);
+					delimiter = " ";
+				} else if (begin != end) {
+					label += CharDump(begin) + "-" + (CharDump(end-1));
+					delimiter = " ";
+				}
 			}
-			if (!empty)
-				s << " ";
+			label += "]";
+			delimiter = " ";
+		} else if (count == 256) {
+			label += delimiter + ".";
+			delimiter = " ";
 		}
-		if (!empty) {
-			s << " => " << std::distance(row.begin(), rit);
+		if (!label.empty()) {
+			if (!statePrinted) {
+				s << "    " << state << "[shape=\"" << (IsFinal(state) ? "double" : "") << "circle\",label=\"" << state;
+				Tags::const_iterator ti = tags.find(state);
+				if (ti != tags.end())
+					s << " (tags: " << ti->second << ")";
+				s << "\"]\n";
+				if (Initial() == state)
+					s << "    \"initial\" -> " << state << '\n';
+				statePrinted = true;
+			}
+			s << "    " << state << " -> " << std::distance(row.begin(), rit) << "[label=\"" << label;
 
 			// Display outputs
 			Outputs::const_iterator oit = outputs.find(state);
@@ -132,28 +160,25 @@ void Fsm::DumpState(yostream& s, size_t state) const
 						if (oit2->second & (1ul << i))
 							payload.push_back(i);
 					if (!payload.empty())
-						s << "[" << Join(payload.begin(), payload.end(), ", ") << "]";
+						s << " (outputs: " << Join(payload.begin(), payload.end(), ", ") << ")";
 				}
 			}
-			s << "\n    ";
+
+			s << "\"]\n";
 		}
 	}
-	if (Initial() == state)
-		s << "[initial] ";
-	if (IsFinal(state))
-		s << "[final] ";
-	Tags::const_iterator ti = tags.find(state);
-	if (ti != tags.end())
-		s << "[tags: " << ti->second << "] ";
-	s << "\n";
+
+	if (statePrinted)
+		s << '\n';
 }
 
-void Fsm::DumpTo(yostream& s) const
+void Fsm::DumpTo(yostream& s, const ystring& name) const
 {
+	s << "digraph {\n    \"initial\"[shape=\"plaintext\",label=\"" << name << "\"]\n\n";
 	for (size_t state = 0; state < Size(); ++state) {
-		s << "*** State " << state << "\n";
 		DumpState(s, state);
 	}
+	s << "}\n\n";
 }
 
 yostream& operator << (yostream& s, const Fsm& fsm) { fsm.DumpTo(s); return s; }
