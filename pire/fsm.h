@@ -104,7 +104,7 @@ namespace Pire {
 		/// Creates an FSM which matches reversed strings matched by current FSM.
 		Fsm& Reverse();
 
-		/// Returns a set of states from which no final states are reachable
+		/// Returns a set of states from which no final states are reachable or that are not reachable from the start state.
 		yset<size_t> DeadStates() const;
 
 		/// Removes all dead end paths from FSM
