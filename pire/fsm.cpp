@@ -632,54 +632,60 @@ Fsm& Fsm::Reverse()
 
 yset<size_t> Fsm::DeadStates() const
 {
-	// Build an FSM with inverted transitions
-	Fsm inverted;
-	inverted.Resize(Size());
-	for (TransitionTable::const_iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j) {
-		for (TransitionRow::const_iterator k = j->begin(), ke = j->end(); k != ke; ++k) {
-			for (StatesSet::const_iterator toSt = k->second.begin(), toSte = k->second.end(); toSt != toSte; ++toSt) {
-				// We only care if the states are connected or not regerdless through what letter
-				inverted.Connect(*toSt, j - m_transitions.begin(), 0);
-			}
-		}
-	}
-
-	yvector<bool> unchecked(Size(), true);
-	yvector<bool> useless(Size(), true);
-	ydeque<size_t> queue;
-
-	// Put all final states into queue, marking them useful
-	for (size_t i = 0; i < Size(); ++i)
-		if (IsFinal(i)) {
-			useless[i] = false;
-			queue.push_back(i);
-		}
-
-	// Do the breadth-first search, marking all states
-	// from which already marked states are reachable
-	while (!queue.empty()) {
-		size_t to = queue.front();
-		queue.pop_front();
-
-		// All the states that are connected to this state in inverted transition matrix are useful
-		const StatesSet& connections = (inverted.m_transitions[to])[0];
-		for (StatesSet::const_iterator fr = connections.begin(), fre = connections.end(); fr != fre; ++fr) {
-			// Enqueue the state for further traversal if it hasnt been already checked
-			if (unchecked[*fr] && useless[*fr]) {
-				useless[*fr] = false;
-				queue.push_back(*fr);
-			}
-		}
-
-		// Now we consider this state checked
-		unchecked[to] = false;
-	}
-
 	yset<size_t> res;
 
-	for (size_t i = 0; i < Size(); ++i) {
-		if (useless[i]) {
-			res.insert(i);
+	for (int invert = 0; invert <= 1; ++invert) {
+		Fsm digraph;
+		digraph.Resize(Size());
+		for (TransitionTable::const_iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j) {
+			for (TransitionRow::const_iterator k = j->begin(), ke = j->end(); k != ke; ++k) {
+				for (StatesSet::const_iterator toSt = k->second.begin(), toSte = k->second.end(); toSt != toSte; ++toSt) {
+					// We only care if the states are connected or not regerdless through what letter
+					if (invert) {
+						// Build an FSM with inverted transitions
+						digraph.Connect(*toSt, j - m_transitions.begin(), 0);
+					} else {
+						digraph.Connect(j - m_transitions.begin(), *toSt, 0);
+					}
+				}
+			}
+		}
+
+		yvector<bool> unchecked(Size(), true);
+		yvector<bool> useless(Size(), true);
+		ydeque<size_t> queue;
+
+		// Put all final (or initial) states into queue, marking them useful
+		for (size_t i = 0; i < Size(); ++i)
+			if ((invert && IsFinal(i)) || (!invert && Initial() == i)) {
+				useless[i] = false;
+				queue.push_back(i);
+			}
+
+		// Do the breadth-first search, marking all states
+		// from which already marked states are reachable
+		while (!queue.empty()) {
+			size_t to = queue.front();
+			queue.pop_front();
+
+			// All the states that are connected to this state in the transition matrix are useful
+			const StatesSet& connections = (digraph.m_transitions[to])[0];
+			for (StatesSet::const_iterator fr = connections.begin(), fre = connections.end(); fr != fre; ++fr) {
+				// Enqueue the state for further traversal if it hasnt been already checked
+				if (unchecked[*fr] && useless[*fr]) {
+					useless[*fr] = false;
+					queue.push_back(*fr);
+				}
+			}
+
+			// Now we consider this state checked
+			unchecked[to] = false;
+		}
+
+		for (size_t i = 0; i < Size(); ++i) {
+			if (useless[i]) {
+				res.insert(i);
+			}
 		}
 	}
 
