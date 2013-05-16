@@ -287,6 +287,8 @@ SIMPLE_UNIT_TEST(Reverse)
 	}
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 SIMPLE_UNIT_TEST(PrefixSuffix)
 {
 	static const char* pattern = "-->";
@@ -316,6 +318,7 @@ SIMPLE_UNIT_TEST(PrefixSuffix)
 	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1) + 1;
 	UNIT_ASSERT_EQUAL(begin, text + 11);
 }
+#pragma GCC diagnostic pop
 
 namespace {
 	ssize_t LongestPrefixLen(const char* pattern, const char* str)
