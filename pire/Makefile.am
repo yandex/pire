@@ -77,7 +77,7 @@ pire_hdr_HEADERS = \
 	partition.h \
 	pire.h \
 	re_lexer.h \
-	re_parser.h \
+	re_parser.hpp \
 	run.h \
 	static_assert.h \
 	platform.h \
@@ -116,8 +116,8 @@ bin_PROGRAMS = pire_inline
 pire_inline_SOURCES = inline.lpp stub/hacks.h stub/memstreams.h
 pire_inline_LDADD = libpire.la
 
-BUILT_SOURCES = re_parser.h re_parser.cpp
-CLEANFILES    = re_parser.h re_parser.cpp
+BUILT_SOURCES = re_parser.hpp re_parser.cpp
+CLEANFILES    = re_parser.hpp re_parser.cpp
 
 AM_YFLAGS = -d
 
