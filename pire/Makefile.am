@@ -32,7 +32,7 @@ libpire_la_SOURCES = \
 	static_assert.h \
 	platform.h \
 	vbitset.h \
-	re_parser.ypp \
+	re_parser.cpp \
 	scanners/loaded.h \
 	scanners/multi.h \
 	scanners/slow.h \
@@ -77,7 +77,7 @@ pire_hdr_HEADERS = \
 	partition.h \
 	pire.h \
 	re_lexer.h \
-	re_parser.hpp \
+	re_parser.h \
 	run.h \
 	static_assert.h \
 	platform.h \
@@ -116,8 +116,12 @@ bin_PROGRAMS = pire_inline
 pire_inline_SOURCES = inline.lpp stub/hacks.h stub/memstreams.h
 pire_inline_LDADD = libpire.la
 
-BUILT_SOURCES = re_parser.hpp re_parser.cpp
-CLEANFILES    = re_parser.hpp re_parser.cpp
+BUILT_SOURCES = re_parser.h re_parser.cpp
+CLEANFILES    = re_parser.h re_parser.cpp
 
-AM_YFLAGS = -d
+# Due to differences in behaviour of different versions of Automake, we have to deal with .y by hand.
+re_parser.cpp: $(srcdir)/re_parser.y
+	$(top_srcdir)/ylwrap $(srcdir)/re_parser.y y.tab.c re_parser.cpp y.tab.h re_parser.h -- $(YACC) -d
+
+re_parser.h: re_parser.cpp
 
