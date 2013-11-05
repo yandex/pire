@@ -85,6 +85,14 @@ AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
 
+AC_ARG_ENABLE([valgrind_safe], AS_HELP_STRING([--enable-valgrind-safe], [Make Pire fetch data in a way which does not upset Valgrind]))
+if test x"$enable_valgrind_safe" = xyes; then
+	AC_DEFINE(ENABLE_VALGRIND_SAFE, 1, [Define to 1 if valgrind-compatible memory fetch is needed])
+fi
+
+AC_CACHE_CHECK([[for valgrind]], [pire_cv_have_valgrind], AC_CHECK_PROG([pire_cv_have_valgrind], [valgrind], [yes], [no]))
+AM_CONDITIONAL([HAVE_VALGRIND], [test x"$pire_cv_have_valgrind" = xyes])
+
 AC_CONFIG_FILES([
 	Makefile
 	pire/Makefile

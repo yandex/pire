@@ -6,11 +6,15 @@ if ENABLE_CHECKED
 AM_CXXFLAGS += -DPIRE_CHECKED
 endif
 
+lib_LTLIBRARIES = libpire_unit.la
+libpire_unit_la_SOURCES = \
+	stub/cppunit.cpp \
+	stub/cppunit.h
+libpire_unit_la_CXXFLAGS = -I$(top_srcdir)/pire
+
 check_PROGRAMS = pire_test
 
 pire_test_SOURCES = \
-	stub/cppunit.cpp \
-	stub/cppunit.h \
 	common.h \
 	pire_ut.cpp \
 	easy_ut.cpp
@@ -24,13 +28,20 @@ endif
 
 nodist_pire_test_SOURCES = inline_ut_2.cpp
 
-EXTRA_DIST = inline_ut.cpp
+EXTRA_DIST = inline_ut.cpp pire_test_valgrind.sh
 
-pire_test_LDADD = ../pire/libpire.la
-pire_test_CXXFLAGS = -I$(top_srcdir)/pire $(CPPUNIT_CFLAGS) $(AM_CXXFLAGS)
-pire_test_LDFLAGS  = $(CPPUNIT_LIBS)
+pire_test_LDADD = ../pire/libpire.la libpire_unit.la
+pire_test_CXXFLAGS = -I$(top_srcdir)/pire $(AM_CXXFLAGS)
 
 TESTS = pire_test
+
+if HAVE_VALGRIND
+check_PROGRAMS += pire_test_valgrind
+pire_test_valgrind_SOURCES = valgrind_ut.cpp
+pire_test_valgrind_LDADD = ../pire/libpire.la libpire_unit.la
+pire_test_valgrind_CXXFLAGS = -I$(top_srcdir)/pire $(AM_CXXFLAGS)
+TESTS += pire_test_valgrind.sh
+endif
 
 CLEANFILES = inline_ut_2.cpp
 
