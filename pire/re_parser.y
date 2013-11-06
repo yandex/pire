@@ -52,6 +52,7 @@ using Pire::Encoding;
 
 int  yylex(YYSTYPE*, Lexer&);
 void yyerror(const char*);
+void yyerror(Pire::Lexer&, const char*);
 
 Fsm& ConvertToFSM(const Encoding& encoding, Any* any);
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr);
@@ -61,6 +62,8 @@ void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& c
 
 %}
 
+%lex-param {Pire::Lexer& rlex}
+%parse-param {Pire::Lexer& rlex}
 %pure_parser
 
 // Terminal declarations
@@ -164,6 +167,8 @@ void yyerror(const char* str)
 	throw Error((ystring("Regexp parse error: ") + ystring(str)));
 }
 
+void yyerror(Pire::Lexer&, const char* str) { yyerror(str); }
+
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr)
 {
 	yvector<ystring> strings;
@@ -219,15 +224,21 @@ Fsm& ConvertToFSM(const Encoding& encoding, Any* any)
 	return a;
 }
 
-}
+} // namespace
 
 #if defined(PPP) && !defined(HAVE_CONFIG_H)
 // Workaround for some braindamaged byaccs which cannot decide what yyparse() should look like 
 static int yyparse(void*, Pire::Lexer& rlex);
-#endif
 
 namespace Pire {
 	namespace Impl {
 		int yre_parse(Pire::Lexer& rlex) { return yyparse(0, rlex); }
 	}
 }
+#else
+namespace Pire {
+	namespace Impl {
+		int yre_parse(Pire::Lexer& rlex) { return yyparse(rlex); }
+	}
+}
+#endif

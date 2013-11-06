@@ -25,8 +25,8 @@
 #include "stub/utf8.h"
 #include "stub/singleton.h"
 #include <stdexcept>
-#include "re_parser.h"
 #include "re_lexer.h"
+#include "re_parser.h"
 #include "fsm.h"
 #include "stub/stl.h"
 
