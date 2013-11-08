@@ -77,6 +77,24 @@ inline int snprintf(char *str, size_t size, const char *format, ...)
 namespace Pire {
 namespace Impl {
 
+// A portable way to define a constant like `(size_t)0101010101010101ull'
+// without any compiler warnings.
+template<unsigned Pos, unsigned char Byte>
+struct DoGenerateMask {
+	static const size_t Value = DoGenerateMask<Pos-1, Byte>::Value << 8 | (size_t) Byte;
+};
+
+template<unsigned char Byte>
+struct DoGenerateMask<0, Byte> {
+	static const size_t Value = 0;
+};
+
+template<unsigned char Byte>
+struct GenerateMask {
+	static const size_t Value = DoGenerateMask<sizeof(size_t), Byte>::Value;
+};
+
+
 // Common implementation of mask comparison logic suitable for
 // any instruction set
 struct BasicInstructionSet {
@@ -85,10 +103,8 @@ struct BasicInstructionSet {
 	// Check bytes in the chunk against bytes in the mask
 	static inline Vector CheckBytes(Vector mask, Vector chunk)
 	{
-		const size_t mask0x01 = (size_t)0x0101010101010101ull;
-		const size_t mask0x80 = (size_t)0x8080808080808080ull;
 		size_t mc = chunk ^ mask;
-		return ((mc - mask0x01) & ~mc & mask0x80);
+		return ((mc - GenerateMask<0x01>::Value) & ~mc & GenerateMask<0x80>::Value);
 	}
 
 	static inline Vector Or(Vector mask1, Vector mask2) { return (mask1 | mask2); }
