@@ -1,3 +1,22 @@
+pire (0.0.5-1) unstable; urgency=low
+
+  * Fixed lots of compatibility issues (clang, libc++,
+    older & newer autotools, older & newer bison, etc...)
+  * Added a valgrind-friendly memory fetch.
+  * Added an "r" option for pire_inline as a shortcut for Fsm::Reverse.
+  * Dumping of FSM has been rewritten in DOT language.
+  * Fixed handling of escape sequences in pire_inline.
+  * Made pire_inline put '#line' directive on a top of its output file.
+  * Added a simple "Do what I mean" mode.
+  * Explicitly restricted build on systems where uint64_t requires custom alignment.
+  * Improvements in shortcutting logic.
+  * Binary format of scanners compatible across diffesent platform having
+    the same word size and endianness.
+  * Made pire_inline capable of handling comments inside regexp definitions.
+  * Made pire_inline capable of agglutinating multiple regexps, producing a single scanner.
+
+ -- Dmitry Prokoptsev <dprokoptsev@yandex-team.ru>  Fri, 08 Nov 2013 21:43:45 +0400
+
 pire (0.0.4-1) unstable; urgency=low
 
   * Implemented SSE2-bases shortcutting, resulting
