@@ -36,8 +36,8 @@ SIMPLE_UNIT_TEST(Valgrind)
 {
 	char* str = (char*) malloc(6);
 	try {
-		strcpy(str, "abcde");
-		REGEXP("abcde") ACCEPTS(str);
+		strcpy(str, "x\xD0\xA4yz");
+		REGEXP2("x\xD0\xA4yz", "u") ACCEPTS(str);
 		free(str);
 	}
 	catch (...) {

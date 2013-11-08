@@ -117,7 +117,7 @@ namespace Impl {
 #ifdef PIRE_ENABLE_VALGRIND_SAFE
 		const char* ptr = (const char*) p + pos;
 		for (; size--; ++ptr) {
-			Step(scanner, state, *ptr);
+			Step(scanner, state, (unsigned char) *ptr);
 			if (pred(scanner, state, ptr + 1) == Stop)
 				return Stop;
 		}
