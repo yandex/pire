@@ -35,11 +35,13 @@ pire_test_CXXFLAGS = -I$(top_srcdir)/pire $(AM_CXXFLAGS)
 
 TESTS = pire_test
 
-if HAVE_VALGRIND
 check_PROGRAMS += pire_test_valgrind
 pire_test_valgrind_SOURCES = valgrind_ut.cpp
 pire_test_valgrind_LDADD = ../pire/libpire.la libpire_unit.la
 pire_test_valgrind_CXXFLAGS = -I$(top_srcdir)/pire $(AM_CXXFLAGS)
+TESTS += pire_test_valgrind
+
+if HAVE_VALGRIND
 TESTS += pire_test_valgrind.sh
 endif
 
