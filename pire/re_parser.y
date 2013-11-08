@@ -57,8 +57,10 @@ void yyerror(Pire::Lexer&, const char*);
 Fsm& ConvertToFSM(const Encoding& encoding, Any* any);
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr);
 
+#ifdef YYBYACC
 #define YYPARSE_PARAM ,Pire::Lexer& rlex /* Yes, the leading comma is really needed here */
 #define YYLEX_PARAM rlex
+#endif
 
 %}
 
