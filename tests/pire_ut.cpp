@@ -616,7 +616,7 @@ SIMPLE_UNIT_TEST(Slow)
 class AlignedString {
 public:
 	explicit AlignedString(const char* str): m_str((char*) strdup(str)) {}
-	explicit AlignedString(const std::string& str): m_str((char*) strdup(str.c_str())) {}
+	explicit AlignedString(const ystring& str): m_str((char*) strdup(str.c_str())) {}
 	~AlignedString() { free(m_str); }
 	const char* c_str() const { return m_str; }
 private:
