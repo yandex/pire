@@ -613,32 +613,45 @@ SIMPLE_UNIT_TEST(Slow)
 	UNIT_ASSERT(!Matches(sc, "....a............................."));
 }
 
+class AlignedString {
+public:
+	explicit AlignedString(const char* str): m_str((char*) strdup(str)) {}
+	explicit AlignedString(const std::string& str): m_str((char*) strdup(str.c_str())) {}
+	~AlignedString() { free(m_str); }
+	const char* c_str() const { return m_str; }
+private:
+	char* m_str;
+
+	AlignedString(const AlignedString&);
+	AlignedString& operator = (const AlignedString&);
+};
+
 SIMPLE_UNIT_TEST(Aligned)
 {
-	UNIT_ASSERT(Pire::Impl::IsAligned(ystring("x").c_str(), sizeof(void*)));
+	UNIT_ASSERT(Pire::Impl::IsAligned(AlignedString("x").c_str(), sizeof(void*)));
 
 	REGEXP("xy") {
 		// Short string with aligned head
-		ACCEPTS(ystring("xy").c_str());
-		DENIES (ystring("yz").c_str());
+		ACCEPTS(AlignedString("xy").c_str());
+		DENIES (AlignedString("yz").c_str());
 		// Short string, unaligned
-		ACCEPTS(ystring(".xy").c_str() + 1);
-		DENIES (ystring(".yz").c_str() + 1);
+		ACCEPTS(AlignedString(".xy").c_str() + 1);
+		DENIES (AlignedString(".yz").c_str() + 1);
 		// Short string with aligned tail
-		ACCEPTS((ystring(sizeof(void*) - 2, '.') + "xy").c_str() + sizeof(void*) - 2);
-		DENIES ((ystring(sizeof(void*) - 2, '.') + "yz").c_str() + sizeof(void*) - 2);
+		ACCEPTS((AlignedString(ystring(sizeof(void*) - 2, '.') + "xy")).c_str() + sizeof(void*) - 2);
+		DENIES ((AlignedString(ystring(sizeof(void*) - 2, '.') + "yz")).c_str() + sizeof(void*) - 2);
 	}
 
 	REGEXP("abcde") {
 		// Everything aligned, match occurs in the middle
-		ACCEPTS(ystring("ZZZZZabcdeZZZZZZ").c_str());
-		DENIES (ystring("ZZZZZabcdfZZZZZZ").c_str());
+		ACCEPTS(AlignedString("ZZZZZabcdeZZZZZZ").c_str());
+		DENIES (AlignedString("ZZZZZabcdfZZZZZZ").c_str());
 		// Unaligned head
-		ACCEPTS(ystring(".ZabcdeZZZ").c_str() + 1);
-		DENIES (ystring(".ZxbcdeZZZ").c_str() + 1);
+		ACCEPTS(AlignedString(".ZabcdeZZZ").c_str() + 1);
+		DENIES (AlignedString(".ZxbcdeZZZ").c_str() + 1);
 		// Unaligned tail
-		ACCEPTS(ystring("ZZZZZZZZZZZZZabcde").c_str());
-		DENIES (ystring("ZZZZZZZZZZZZZabcdf").c_str());
+		ACCEPTS(AlignedString("ZZZZZZZZZZZZZabcde").c_str());
+		DENIES (AlignedString("ZZZZZZZZZZZZZabcdf").c_str());
 	}
 }
 
