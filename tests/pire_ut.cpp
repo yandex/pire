@@ -727,4 +727,11 @@ SIMPLE_UNIT_TEST(EmptyScanner)
 	BasicTestEmptySaveLoadMmap<Pire::SlowScanner>();
 }
 
+SIMPLE_UNIT_TEST(NullPointer)
+{
+    const char* null = 0;
+    Pire::Scanner sc = Pire::Fsm().Compile<Pire::Scanner>();
+    Pire::Runner(sc).Begin().Run(null, null).End();
+}
+
 }

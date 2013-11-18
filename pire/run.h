@@ -114,6 +114,9 @@ namespace Impl {
 		YASSERT(size <= sizeof(size_t));
 		YASSERT(pos + size <= sizeof(size_t));
 
+        if (PIRE_UNLIKELY(size == 0))
+            return Continue;
+
 #ifdef PIRE_ENABLE_VALGRIND_SAFE
 		const char* ptr = (const char*) p + pos;
 		for (; size--; ++ptr) {
