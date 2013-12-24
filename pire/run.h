@@ -77,7 +77,7 @@ namespace Impl {
 				*m_pos = pos;
 				return Stop;
 			} else {
-				return Continue;
+				return (sc.Dead(st) ? Stop : Continue);
 			}
 		}
 	private:
@@ -322,7 +322,7 @@ inline const char* ShortestSuffix(const Scanner& scanner, const char* rbegin, co
 	PIRE_IFDEBUG(Cdbg << "Running ShortestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
 	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
-	for (; rbegin != rend && !scanner.Final(state); --rbegin) {
+	for (; rbegin != rend && !scanner.Final(state) && !scanner.Dead(state); --rbegin) {
 		scanner.Next(state, (unsigned char)*rbegin);
 		PIRE_IFDEBUG(Cdbg << *rbegin << " => state " << StDump(scanner, state) << Endl);
 	}
