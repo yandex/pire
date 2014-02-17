@@ -71,8 +71,6 @@ namespace {
 		ypair<size_t, size_t> Next(0x80, 0xC0);
 	}
 
-static const Latin1 latin1;
-
 
 	class Utf8: public Encoding {
 	public:
@@ -112,14 +110,21 @@ static const Latin1 latin1;
 			fsm.SetIsDetermined(false);
 		}
 	};
-
-static const Utf8 utf8;
 }
 
 namespace Encodings {
 
-	const Encoding& Utf8() { return utf8; }
-	const Encoding& Latin1() { return latin1; }
+	const Encoding& Utf8()
+	{
+		static const Pire::Utf8 utf8;
+		return utf8;
+	}
+
+	const Encoding& Latin1()
+	{
+		static const Pire::Latin1 latin1;
+		return latin1;
+	}
 
 }
 
