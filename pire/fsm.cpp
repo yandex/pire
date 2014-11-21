@@ -980,7 +980,28 @@ public:
 		mNewFsm.Connect(from, to, letter);
 	}
 	typedef bool Result;
-	Result Success() { return true; }
+
+	Result Success() {
+		Fsm::Outputs oldOutputs;
+		// remove redundant outputs
+		oldOutputs.swap(mNewFsm.outputs);
+		for (size_t from = 0; from < mNewFsm.Size(); ++from) {
+			Fsm::Outputs::const_iterator fromOutput = oldOutputs.find(from);
+			if (fromOutput == oldOutputs.end())
+				continue;
+			const Fsm::TransitionRow& newTransitionsRow = mNewFsm.m_transitions[from];
+			for (Fsm::TransitionRow::const_iterator rowIt = newTransitionsRow.begin(); rowIt != newTransitionsRow.end(); ++rowIt) {
+				for (Fsm::StatesSet::const_iterator stateIt = rowIt->second.begin(); stateIt != rowIt->second.end(); ++stateIt) {
+					Fsm::Outputs::mapped_type::const_iterator toOutput = fromOutput->second.find(*stateIt);
+					if (toOutput != fromOutput->second.end()) {
+						mNewFsm.outputs[from].insert(*toOutput);
+					}
+				}
+			}
+		}
+		return true;
+	}
+
 	Result Failure() { return false; }
 	
 	Fsm& Output() { return mNewFsm; }

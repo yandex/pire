@@ -118,6 +118,18 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("12345"));
 	}
 
+	SIMPLE_UNIT_TEST(FakeEdges)
+	{
+		CapturingScanner scanner = Compile("(/to-match-with)", 1);
+		State state;
+		const char* str;
+
+		str = "/some/table/path/to-match-with";
+		state = RunRegexp(scanner, str);
+		UNIT_ASSERT(state.Captured());
+		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("/to-match-with"));
+	}
+
 	SIMPLE_UNIT_TEST(Serialization)
 	{
 		CapturingScanner scanner2 = Compile("google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;", 1);
