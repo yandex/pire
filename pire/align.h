@@ -12,7 +12,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -30,7 +30,7 @@
 #include "platform.h"
 
 namespace Pire {
-	
+
 	namespace Impl {
 
 		template<class T>
@@ -44,7 +44,7 @@ namespace Pire {
 		{
 			return (T) ((size_t) t & ~(bound-1));
 		}
-		
+
 		inline void AlignSave(yostream* s, size_t size)
 		{
 			size_t tail = AlignUp(size, sizeof(size_t)) - size;
@@ -62,7 +62,7 @@ namespace Pire {
 				LoadPodArray(s, buf, tail);
 			}
 		}
-		
+
 		template<class T>
 		inline void AlignedSaveArray(yostream* s, const T* array, size_t count)
 		{
@@ -82,7 +82,7 @@ namespace Pire {
 		{
 			return ((size_t) t & (bound-1)) == 0;
 		}
-		
+
 		inline const void* AlignPtr(const size_t*& p, size_t& size)
 		{
 			if (!IsAligned(p, sizeof(size_t))) {
@@ -96,7 +96,7 @@ namespace Pire {
 		}
 
 	}
-	
+
 }
 
 #endif

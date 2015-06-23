@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -40,7 +40,7 @@
 #include "platform.h"
 
 namespace Pire {
-	
+
 ystring CharDump(Char c)
 {
 	char buf[8];
@@ -289,7 +289,7 @@ Fsm& Fsm::Append(char c)
 	determined = false;
     return *this;
 }
-    
+
 Fsm& Fsm::Append(const ystring& str)
 {
     for (ystring::const_iterator i = str.begin(), ie = str.end(); i != ie; ++i)
@@ -503,8 +503,8 @@ Fsm& Fsm::operator |= (const Fsm& rhs)
 
 	Import(rhs);
 	for (FinalTable::const_iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
-		m_final.insert(*it + lhsSize);	
-	
+		m_final.insert(*it + lhsSize);
+
 	if (!isAlternative && !rhs.isAlternative) {
 		Resize(Size() + 1);
 		Connect(Size() - 1, initial);
@@ -598,33 +598,33 @@ void Fsm::MakeSuffix()
 			Connect(initial, i);
 	ClearHints();
 }
-	
+
 Fsm& Fsm::Reverse()
-{	
+{
 	Fsm out;
 	out.Resize(Size() + 1);
 	out.letters = Letters();
-	
+
 	// Invert transitions
 	for (size_t from = 0; from < Size(); ++from)
 		for (TransitionRow::iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
 			for (StatesSet::iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
 				out.Connect(*j, from, i->first);
-		
+
 	// Invert initial and final states
 	out.SetFinal(initial, true);
 	for (FinalTable::iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
 		out.Connect(Size(), *i, Epsilon);
 	out.SetInitial(Size());
-	
+
 	// Invert outputs
 	for (Outputs::iterator i = outputs.begin(), ie = outputs.end(); i != ie; ++i)
 		for (Outputs::mapped_type::iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
 			out.SetOutput(j->first, i->first, j->second);
-	
+
 	// Preserve tags (although thier semantics are usually heavily broken at this point)
 	out.tags = tags;
-	
+
 	// Apply
 	Swap(out);
 	return *this;
@@ -777,7 +777,7 @@ void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inv
 		inveps[*toi].insert(from);
 		if (outIt != outputs.end())
 			outIt->second[*toi] |= (fromThruOut | Output(thru, *toi));
-	}	
+	}
 }
 
 // Removes all Epsilon-connections by iterating though states and merging each Epsilon-connection
@@ -785,7 +785,7 @@ void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inv
 void Fsm::RemoveEpsilons()
 {
 	Unsparse();
-	
+
 	// Build inverse map of epsilon transitions
 	yvector< yset<size_t> > inveps(Size()); // We have to use yset<> here since we want it sorted
 	for (size_t from = 0; from != Size(); ++from) {
@@ -793,7 +793,7 @@ void Fsm::RemoveEpsilons()
 		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to)
 			inveps[*to].insert(from);
 	}
-	
+
 	// Make a transitive closure of all epsilon transitions (Floyd-Warshall algorithm)
 	// (if there exists an epsilon-path between two states, epsilon-connect them directly)
 	for (size_t thru = 0; thru != Size(); ++thru)
@@ -801,9 +801,9 @@ void Fsm::RemoveEpsilons()
 			// inveps[thru] may alter during loop body, hence we cannot cache ivneps[thru].end()
 			if (*from != thru)
 				ShortCutEpsilon(*from, thru, inveps);
-	
+
 	PIRE_IFDEBUG(Cdbg << "=== After epsilons shortcut\n" << *this << Endl);
-	
+
 	// Iterate through all epsilon-connected state pairs, merging states together
 	for (size_t from = 0; from != Size(); ++from) {
 		const StatesSet& to = Destinations(from, Epsilon);
@@ -811,13 +811,13 @@ void Fsm::RemoveEpsilons()
 			if (*toi != from)
 				MergeEpsilonConnection(from, *toi); // it's a NOP if to == from, so don't waste time
 	}
-	
+
 	PIRE_IFDEBUG(Cdbg << "=== After epsilons merged\n" << *this << Endl);
-	
+
 	// Drop all epsilon transitions
 	for (TransitionTable::iterator i = m_transitions.begin(), ie = m_transitions.end(); i != ie; ++i)
 		i->erase(Epsilon);
-	
+
 	Sparse();
 	ClearHints();
 }
@@ -879,7 +879,7 @@ public:
 	typedef yvector<size_t> State;
 	typedef Fsm::LettersTbl LettersTbl;
 	typedef ymap<State, size_t> InvStates;
-	
+
 	FsmDetermineTask(const Fsm& fsm)
 		: mFsm(fsm)
 		, mTerminals(fsm.TerminalStates())
@@ -887,7 +887,7 @@ public:
 		PIRE_IFDEBUG(Cdbg << "Terminal states: [" << Join(mTerminals.begin(), mTerminals.end(), ", ") << "]" << Endl);
 	}
 	const LettersTbl& Letters() const { return mFsm.letters; }
-	
+
 	State Initial() const { return State(1, mFsm.initial); }
 	bool IsRequired(const State& state) const
 	{
@@ -896,7 +896,7 @@ public:
 				return false;
 		return true;
 	}
-	
+
 	State Next(const State& state, Char letter) const
 	{
 		State next;
@@ -912,7 +912,7 @@ public:
 		                  << "--> [" << Join(next.begin(), next.end(), ", ") << "]" << Endl);
 		return next;
 	}
-	
+
 	void AcceptStates(const yvector<State>& states)
 	{
 		mNewFsm.Resize(states.size());
@@ -923,7 +923,7 @@ public:
 		for (size_t ns = 0; ns < states.size(); ++ns) {
 			PIRE_IFDEBUG(Cdbg << "State " << ns << " = [" << Join(states[ns].begin(), states[ns].end(), ", ") << "]" << Endl);
 			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j) {
-				
+
 				// If it was a terminal state, connect it to itself
 				if (mTerminals.find(*j) != mTerminals.end()) {
 					for (LettersTbl::ConstIterator letterIt = Letters().Begin(), letterEnd = Letters().End(); letterIt != letterEnd; ++letterIt)
@@ -942,7 +942,7 @@ public:
 						// hence weve done with this state and got nothing more to do.
 						break;
 				}
-				
+
 				// Bitwise OR all tags in states
 				Fsm::Tags::const_iterator ti = mFsm.tags.find(*j);
 				if (ti != mFsm.tags.end()) {
@@ -957,7 +957,7 @@ public:
 		for (size_t ns = 0; ns < states.size(); ++ns)
 			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j)
 				old2new[*j].push_back(ns);
-		
+
 		// Copy all outputs
 		for (Fsm::Outputs::const_iterator i = mFsm.outputs.begin(), ie = mFsm.outputs.end(); i != ie; ++i) {
 			for (Fsm::Outputs::mapped_type::const_iterator j = i->second.begin(), je = i->second.end(); j != je; ++j) {
@@ -972,7 +972,7 @@ public:
 		}
 		PIRE_IFDEBUG(Cdbg << "New terminals = [" << Join(mNewTerminals.begin(), mNewTerminals.end(), ",") << "]" << Endl);
 	}
-	
+
 	void Connect(size_t from, size_t to, Char letter)
 	{
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
@@ -1003,7 +1003,7 @@ public:
 	}
 
 	Result Failure() { return false; }
-	
+
 	Fsm& Output() { return mNewFsm; }
 private:
 	const Fsm& mFsm;
@@ -1020,10 +1020,10 @@ bool Fsm::Determine(size_t maxsize /* = 0 */)
 		return true;
 
 	PIRE_IFDEBUG(Cdbg << "=== Initial ===" << Endl << *this << Endl);
-	
+
 	RemoveEpsilons();
 	PIRE_IFDEBUG(Cdbg << "=== After all epsilons removed" << Endl << *this << Endl);
-	
+
 	Impl::FsmDetermineTask task(*this);
 	if (Pire::Impl::Determine(task, maxsize ? maxsize : MaxSize)) {
 		task.Output().Swap(*this);
@@ -1181,7 +1181,7 @@ void Fsm::Minimize()
 Fsm& Fsm::Canonize(size_t maxSize /* = 0 */)
 {
 	if (!IsDetermined()) {
-		if (!Determine(maxSize)) 
+		if (!Determine(maxSize))
 			throw Error("regexp pattern too complicated");
 	}
 	Minimize();
@@ -1194,7 +1194,7 @@ void Fsm::PrependAnything()
 	Resize(Size() + 1);
 	for (size_t letter = 0; letter < MaxChar; ++letter)
 		Connect(newstate, newstate, letter);
-	
+
 	Connect(newstate, initial);
 	initial = newstate;
 
@@ -1207,7 +1207,7 @@ void Fsm::AppendAnything()
 	Resize(Size() + 1);
 	for (size_t letter = 0; letter < MaxChar; ++letter)
 		Connect(newstate, newstate, letter);
-	
+
 	ConnectFinal(newstate);
 	ClearFinal();
 	SetFinal(newstate, 1);

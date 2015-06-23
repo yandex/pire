@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -46,7 +46,7 @@ public:
 		NoAction = 0,
 		BeginCapture = 1,
 		EndCapture   = 2,
-		
+
 		FinalFlag = 1
 	};
 
@@ -123,7 +123,7 @@ public:
 		Init(fsm.Size(), fsm.Letters(), fsm.Initial());
 		BuildScanner(fsm, *this);
 	}
-	
+
 	void Swap(CapturingScanner& s) { LoadedScanner::Swap(s); }
 	CapturingScanner& operator = (const CapturingScanner& s) { CapturingScanner(s).Swap(*this); return *this; }
 
@@ -141,7 +141,7 @@ private:
 
 		return x.action;
 	}
-			
+
 	friend void BuildScanner<CapturingScanner>(const Fsm&, CapturingScanner&);
 };
 namespace Features {

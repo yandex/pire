@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -54,7 +54,7 @@ public:
 	typedef ui32        Action;
 	typedef ui8         Tag;
 
-	enum { 
+	enum {
 		FinalFlag = 1,
 		DeadFlag  = 0
 	};
@@ -75,7 +75,7 @@ public:
 	SlowScanner() { Alias(Null()); }
 
 	bool Empty() const { return m_finals == Null().m_finals; }
-	
+
 	size_t Id() const {return (size_t) -1;}
 	size_t RegexpsCount() const { return Empty() ? 0 : 1; }
 
@@ -147,7 +147,7 @@ public:
 	bool CanStop(const State& s) const {
 		return Final(s);
 	}
-	
+
 	const void* Mmap(const void* ptr, size_t size)
 	{
 		Impl::CheckAlign(ptr);
@@ -158,11 +158,11 @@ public:
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
 		memcpy(&s.m, locals, sizeof(s.m));
-		
+
 		bool empty = *((const bool*) p);
 		Impl::AdvancePtr(p, size, sizeof(empty));
 		Impl::AlignPtr(p, size);
-		
+
 		if (empty)
 			s.Alias(Null());
 		else {
@@ -171,7 +171,7 @@ public:
 			Impl::MapPtr(s.m_finals, s.m.statesCount, p, size);
 			Impl::MapPtr(s.m_jumpPos, s.m.statesCount * s.m.lettersCount + 1, p, size);
 			Impl::MapPtr(s.m_jumps, s.m_jumpPos[s.m.statesCount * s.m.lettersCount], p, size);
-			
+
 			Swap(s);
 		}
 		return (const void*) p;
@@ -188,7 +188,7 @@ public:
 		DoSwap(m_letters, s.m_letters);
 		DoSwap(m_pool, s.m_pool);
 		DoSwap(m_vec, s.m_vec);
-		
+
 		DoSwap(m_vecptr, s.m_vecptr);
 		if (m_vecptr == &s.m_vec)
 			m_vecptr = &m_vec;
@@ -218,7 +218,7 @@ public:
 			m_vecptr = &m_vec;
 		}
 	}
-	
+
 	explicit SlowScanner(Fsm& fsm)
 	{
 		fsm.RemoveEpsilons();
@@ -293,9 +293,9 @@ private:
 		memset(p, 0, size * sizeof(T));
 		m_pool.push_back(p);
 	}
-	
+
 	void Alias(const SlowScanner& s)
-	{		
+	{
 		memcpy(&m, &s.m, sizeof(m));
 		m_vec.clear();
 		m_finals = s.m_finals;
@@ -305,7 +305,7 @@ private:
 		m_vecptr = s.m_vecptr;
 		m_pool.clear();
 	}
-	
+
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/)
 	{
 		YASSERT(!m_vec.empty());
@@ -320,7 +320,7 @@ private:
 
 	void SetInitial(size_t state) { m.start = state; }
 	void SetTag(size_t state, ui8 tag) { m_finals[state] = (tag != 0); }
-	
+
 	void FinishBuild() {}
 
 	static ypair<const size_t*, const size_t*> Accept()
@@ -339,7 +339,7 @@ private:
 	friend void BuildScanner<SlowScanner>(const Fsm&, SlowScanner&);
 };
 
-#ifndef PIRE_DEBUG	
+#ifndef PIRE_DEBUG
 /// A specialization of Run(), since its state is much heavier than other ones
 /// and we thus want to avoid copying states.
 template<>

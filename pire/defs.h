@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -36,7 +36,7 @@ namespace Pire {
 #else
 #	define PIRE_IFDEBUG(x)
 #endif
-	
+
 #ifdef PIRE_CHECKED
 #	define PIRE_IF_CHECKED(e) e
 #else
@@ -45,7 +45,7 @@ namespace Pire {
 
 
 	typedef unsigned short Char;
-	
+
 	namespace SpecialChar {
 	enum {
 		Epsilon = 257,
@@ -59,7 +59,7 @@ namespace Pire {
 		MaxChar = (MaxCharUnaligned + (sizeof(void*)-1)) & ~(sizeof(void*)-1)
 	};
 	}
-	
+
 	using namespace SpecialChar;
 
 	namespace Impl {

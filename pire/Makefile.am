@@ -111,7 +111,7 @@ pire_stub_HEADERS = \
 	stub/saveload.h \
 	stub/lexical_cast.h
 
-bin_PROGRAMS = pire_inline 
+bin_PROGRAMS = pire_inline
 
 pire_inline_SOURCES = inline.lpp stub/hacks.h stub/memstreams.h
 pire_inline_LDADD = libpire.la

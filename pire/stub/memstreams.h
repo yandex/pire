@@ -12,7 +12,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -30,7 +30,7 @@
 #include <memory.h>
 
 namespace Pire {
-	
+
 	class MemBuffer {
 	public:
 		MemBuffer(const std::vector<char>& buf): m_buf(&buf) {}
@@ -42,9 +42,9 @@ namespace Pire {
 	private:
 		const std::vector<char>* m_buf;
 	};
-    
+
 	typedef MemBuffer::Iterator BufferIterator; // For compatibility with Arcadia
-    
+
 
 	class BufferOutputBase {
 	private:
@@ -59,7 +59,7 @@ namespace Pire {
 				buf.push_back((char) x);
 				return x;
 			}
-			
+
 			std::streamsize xsputn(const char* ptr, std::streamsize size)
 			{
 				buf.insert(buf.end(), ptr, ptr + size);
@@ -71,7 +71,7 @@ namespace Pire {
 
 	protected:
 		StreamBuf m_rdbuf;
-		
+
 	public:
 		BufferOutputBase() { }
 		MemBuffer Buffer() const { return m_rdbuf.Buf(); }
@@ -81,10 +81,10 @@ namespace Pire {
 	public:
 		BufferOutput() : std::ostream(&m_rdbuf) {}
 	};
-    
+
 	class MemoryInputBase {
 	private:
-        
+
 		class StreamBuf: public std::basic_streambuf<char> {
 		public:
 			StreamBuf(const char* data, size_t size)
@@ -92,7 +92,7 @@ namespace Pire {
 				char* p = const_cast<char*>(data);
 				setg(p, p, p+size);
 			}
-			
+
 		protected:
 			std::streamsize xsgetn(char* ptr, std::streamsize size)
 			{
@@ -105,10 +105,10 @@ namespace Pire {
 
 	protected:
 		StreamBuf m_rdbuf;
-        
+
 	public:
 		MemoryInputBase(const char* data, size_t size): m_rdbuf(data, size) {}
-	};	
+	};
 
 	class MemoryInput : protected MemoryInputBase, public std::istream {
 	public:

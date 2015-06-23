@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -25,7 +25,7 @@
 #include "capture.h"
 
 namespace Pire {
-	
+
 namespace {
 	class CaptureImpl: public Feature {
 	public:
@@ -34,13 +34,13 @@ namespace {
 			, Pos(pos)
 			, Level(0)
 		{}
-		
+
 		bool Accepts(wchar32 c) const { return c == '('; }
 		Term Lex()
 		{
 			if (GetChar() != '(')
 				Error("How did we get here?!..");
-			
+
 			if (State == 0 && Pos > 1)
 				--Pos;
 			else if (State == 0 && Pos == 1) {
@@ -51,7 +51,7 @@ namespace {
 			}
 			return Term(TokenTypes::Open);
 		}
-		
+
 		void Parenthesized(Fsm& fsm)
 		{
 			if (State == 1 && Level == 0) {
@@ -64,7 +64,7 @@ namespace {
 		unsigned State;
 		size_t Pos;
 		size_t Level;
-		
+
 		void SetCaptureMark(Fsm& fsm)
 		{
 			fsm.Resize(fsm.Size() + 2);
@@ -82,11 +82,11 @@ namespace {
 			fsm.SetFinal(fsm.Size() - 1, true);
 			fsm.SetIsDetermined(false);
 		}
-		
+
 		void FinishBuild() {}
 	};
 }
-	
+
 namespace Features {
 	Feature* Capture(size_t pos) { return new CaptureImpl(pos); }
 };

@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -58,7 +58,7 @@ template<class T, class F> struct LexicalCaster {
 };
 
 template<class T, class F> T LexicalCast(const F& f) { return LexicalCaster<T, F>::lexical_cast(f); }
-	
+
 template<class F> std::string ToString(const F& f) { return LexicalCast<std::string>(f); }
 template<class T> T FromString(const std::string& s) { return LexicalCast<T>(s); }
 
