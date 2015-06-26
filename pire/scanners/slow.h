@@ -257,7 +257,9 @@ public:
 	void Load(yistream*);
 
 #ifdef PIRE_DEBUG
-	const State& StateIndex(const State& s) const { return s; }
+	size_t StateIndex(const State& s) const {
+		return s.states.at(0); // return first state, for debug only
+	}
 #endif
 
 private:

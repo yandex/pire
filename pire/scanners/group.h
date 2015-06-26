@@ -159,7 +159,6 @@ namespace Impl
             return Impl::Dead<Scanner, S>::Do(m_scanners, state);
         }
 
-        // Impl::FixedSizeArray<typename Scanner::State, S> StateIndex(const State& state) const
         Impl::FixedSizeArray<size_t, S> StateIndex(const State& state) const
         {
             Impl::FixedSizeArray<size_t, S> res;
@@ -179,6 +178,14 @@ namespace Impl
     private:
         Impl::FixedSizeArray<const Scanner*, S> m_scanners;
     };
+
+    template <size_t Size>
+    yostream& operator << (yostream& os, const Impl::FixedSizeArray<size_t, Size>& arr) {
+        for (size_t i = 0; i < Size; ++i)
+            os << (i > 0 ? ", " : "") << arr[i];
+        return os;
+    }
+
 }
 
 namespace NPire
