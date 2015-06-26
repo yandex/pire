@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -Wall
+AM_CXXFLAGS = -Wall -std=c++11
 if ENABLE_DEBUG
 AM_CXXFLAGS += -DPIRE_DEBUG
 endif

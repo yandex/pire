@@ -34,5 +34,6 @@
 #include "scanners/simple.h"
 #include "scanners/slow.h"
 #include "scanners/pair.h"
+#include "scanners/group.h"
 
 #endif

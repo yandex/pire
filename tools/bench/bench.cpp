@@ -170,6 +170,20 @@ struct PrintResult< Pire::ScannerPair<Scanner1, Scanner2> > {
 	}
 };
 
+// Group result
+template<class ScannerType, size_t Size>
+struct PrintResult< Pire::ScannersGroup<ScannerType, Size> > {
+	typedef Pire::ScannersGroup<ScannerType, Size> Scanner;
+
+	static void Do(const Scanner& sc, typename Scanner::State st)
+	{
+		for (size_t i = 0; i < Size; ++i) {
+			std::cout << "[scanner " << i << "] "; PrintResult<ScannerType>::Do(*sc.Get(i), st[i]);
+		}
+	}
+};
+
+
 #ifdef BENCH_EXTRA_ENABLED
 template <>
 struct CompileRe<Pire::CapturingScanner> {
@@ -290,6 +304,23 @@ private:
 	Scanner2 sc2;
 };
 
+template<class ScannerType, size_t Size>
+class GroupTester: public TesterBase< Pire::ScannersGroup<ScannerType, Size> > {
+	typedef TesterBase< Pire::ScannersGroup<ScannerType, Size> > Base;
+
+	void Compile(const std::vector<Patterns>& patterns, bool surround)
+	{
+		if (patterns.size() != 4)
+			throw std::runtime_error("Only four sets of regexps are allowed for group scanner");
+		for (size_t i = 0; i < 4; ++i) {
+			sc[i] = ::CompileRe<ScannerType>::Do(patterns[i], surround);
+			Base::sc.SetScanner(&sc[i], i);
+		}
+	}
+private:
+	ScannerType sc[4];
+};
+
 
 class MemTester: public ITester {
 public:
@@ -312,7 +343,8 @@ std::runtime_error usage(
 #ifdef BENCH_EXTRA_ENABLED
 	"count|capture"
 #endif
-	"} regexp [regexp2 [-e regexp3...]] [-t <type> regexp4 [regexp5...]]");
+	"} regexp [regexp2 [-e regexp3...]] [-t <type> regexp4 [regexp5...]]\n"
+	"use two types to test pair and four types to test group");
 
 ITester* CreateTester(const std::vector<std::string>& types)
 {
@@ -363,7 +395,12 @@ ITester* CreateTester(const std::vector<std::string>& types)
 	else if (types.size() == 2 && types[0] == "capture" && types[1] == "capture")
 		return new PairTester<Pire::CapturingScanner, Pire::CapturingScanner>;
 #endif
-
+	else if (types.size() == 4) {
+		for (size_t i = 0; i < 4; ++i)
+			if (types[i] != "multi")
+				throw std::runtime_error("only size = 4 and type = multi supported for testing scanners group");
+		return new GroupTester<Pire::Scanner, 4>;
+	}
 	else
 		throw usage;
 }
