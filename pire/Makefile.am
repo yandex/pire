@@ -125,3 +125,4 @@ re_parser.cpp: $(srcdir)/re_parser.y
 
 re_parser.h: re_parser.cpp
 
+EXTRA_DIST = re_parser.y
