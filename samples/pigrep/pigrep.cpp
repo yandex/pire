@@ -90,15 +90,20 @@ int main(int argc, char** argv)
         if (argc == 0)
             GrepStream(std::cin, sc, std::string());
         else {
-            for (; argc; --argc, ++argv) {
-                if (argv[0] == std::string("-"))
-                    GrepStream(std::cin, sc, "(stdin)");
-                else {
-                    std::ifstream ifs(argv[0]);
-                    if (!ifs)
+            for (char** filename = argv; filename != argv + argc; ++filename) {
+                std::string prefix = "(stdin)";
+                std::istream* s = &std::cin;
+                std::ifstream fs;
+
+                if (*filename != std::string("-")) {
+                    fs.open(*filename);
+                    if (!fs)
                         throw std::runtime_error("cannot open file " + std::string(argv[0]));
-                    GrepStream(ifs, sc, std::string(argv[0]) + ":");
+                    prefix = *filename;
+                    s = &fs;
                 }
+
+                GrepStream(*s, sc, argc == 1 ? "" : (prefix + ": "));
             }
         }
 
