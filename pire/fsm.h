@@ -91,7 +91,7 @@ namespace Pire {
 		/// Completely removes given transition
 		void Disconnect(size_t from, size_t to);
 
-		/// Creates an FSM which matches any suffix of any word current FSM matches.
+		/// Creates an FSM which matches any prefix of any word current FSM matches.
 		void MakePrefix();
 
 		/// Creates an FSM which matches any suffix of any word current FSM matches.
