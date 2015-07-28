@@ -78,7 +78,7 @@ namespace Pire {
 		Fsm operator & (const Fsm& rhs) const { Fsm a(*this); return a &= rhs; }
 		Fsm operator * ()               const { Fsm a(*this); return a.Iterate(); }
 		Fsm operator ~ ()               const { Fsm a(*this); return a.Complement(); }
-		Fsm operator * (size_t count);
+		Fsm operator * (size_t count) const;
 
 		// === Raw FSM construction ===
 		
