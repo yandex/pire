@@ -12,7 +12,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -45,7 +45,7 @@ public:
 private:
     typename Scanner::Letter* m_lhs;
     typename Scanner::Letter* m_rhs;
-};	
+};
 
 // This lookup table is used instead of std::map.
 // The key idea is to specify size which is a power of 2 in order to use >> and | instead of
@@ -70,7 +70,7 @@ public:
 	{
 		delete [] mMap;
 	}
-	
+
 	const_iterator end() const {
 		return mMap + MaxSize;
 	}
@@ -119,7 +119,7 @@ template<class Scanner>
 class ScannerGlueCommon {
 public:
 	typedef Partition< Char, Impl::LettersEquality<Scanner> > LettersTbl;
-	
+
 	typedef ypair<typename Scanner::InternalState, typename Scanner::InternalState> State;
 	ScannerGlueCommon(const Scanner& lhs, const Scanner& rhs, const LettersTbl& letters)
 		: m_lhs(lhs)
@@ -133,7 +133,7 @@ public:
 	}
 
 	const LettersTbl& Letters() const { return m_letters; }
-	
+
 	const Scanner& Lhs() const { return m_lhs; }
 	const Scanner& Rhs() const { return m_rhs; }
 
@@ -145,7 +145,7 @@ public:
 		Rhs().Next(state.second, letter);
 		return state;
 	}
-	
+
 	bool IsRequired(const State& /*state*/) const { return true; }
 
 	typedef Scanner Result;
@@ -163,7 +163,7 @@ private:
 	yauto_ptr<Scanner> m_result;
 };
 
-}	
+}
 }
 
 #endif

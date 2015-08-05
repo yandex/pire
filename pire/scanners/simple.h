@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -46,7 +46,7 @@ public:
 	typedef ui8         Tag;
 
 	SimpleScanner()	{ Alias(Null()); }
-	
+
 	explicit SimpleScanner(Fsm& fsm);
 
 	size_t Size() const { return m.statesCount; }
@@ -90,7 +90,7 @@ public:
 			m.initial += (m_transitions - s.m_transitions) * sizeof(Transition);
 		}
 	}
-	
+
 	// Makes a shallow ("weak") copy of the given scanner.
 	// The copied scanner does not maintain lifetime of the original's entrails.
 	void Alias(const SimpleScanner& s)
@@ -136,7 +136,7 @@ public:
 		bool empty = *((const bool*) p);
 		Impl::AdvancePtr(p, size, sizeof(empty));
 		Impl::AlignPtr(p, size);
-		
+
 		if (empty)
 			s.Alias(Null());
 		else {
@@ -221,7 +221,7 @@ protected:
 inline SimpleScanner::SimpleScanner(Fsm& fsm)
 {
 	fsm.Canonize();
-	
+
 	m.statesCount = fsm.Size();
 	m_buffer = new char[BufSize()];
 	memset(m_buffer, 0, BufSize());
@@ -241,7 +241,7 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm)
 		}
 }
 
-	
+
 }
 
 #endif

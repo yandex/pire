@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -28,7 +28,7 @@
 #include "../stub/lexical_cast.h"
 
 namespace Pire {
-	
+
 namespace {
 	Pire::Fsm FsmForDot() { Pire::Fsm f; f.AppendDot(); return f; }
 	Pire::Fsm FsmForChar(Pire::Char c) { Pire::Fsm f; f.AppendSpecial(c); return f; }
@@ -132,28 +132,28 @@ namespace Impl {
 class CountingScannerGlueTask: public ScannerGlueCommon<CountingScanner> {
 public:
 	typedef ymap<State, size_t> InvStates;
-	
+
 	CountingScannerGlueTask(const CountingScanner& lhs, const CountingScanner& rhs)
 		: ScannerGlueCommon<CountingScanner>(lhs, rhs, LettersEquality<CountingScanner>(lhs.m_letters, rhs.m_letters))
 	{
 	}
-	
+
 	void AcceptStates(const yvector<State>& states)
 	{
 		States = states;
 		SetSc(new CountingScanner);
 		Sc().Init(states.size(), Letters(), 0, Lhs().RegexpsCount() + Rhs().RegexpsCount());
-		
+
 		for (size_t i = 0; i < states.size(); ++i)
 			Sc().SetTag(i, Lhs().m_tags[Lhs().StateIdx(states[i].first)] | (Rhs().m_tags[Rhs().StateIdx(states[i].second)] << 3));
 	}
-	
+
 	void Connect(size_t from, size_t to, Char letter)
 	{
 		Sc().SetJump(from, letter, to,
 			Action(Lhs(), States[from].first, letter) | (Action(Rhs(), States[from].second, letter) << Lhs().RegexpsCount()));
 	}
-			
+
 private:
 	yvector<State> States;
 	CountingScanner::Action Action(const CountingScanner& sc, CountingScanner::InternalState state, Char letter) const
@@ -163,10 +163,10 @@ private:
 };
 
 }
-	
+
 CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const CountingScanner& rhs, size_t maxSize /* = 0 */)
 {
-	static const size_t DefMaxSize = 250000;    
+	static const size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }

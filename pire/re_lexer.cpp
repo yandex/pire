@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -154,7 +154,7 @@ Term Lexer::Lex()
 				if ((*j & ControlMask) == Control)
 					Error("Control character in tokens sequence");
 	}
-	
+
 	int type = t.Type();
 	if (type == TokenTypes::Letters)
 		type = YRE_LETTERS;
@@ -180,7 +180,7 @@ Term Lexer::Lex()
 		type = 0;
 	return Term(type, t.Value());
 }
-	
+
 void Lexer::Parenthesized(Fsm& fsm)
 {
 	for (yvector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
@@ -302,7 +302,7 @@ namespace {
 		{
 			return c == '&' || c == '~' || c == (Control | '&') || c == (Control | '~');
 		}
-		
+
 		Term Lex()
 		{
 			wchar32 ch = GetChar();

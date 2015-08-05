@@ -13,7 +13,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -229,7 +229,7 @@ Fsm& ConvertToFSM(const Encoding& encoding, Any* any)
 } // namespace
 
 #if defined(PPP) && !defined(HAVE_CONFIG_H)
-// Workaround for some braindamaged byaccs which cannot decide what yyparse() should look like 
+// Workaround for some braindamaged byaccs which cannot decide what yyparse() should look like
 static int yyparse(void*, Pire::Lexer& rlex);
 
 namespace Pire {

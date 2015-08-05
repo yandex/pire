@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -30,7 +30,7 @@
 #include "scanners/loaded.h"
 
 namespace Pire {
-	
+
 void SimpleScanner::Save(yostream* s) const
 {
 	SavePodType(s, Header(2, sizeof(m)));
@@ -132,7 +132,7 @@ void SlowScanner::Load(yistream* s)
 
 		size_t size = 0;
 		for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
-			if (!i->empty()) { 
+			if (!i->empty()) {
 				LoadPodArray(s, &(*i)[0], i->size());
 				size += sizeof(unsigned) * i->size();
 			}
@@ -150,8 +150,8 @@ void LoadedScanner::Save(yostream* s) const
 	SavePodType(s, mc);
 	Impl::AlignSave(s, sizeof(mc));
 
-	Impl::AlignedSaveArray(s, m_letters, MaxChar);	
-	Impl::AlignedSaveArray(s, m_jumps, m.statesCount * m.lettersCount);	
+	Impl::AlignedSaveArray(s, m_letters, MaxChar);
+	Impl::AlignedSaveArray(s, m_jumps, m.statesCount * m.lettersCount);
 	Impl::AlignedSaveArray(s, m_actions, m.statesCount * m.lettersCount);
 	Impl::AlignedSaveArray(s, m_tags, m.statesCount);
 }

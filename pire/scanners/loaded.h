@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -65,14 +65,14 @@ public:
 	};
 
 	// Override in subclass, if neccessary
-	enum { 
+	enum {
 		FinalFlag = 0,
 		DeadFlag  = 0
 	};
 
-protected:	
+protected:
 	LoadedScanner() { Alias(Null()); }
-	
+
 	LoadedScanner(const LoadedScanner& s): m(s.m)
 	{
 		if (s.m_buffer) {
@@ -117,12 +117,12 @@ public:
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
 		memcpy(&s.m, locals, sizeof(s.m));
-		
+
 		Impl::MapPtr(s.m_letters, MaxChar, p, size);
 		Impl::MapPtr(s.m_jumps, s.m.statesCount * s.m.lettersCount, p, size);
 		Impl::MapPtr(s.m_actions, s.m.statesCount * s.m.lettersCount, p, size);
 		Impl::MapPtr(s.m_tags, s.m.statesCount, p, size);
-		
+
 		s.m.initial += reinterpret_cast<size_t>(s.m_jumps);
 		Swap(s);
 
@@ -232,7 +232,7 @@ private:
 		static const LoadedScanner n = Fsm::MakeFalse().Compile<LoadedScanner>();
 		return n;
 	}
-	
+
 	void Markup(void* buf)
 	{
 		m_letters = reinterpret_cast<Letter*>(buf);
@@ -240,7 +240,7 @@ private:
 		m_actions = reinterpret_cast<Action*>(m_jumps + m.statesCount * m.lettersCount);
 		m_tags    = reinterpret_cast<Tag*>(m_actions + m.statesCount * m.lettersCount);
 	}
-	
+
 	void Alias(const LoadedScanner& s)
 	{
 		memcpy(&m, &s.m, sizeof(m));
@@ -257,9 +257,9 @@ private:
 		Init(states, letters, startState, regexpsCount);
 	}
 
-	friend class Fsm;	
+	friend class Fsm;
 };
-	
+
 inline LoadedScanner::~LoadedScanner()
 {
 	delete [] m_buffer;

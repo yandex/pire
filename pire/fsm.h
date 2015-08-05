@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -37,7 +37,7 @@ namespace Pire {
 
 	/// A Flying Spaghetti Monster... no, just a Finite State Machine.
 	class Fsm {
-	public:		
+	public:
 		typedef ybitset<MaxChar> Charset;
 
 		Fsm();
@@ -81,13 +81,13 @@ namespace Pire {
 		Fsm operator * (size_t count) const;
 
 		// === Raw FSM construction ===
-		
+
 		/// Connects two states with given transition
 		void Connect(size_t from, size_t to, Char c = Epsilon);
-		
+
 		/// Removes given character from the specified transition.
 		void Disconnect(size_t from, size_t to, Char c);
-		
+
 		/// Completely removes given transition
 		void Disconnect(size_t from, size_t to);
 
@@ -96,11 +96,11 @@ namespace Pire {
 
 		/// Creates an FSM which matches any suffix of any word current FSM matches.
 		void MakeSuffix();
-		
+
 		/// Does the one way part of Surround().
 		void PrependAnything();
 		void AppendAnything();
-		
+
 		/// Creates an FSM which matches reversed strings matched by current FSM.
 		Fsm& Reverse();
 
@@ -112,7 +112,7 @@ namespace Pire {
 
 		/// Determines and minimizes the FSM if neccessary. Returns *this.
 		Fsm& Canonize(size_t maxSize = 0);
-		
+
 		template<class Scanner>
 		Scanner Compile();
 
@@ -169,10 +169,10 @@ namespace Pire {
 
 		/// Checks whether two states are connected using given letter.
 		bool Connected(size_t from, size_t to, Char c) const;
-		
+
 		/// Returns a set of letters on which a transition from the specified state exists
 		yset<Char> OutgoingLetters(size_t state) const;
-		
+
 		/// Returns a set of states where a transition from the given state using the given letter is possible
 		const StatesSet& Destinations(size_t from, Char letter) const;
 
@@ -180,9 +180,9 @@ namespace Pire {
 		bool Connected(size_t from, size_t to) const;
 		size_t Initial() const { return initial; }
 		void SetInitial(size_t init) { initial = init; }
-		
+
 		const LettersTbl& Letters() const { return letters; }
-		
+
 		/// Determines the FSM.
 		/// Breaks FSM invariant of having a single final state, so high-level FSM building
 		/// functions (i.e. Append(), operator+(), etc...) no longer can be applied to the FSM
@@ -215,7 +215,7 @@ namespace Pire {
 		FinalTable m_final;
 
 		LettersTbl letters;
-		
+
 		/// Does 'letters' make sense?
 		bool m_sparsed;
 
@@ -225,22 +225,22 @@ namespace Pire {
 		/// Output
 		typedef ymap< size_t, ymap<size_t, unsigned long> > Outputs;
 		Outputs outputs;
-		
+
 		typedef ymap<size_t, unsigned long> Tags;
 		Tags tags;
 
 		/// Heuristics hit: true iff this FSM is a union of two other FSMs
 		bool isAlternative;
-		
+
 		void ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps); ///< internal
 		void MergeEpsilonConnection(size_t from, size_t to); ///< internal
 
 		yset<size_t> TerminalStates() const;
-		
+
 		Char Translate(Char c) const;
-		
+
 		void ClearHints() { isAlternative = false; }
-		
+
 		friend class Impl::FsmDetermineTask;
 	};
 
@@ -262,10 +262,10 @@ namespace Pire {
 				for (Fsm::StatesSet::const_iterator to = tos.begin(), toEnd = tos.end(); to != toEnd; ++to)
 					r.SetJump(from, lit->first, *to, r.RemapAction(fsm.Output(from, *to)));
 			}
-		
+
 		r.FinishBuild();
 	}
-	
+
 	template<class Scanner>
 	inline Scanner Fsm::Compile()
 	{

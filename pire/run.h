@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -65,7 +65,7 @@ namespace Impl {
 		FORCED_INLINE PIRE_HOT_FUNCTION
 		Action operator()(const Scanner&, const typename Scanner::State&, const char*) const { return Continue; }
 	};
-	
+
 	template<class Scanner>
 	struct ShortestPrefixPred {
 		explicit ShortestPrefixPred(const char*& pos): m_pos(&pos) {}
@@ -83,11 +83,11 @@ namespace Impl {
 	private:
 		const char** m_pos;
 	};
-	
+
 	template<class Scanner>
 	struct LongestPrefixPred {
 		explicit LongestPrefixPred(const char*& pos): m_pos(&pos) {}
-		
+
 		FORCED_INLINE PIRE_HOT_FUNCTION
 		Action operator()(const Scanner& sc, const typename Scanner::State& st, const char* pos) const
 		{
@@ -138,7 +138,7 @@ namespace Impl {
 
 		return Continue;
 	}
-	
+
 	template<class Scanner>
 	struct AlignedRunner {
 
@@ -258,7 +258,7 @@ namespace Impl {
 }
 
 #endif
-	
+
 template<class Scanner>
 void Run(const Scanner& sc, typename Scanner::State& st, const char* begin, const char* end)
 {
@@ -287,7 +287,7 @@ const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end
 	return pos;
 }
 
-	
+
 /// The same as above, but scans string in reverse direction
 /// (consider using Fsm::Reverse() for using in this function).
 template<class Scanner>

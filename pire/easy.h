@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -55,29 +55,29 @@
 #include <iterator>
 
 namespace Pire {
-	
+
 template<class Arg> class Option;
 
 class Options {
 public:
 	Options(): m_encoding(&Pire::Encodings::Latin1()) {}
 	~Options() { Clear(); }
-	
+
 	void Add(const Pire::Encoding& encoding) { m_encoding = &encoding; }
 	void Add(Feature* feature) { m_features.push_back(feature); }
-	
+
 	struct Proxy {
 		Options* const o;
 		/*implicit*/ Proxy(Options* opts): o(opts) {}
 	};
 	operator Proxy() { return Proxy(this); }
-	
+
 	Options(Options& o): m_encoding(o.m_encoding) { m_features.swap(o.m_features); }
 	Options& operator = (Options& o) { m_encoding = o.m_encoding; m_features = o.m_features; o.Clear(); return *this; }
-	
+
 	Options(Proxy p): m_encoding(p.o->m_encoding) { m_features.swap(p.o->m_features); }
 	Options& operator = (Proxy p) { m_encoding = p.o->m_encoding; m_features = p.o->m_features; p.o->Clear(); return *this; }
-	
+
 	void Apply(Lexer& lexer)
 	{
 		lexer.SetEncoding(*m_encoding);
@@ -87,16 +87,16 @@ public:
 		}
 		m_features.clear();
 	}
-	
+
 	template<class ArgT>
 	/*implicit*/ Options(const Option<ArgT>& option);
-	
+
 	const Pire::Encoding& Encoding() const { return *m_encoding; }
 
 private:
 	const Pire::Encoding* m_encoding;
 	yvector<Feature*> m_features;
-	
+
 	void Clear()
 	{
 		for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
@@ -120,7 +120,7 @@ public:
 		ret.Add((*self.m_ctor)());
 		return ret;
 	}
-	
+
 	template<class Arg2>
 	Options operator | (const Option<Arg2>& other) const
 	{
@@ -146,16 +146,16 @@ public:
 	{
 		Init(PatternBounds(pattern), options);
 	}
-	
+
 	template<class Pattern, class Arg>
 	Regexp(Pattern pattern, Option<Arg> option)
 	{
 		Init(PatternBounds(pattern), Options() | option);
 	}
-	
+
 	explicit Regexp(Scanner sc): m_scanner(sc) {}
 	explicit Regexp(SlowScanner ssc): m_slow(ssc) {}
-	
+
 	bool Matches(const char* begin, const char* end) const
 	{
 		if (!m_scanner.Empty())
@@ -163,15 +163,15 @@ public:
 		else
 			return Runner(m_slow).Begin().Run(begin, end).End();
 	}
-	
+
 	bool Matches(const char* str) const { return Matches(str, str + strlen(str)); }
-	
+
 	bool Matches(const ystring& str) const
 	{
 		static const char c = 0;
 		return str.empty() ? Matches(&c, &c) : Matches(str.c_str(), str.c_str() + str.size());
 	}
-	
+
 	/// A helper class allowing '==~' operator for regexps
 	class MatchProxy {
 	public:
@@ -183,50 +183,50 @@ public:
 		const Regexp* m_re;
 	};
 	MatchProxy operator ~() const { return MatchProxy(*this); }
-		
+
 private:
 	Scanner m_scanner;
 	SlowScanner m_slow;
-	
+
 	ypair<const char*, const char*> PatternBounds(const ystring& pattern)
 	{
 		static const char c = 0;
 		return pattern.empty() ? ymake_pair(&c, &c) : ymake_pair(pattern.c_str(), pattern.c_str() + pattern.size());
 	}
-	
+
 	ypair<const char*, const char*> PatternBounds(const char* pattern)
 	{
 		return ymake_pair(pattern, pattern + strlen(pattern));
 	}
-	
+
 	void Init(ypair<const char*, const char*> rawPattern, Options options)
 	{
 		yvector<wchar32> pattern;
 		options.Encoding().FromLocal(rawPattern.first, rawPattern.second, std::back_inserter(pattern));
-		
+
 		Lexer lexer(pattern);
 		options.Apply(lexer);
 		Fsm fsm = lexer.Parse();
-		
+
 		if (!BeginsWithCircumflex(fsm))
 			fsm.PrependAnything();
 		fsm.AppendAnything();
-		
+
 		if (fsm.Determine())
 			m_scanner = fsm.Compile<Scanner>();
 		else
 			m_slow = fsm.Compile<SlowScanner>();
 	}
-	
+
 	static bool BeginsWithCircumflex(const Fsm& fsm)
 	{
 		typedef Fsm::StatesSet Set;
 		ydeque<size_t> queue;
 		BitSet handled(fsm.Size());
-		
+
 		queue.push_back(fsm.Initial());
 		handled.Set(fsm.Initial());
-		
+
 		while (!queue.empty()) {
 			Set s = fsm.Destinations(queue.front(), SpecialChar::Epsilon);
 			for (Set::iterator i = s.begin(), ie = s.end(); i != ie; ++i) {
@@ -235,18 +235,18 @@ private:
 					queue.push_back(*i);
 				}
 			}
-			
+
 			yset<Char> lets = fsm.OutgoingLetters(queue.front());
 			lets.erase(SpecialChar::Epsilon);
 			lets.erase(SpecialChar::BeginMark);
 			if (!lets.empty())
 				return false;
-			
+
 			queue.pop_front();
 		}
-		
+
 		return true;
-	}	
+	}
 };
 
 };

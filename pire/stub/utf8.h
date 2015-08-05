@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -29,7 +29,7 @@
 
 namespace Pire {
 	enum RECODE_RESULT { RECODE_OK }; // A dirty evil hack breaking the ODR
-	
+
 	size_t utf8_rune_len(const unsigned char p);
 	size_t utf8_rune_len_by_ucs(wchar32 rune);
 	RECODE_RESULT utf8_read_rune(wchar32 &rune, size_t &rune_len, const unsigned char *s, const unsigned char *end);
@@ -37,7 +37,7 @@ namespace Pire {
 	bool is_lower(wchar32 ch);
 	bool is_upper(wchar32 ch);
 	bool is_digit(wchar32 ch);
-	
+
 	wchar32 to_lower(wchar32 ch);
 	wchar32 to_upper(wchar32 ch);
 }
