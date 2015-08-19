@@ -105,6 +105,26 @@ namespace Impl {
 
 namespace Impl {
 
+	template<class Scanner, class Pred>
+	FORCED_INLINE PIRE_HOT_FUNCTION
+	Action SafeRunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
+	{
+		YASSERT(pos <= sizeof(size_t));
+		YASSERT(size <= sizeof(size_t));
+		YASSERT(pos + size <= sizeof(size_t));
+
+        if (PIRE_UNLIKELY(size == 0))
+            return Continue;
+
+		const char* ptr = (const char*) p + pos;
+		for (; size--; ++ptr) {
+			Step(scanner, state, (unsigned char) *ptr);
+			if (pred(scanner, state, ptr + 1) == Stop)
+				return Stop;
+		}
+		return Continue;
+	}
+
 	/// Effectively runs a scanner on a short data chunk, fit completely into one machine word.
 	template<class Scanner, class Pred>
 	FORCED_INLINE PIRE_HOT_FUNCTION
@@ -114,17 +134,9 @@ namespace Impl {
 		YASSERT(size <= sizeof(size_t));
 		YASSERT(pos + size <= sizeof(size_t));
 
-        if (PIRE_UNLIKELY(size == 0))
-            return Continue;
+		if (PIRE_UNLIKELY(size == 0))
+			return Continue;
 
-#ifdef PIRE_ENABLE_VALGRIND_SAFE
-		const char* ptr = (const char*) p + pos;
-		for (; size--; ++ptr) {
-			Step(scanner, state, (unsigned char) *ptr);
-			if (pred(scanner, state, ptr + 1) == Stop)
-				return Stop;
-		}
-#else
 		size_t chunk = Impl::ToLittleEndian(*p) >> 8*pos;
 		const char* ptr = (const char*) p + pos + size + 1;
 
@@ -134,7 +146,6 @@ namespace Impl {
 				return Stop;
 			chunk >>= 8;
 		}
-#endif
 
 		return Continue;
 	}
@@ -188,7 +199,7 @@ namespace Impl {
 		YASSERT(tailSize < sizeof(void*));
 
 		if (head == tail) {
-			Impl::RunChunk(scanner, st, head, sizeof(void*) - headSize, end - begin, pred);
+			Impl::SafeRunChunk(scanner, st, head, sizeof(void*) - headSize, end - begin, pred);
 			return;
 		}
 
@@ -211,7 +222,7 @@ namespace Impl {
 		}
 
 		if (tailSize)
-			Impl::RunChunk(scanner, state, tail, 0, tailSize, pred);
+			Impl::SafeRunChunk(scanner, state, tail, 0, tailSize, pred);
 
 		st = state;
 	}
