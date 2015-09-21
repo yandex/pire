@@ -87,9 +87,13 @@ public:
 		BitSet(m.statesCount).Swap(state.flags);
 	}
 
-	Action Next(const State& current, State& next, Char c) const
+	Char Translate(Char ch) const
 	{
-		size_t l = m_letters[c];
+		return m_letters[static_cast<size_t>(ch)];
+	}
+
+	Action NextTranslated(const State& current, State& next, Char l) const
+	{
 		next.flags.Clear();
 		next.states.clear();
 		for (yvector<unsigned>::const_iterator sit = current.states.begin(), sie = current.states.end(); sit != sie; ++sit) {
@@ -117,14 +121,24 @@ public:
 		return 0;
 	}
 
+	Action Next(const State& current, State& next, Char c) const
+	{
+		return NextTranslated(current, next, Translate(c));
+	}
+
 	bool TakeAction(State&, Action) const { return false; }
+
+	Action NextTranslated(State& s, Char l) const
+	{
+		State dest(m.statesCount);
+		Action a = NextTranslated(s, dest, l);
+		s.Swap(dest);
+		return a;
+	}
 
 	Action Next(State& s, Char c) const
 	{
-		State dest(m.statesCount);
-		Action a = Next(s, dest, c);
-		s.Swap(dest);
-		return a;
+		return NextTranslated(s, Translate(c));
 	}
 
 	bool Final(const State& s) const
