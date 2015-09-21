@@ -155,8 +155,13 @@ public:
 	/// Returns an initial state for this scanner
 	void Initialize(State& state) const { state = m.initial; }
 
-	/// Handles one characters
-	Action Next(State& state, Char c) const
+	Char Translate(Char ch) const
+	{
+		return m_letters[static_cast<size_t>(ch)];
+	}
+
+	/// Handles one letter
+	Action NextTranslated(State& state, Char letter) const
 	{
 		PIRE_IFDEBUG(
 			YASSERT(state >= (size_t)m_transitions);
@@ -164,7 +169,7 @@ public:
 			YASSERT((state - (size_t)m_transitions) % (RowSize()*sizeof(Transition)) == 0);
 		);
 
-		state = Relocation::Go(state, reinterpret_cast<const Transition*>(state)[m_letters[c]]);
+		state = Relocation::Go(state, reinterpret_cast<const Transition*>(state)[letter]);
 
 		PIRE_IFDEBUG(
 			YASSERT(state >= (size_t)m_transitions);
@@ -173,6 +178,12 @@ public:
 		);
 
 		return 0;
+	}
+
+	/// Handles one character
+	Action Next(State& state, Char c) const
+	{
+		return NextTranslated(state, Translate(c));
 	}
 
 	void TakeAction(State&, Action) const {}
