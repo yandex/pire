@@ -287,8 +287,11 @@ SIMPLE_UNIT_TEST(Reverse)
 	}
 }
 
+#if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 SIMPLE_UNIT_TEST(PrefixSuffix)
 {
 	static const char* pattern = "-->";
@@ -318,7 +321,9 @@ SIMPLE_UNIT_TEST(PrefixSuffix)
 	begin = Pire::ShortestSuffix(rsc, end - 1, text - 1) + 1;
 	UNIT_ASSERT_EQUAL(begin, text + 11);
 }
+#if defined(__GNUC__)
 #pragma GCC diagnostic pop
+#endif
 
 namespace {
 	ssize_t LongestPrefixLen(const char* pattern, const char* str)
@@ -670,13 +675,13 @@ void BasicTestEmptySaveLoadMmap()
 
 	BufferOutput wbuf;
 	UNIT_CHECKPOINT(); Save(&wbuf, sc);
-	
+
 	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 	Scanner sc3;
 	/*UNIT_CHECKPOINT();*/ Load(&rbuf, sc3);
 	UNIT_ASSERT(sc3.Empty());
 	UNIT_CHECKPOINT(); Pire::Runner(sc3).Begin().Run("a string", 7).End();
-	
+
 	Scanner sc4;
 	/*UNIT_CHECKPOINT();*/ const char* ptr = (const char*) sc4.Mmap(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 	UNIT_ASSERT(ptr == wbuf.Buffer().Data() + wbuf.Buffer().Size());
@@ -717,7 +722,7 @@ SIMPLE_UNIT_TEST(EmptyScanner)
 	{
 		BufferOutput wbuf;
 		UNIT_CHECKPOINT(); Save(&wbuf, nsc);
-		
+
 		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		Pire::NonrelocScanner nsc3;
 		/*UNIT_CHECKPOINT();*/ Load(&rbuf, nsc3);
