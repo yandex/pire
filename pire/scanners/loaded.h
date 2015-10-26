@@ -107,6 +107,8 @@ public:
 
 	size_t RegexpsCount() const { return Empty() ? 0 : m.regexpsCount; }
 
+	size_t LettersCount() const { return m.lettersCount; }
+
 	const void* Mmap(const void* ptr, size_t size)
 	{
 		Impl::CheckAlign(ptr);
@@ -179,6 +181,16 @@ public:
 
 	i64 SignExtend(i32 i) const { return i; }
 
+	size_t BufSize() const
+	{
+		return
+			MaxChar * sizeof(*m_letters)
+			+ m.lettersCount * m.statesCount * sizeof(*m_jumps)
+			+ m.statesCount * sizeof(*m_tags)
+			+ m.lettersCount * m.statesCount * sizeof(*m_actions)
+			;
+	}
+
 protected:
 
 	static const size_t MAX_RE_COUNT      = 16;
@@ -203,16 +215,6 @@ protected:
 	Tag* m_tags;
 
 	virtual ~LoadedScanner();
-
-	size_t BufSize() const
-	{
-		return
-			MaxChar * sizeof(*m_letters)
-			+ m.lettersCount * m.statesCount * sizeof(*m_jumps)
-			+ m.statesCount * sizeof(*m_tags)
-			+ m.lettersCount * m.statesCount * sizeof(*m_actions)
-			;
-	}
 
 private:
 	explicit LoadedScanner(Fsm& fsm)

@@ -131,9 +131,7 @@ public:
 	void Swap(CountingScanner& s) { LoadedScanner::Swap(s); }
 	CountingScanner& operator = (const CountingScanner& s) { CountingScanner(s).Swap(*this); return *this; }
 
-#ifdef PIRE_DEBUG
 	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
-#endif
 
 private:
 	using LoadedScanner::Init;

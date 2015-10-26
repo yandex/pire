@@ -141,9 +141,7 @@ public:
 	void Swap(CapturingScanner& s) { LoadedScanner::Swap(s); }
 	CapturingScanner& operator = (const CapturingScanner& s) { CapturingScanner(s).Swap(*this); return *this; }
 
-#ifdef PIRE_DEBUG
 	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
-#endif
 
 private:
 
