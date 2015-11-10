@@ -152,7 +152,6 @@ void LoadedScanner::Save(yostream* s) const
 
 	Impl::AlignedSaveArray(s, m_letters, MaxChar);	
 	Impl::AlignedSaveArray(s, m_jumps, m.statesCount * m.lettersCount);	
-	Impl::AlignedSaveArray(s, m_actions, m.statesCount * m.lettersCount);
 	Impl::AlignedSaveArray(s, m_tags, m.statesCount);
 }
 
@@ -166,7 +165,6 @@ void LoadedScanner::Load(yistream* s)
 	sc.Markup(sc.m_buffer);
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);
-	Impl::AlignedLoadArray(s, sc.m_actions, sc.m.statesCount * sc.m.lettersCount);
 	Impl::AlignedLoadArray(s, sc.m_tags, sc.m.statesCount);
 	sc.m.initial += reinterpret_cast<size_t>(sc.m_jumps);
 	Swap(sc);

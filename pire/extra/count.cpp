@@ -160,7 +160,8 @@ private:
 	{
 		size_t state_index = sc.StateIdx(state);
 		size_t transition_index = sc.TransitionIndex(state_index, letter);
-		return sc.m_actions[transition_index];
+		const CountingScanner::Transition& tr = sc.m_jumps[transition_index];
+		return tr.action;
 	}
 };
 

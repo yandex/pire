@@ -94,7 +94,6 @@ protected:
 		DoSwap(m.initial, s.m.initial);
 		DoSwap(m_letters, s.m_letters);
 		DoSwap(m_jumps, s.m_jumps);
-		DoSwap(m_actions, s.m_actions);
 		DoSwap(m_tags, s.m_tags);
 	}
 
@@ -122,7 +121,6 @@ public:
 		
 		Impl::MapPtr(s.m_letters, MaxChar, p, size);
 		Impl::MapPtr(s.m_jumps, s.m.statesCount * s.m.lettersCount, p, size);
-		Impl::MapPtr(s.m_actions, s.m.statesCount * s.m.lettersCount, p, size);
 		Impl::MapPtr(s.m_tags, s.m.statesCount, p, size);
 		
 		s.m.initial += reinterpret_cast<size_t>(s.m_jumps);
@@ -174,7 +172,6 @@ public:
 		tr.shift = shift;
 		tr.action = action;
 		m_jumps[TransitionIndex(oldState, c)] = tr;
-		m_actions[TransitionIndex(oldState, c)] = action;
 	}
 
 	Action RemapAction(Action action) { return action; }
@@ -196,7 +193,6 @@ public:
 			MaxChar * sizeof(*m_letters)
 			+ m.statesCount * StateSize()
 			+ m.statesCount * sizeof(*m_tags)
-			+ m.lettersCount * m.statesCount * sizeof(*m_actions)
 			;
 	}
 
@@ -220,7 +216,6 @@ protected:
 
 	Letter* m_letters;
 	Transition* m_jumps;
-	Action* m_actions;
 	Tag* m_tags;
 
 	virtual ~LoadedScanner();
@@ -248,8 +243,7 @@ private:
 	{
 		m_letters = reinterpret_cast<Letter*>(buf);
 		m_jumps   = reinterpret_cast<Transition*>(m_letters + MaxChar);
-		m_actions = reinterpret_cast<Action*>(m_jumps + m.statesCount * m.lettersCount);
-		m_tags    = reinterpret_cast<Tag*>(m_actions + m.statesCount * m.lettersCount);
+		m_tags    = reinterpret_cast<Tag*>(m_jumps + m.statesCount * m.lettersCount);
 	}
 	
 	void Alias(const LoadedScanner& s)
@@ -259,7 +253,6 @@ private:
 		m_letters = s.m_letters;
 		m_jumps = s.m_jumps;
 		m_tags = s.m_tags;
-		m_actions = s.m_actions;
 	}
 
 	template<class Eq>
