@@ -153,6 +153,10 @@ public:
 				m_letters[*it2] = it->second.first;
 	}
 
+	size_t TransitionIndex(size_t state, Char c) const
+	{
+		return state * m.lettersCount + m_letters[c];
+	}
 
 	void SetJump(size_t oldState, Char c, size_t newState, Action action)
 	{
@@ -164,8 +168,8 @@ public:
 		Transition tr;
 		tr.shift = shift;
 		tr.action = action;
-		m_jumps[oldState * m.lettersCount + m_letters[c]] = tr;
-		m_actions[oldState * m.lettersCount + m_letters[c]] = action;
+		m_jumps[TransitionIndex(oldState, c)] = tr;
+		m_actions[TransitionIndex(oldState, c)] = action;
 	}
 
 	Action RemapAction(Action action) { return action; }
