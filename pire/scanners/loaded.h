@@ -153,6 +153,11 @@ public:
 				m_letters[*it2] = it->second.first;
 	}
 
+	size_t StateSize() const
+	{
+		return m.lettersCount * sizeof(*m_jumps);
+	}
+
 	size_t TransitionIndex(size_t state, Char c) const
 	{
 		return state * m.lettersCount + m_letters[c];
@@ -164,7 +169,7 @@ public:
 		YASSERT(oldState < m.statesCount);
 		YASSERT(newState < m.statesCount);
 
-		size_t shift = (newState - oldState) * m.lettersCount * sizeof(*m_jumps);
+		size_t shift = (newState - oldState) * StateSize();
 		Transition tr;
 		tr.shift = shift;
 		tr.action = action;
@@ -189,7 +194,7 @@ public:
 	{
 		return
 			MaxChar * sizeof(*m_letters)
-			+ m.lettersCount * m.statesCount * sizeof(*m_jumps)
+			+ m.statesCount * StateSize()
 			+ m.statesCount * sizeof(*m_tags)
 			+ m.lettersCount * m.statesCount * sizeof(*m_actions)
 			;
