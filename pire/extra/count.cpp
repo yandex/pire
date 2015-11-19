@@ -158,7 +158,10 @@ private:
 	yvector<State> States;
 	CountingScanner::Action Action(const CountingScanner& sc, CountingScanner::InternalState state, Char letter) const
 	{
-		return sc.m_actions[sc.StateIdx(state) * sc.m.lettersCount + sc.m_letters[letter]];
+		size_t state_index = sc.StateIdx(state);
+		size_t transition_index = sc.TransitionIndex(state_index, letter);
+		const CountingScanner::Transition& tr = sc.m_jumps[transition_index];
+		return tr.action;
 	}
 };
 
