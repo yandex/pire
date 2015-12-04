@@ -166,8 +166,8 @@ void LoadedScanner::Load(yistream* s)
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);
 	if (header.Version == Header::RE_VERSION_WITH_MACTIONS) {
-		Action* actions = 0;
-		Impl::AlignedLoadArray(s, actions, sc.m.statesCount * sc.m.lettersCount);
+		yauto_ptr<Action> actions(new Action[sc.m.statesCount * sc.m.lettersCount]);
+		Impl::AlignedLoadArray(s, actions.get(), sc.m.statesCount * sc.m.lettersCount);
 	}
 	Impl::AlignedLoadArray(s, sc.m_tags, sc.m.statesCount);
 	sc.m.initial += reinterpret_cast<size_t>(sc.m_jumps);
