@@ -203,6 +203,89 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		}
 	}
 
+	SIMPLE_UNIT_TEST(Serialization_v6_compatibility)
+	{
+		const Pire::Encoding& enc = Pire::Encodings::Latin1();
+		Pire::CountingScanner sc1 = Pire::CountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		Pire::CountingScanner sc2 = Pire::CountingScanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
+		Pire::CountingScanner sc  = Pire::CountingScanner::Glue(sc1, sc2);
+
+		BufferOutput wbuf;
+		::Save(&wbuf, sc);
+
+		// Patched scanner is a scanner of RE_VERSION 6.
+		// The patched scanner is concatenated with original scanner to
+		// make sure all content of patched scanner is consumed.
+
+		const size_t ALIGNMENT = sizeof(size_t);
+		size_t actions_size =
+			sc.Size() *
+			sc.LettersCount() *
+			sizeof(Pire::CountingScanner::Action);
+		UNIT_ASSERT_EQUAL(actions_size % ALIGNMENT, 0);
+		size_t tags_size = sc.Size() * sizeof(Pire::CountingScanner::Tag);
+		const char* src = wbuf.Buffer().Data();
+		size_t src_size = wbuf.Buffer().Size();
+		size_t patched_size = src_size + actions_size;
+		size_t bytes_before_actions = src_size - tags_size;
+		const int fill_char = 0x42;
+
+		yvector<char> buf2(patched_size + src_size + 2 * ALIGNMENT);
+		char* dst = reinterpret_cast<char*>(Pire::Impl::AlignUp(&buf2[0], ALIGNMENT));
+		char* patched = dst;
+
+		// Insert dummy m_actions between m_jumps and m_tags.
+		memcpy(patched, src, bytes_before_actions); // copy members before m_actions
+		memset(patched + bytes_before_actions, fill_char, actions_size); // m_actions
+		memcpy(patched + bytes_before_actions + actions_size,
+			src + bytes_before_actions,
+			tags_size); // m_tags
+		// Set version to 6
+		// order of fields in header: magic, version, ...
+		ui32* version_in_patched = reinterpret_cast<ui32*>(patched) + 1;
+		UNIT_ASSERT_EQUAL(*version_in_patched, Pire::Header::RE_VERSION);
+		*version_in_patched = Pire::Header::RE_VERSION_WITH_MACTIONS;
+
+		// write normal scanner after patched one
+		char* normal = Pire::Impl::AlignUp(patched + patched_size, ALIGNMENT);
+		memcpy(normal, src, src_size);
+		char* dst_end = Pire::Impl::AlignUp(normal + src_size, ALIGNMENT);
+		size_t dst_size = dst_end - dst;
+
+		// test loading from stream
+		{
+			MemoryInput rbuf(dst, dst_size);
+			Pire::CountingScanner sc_patched, sc_normal;
+			::Load(&rbuf, sc_patched);
+			::Load(&rbuf, sc_normal);
+			Pire::CountingScanner::State st_patched = Run(sc_patched,
+					"abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(st_patched.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(st_patched.Result(1), size_t(2));
+			Pire::CountingScanner::State st_normal = Run(sc_normal,
+					"abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(st_normal.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(st_normal.Result(1), size_t(2));
+		}
+
+		// test loading using Mmap
+		{
+			Pire::CountingScanner sc_patched, sc_normal;
+			const void* tail = sc_patched.Mmap(patched, patched_size);
+			UNIT_ASSERT_EQUAL(tail, normal);
+			const void* tail2 = sc_normal.Mmap(tail, src_size);
+			UNIT_ASSERT_EQUAL(tail2, dst_end);
+			Pire::CountingScanner::State st_patched = Run(sc_patched,
+					"abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(st_patched.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(st_patched.Result(1), size_t(2));
+			Pire::CountingScanner::State st_normal = Run(sc_normal,
+					"abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(st_normal.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(st_normal.Result(1), size_t(2));
+		}
+	}
+
 	SIMPLE_UNIT_TEST(Empty)
 	{
 		Pire::CountingScanner sc;
