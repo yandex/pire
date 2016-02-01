@@ -26,13 +26,13 @@
 #include "stub/defaults.h"
 #include "static_assert.h"
 
-#ifndef FORCED_INLINE
+#ifndef PIRE_FORCED_INLINE
 #ifdef __GNUC__
-#define FORCED_INLINE __attribute__((always_inline))
+#define PIRE_FORCED_INLINE inline __attribute__((__always_inline__))
 #elif _MSC_VER
-#define FORCED_INLINE __forceinline
+#define PIRE_FORCED_INLINE __forceinline
 #else
-#define FORCED_INLINE inline
+#define PIRE_FORCED_INLINE inline
 #endif
 #endif
 
