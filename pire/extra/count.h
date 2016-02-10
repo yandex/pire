@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -29,11 +29,11 @@
 
 namespace Pire {
 class Fsm;
-	
+
 namespace Impl {
     template<class T>
     class ScannerGlueCommon;
-	
+
     class CountingScannerGlueTask;
 };
 
@@ -47,7 +47,7 @@ public:
 	enum {
 		IncrementAction = 1,
 		ResetAction = 2,
-	
+
 		FinalFlag = 0,
 		DeadFlag = 1,
 		Matched = 2
@@ -127,7 +127,7 @@ public:
 	CountingScanner() {}
 	CountingScanner(const CountingScanner& s): LoadedScanner(s) {}
 	CountingScanner(const Fsm& re, const Fsm& sep);
-	
+
 	void Swap(CountingScanner& s) { LoadedScanner::Swap(s); }
 	CountingScanner& operator = (const CountingScanner& s) { CountingScanner(s).Swap(*this); return *this; }
 
@@ -164,7 +164,7 @@ private:
 			if (mask & (2 << MAX_RE_COUNT)) Reset(s, 1);
 			if (mask & (4 << MAX_RE_COUNT)) Reset(s, 2);
 			if (mask & (8 << MAX_RE_COUNT)) Reset(s, 3);
-			s.m_updatedMask &= ~mask;
+			s.m_updatedMask &= (Action)~mask;
 		}
 	}
 
@@ -183,7 +183,7 @@ private:
 		else
 			return 0;
 	}
-	
+
 	typedef LoadedScanner::InternalState InternalState;
 	friend void BuildScanner<CountingScanner>(const Fsm&, CountingScanner&);
 	friend class Impl::ScannerGlueCommon<CountingScanner>;
