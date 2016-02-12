@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include "../align.h"
 #include "../stub/defaults.h"
+#include "../stub/lexical_cast.h"
 #include "../defs.h"
 #include "../platform.h"
 
@@ -53,12 +54,34 @@ namespace Pire {
 
 		void Validate(ui32 type, size_t hdrsize) const
 		{
-			if (Magic != MAGIC || PtrSize != sizeof(void*) || MaxWordSize != sizeof(Impl::MaxSizeWord))
-				throw Error("Serialized regexp incompatible with your system");
+			// fix link errors:
+			// ./.libs/libpire.so: undefined reference to `Pire::Header::MAGIC'
+			ui32 MAGIC_ = MAGIC;
+			ui32 RE_VERSION_ = RE_VERSION;
+			if (Magic != MAGIC)
+				throw Error("Bad Magic in serialized regexp. "
+						"Expected: " + ToString(MAGIC_) + ". "
+						"Found: " + ToString(Magic));
+			if (PtrSize != sizeof(void*))
+				throw Error("Bad PtrSize in serialized regexp. "
+						"Expected: " + ToString(sizeof(void*)) + ". "
+						"Found: " + ToString(PtrSize));
+			if (MaxWordSize != sizeof(Impl::MaxSizeWord))
+				throw Error("Bad MaxWordSize in serialized regexp. "
+						"Expected: " + ToString(sizeof(Impl::MaxSizeWord)) + ". "
+						"Found: " + ToString(MaxWordSize));
 			if (Version != RE_VERSION)
-				throw Error("You are trying to used an incompatible version of a serialized regexp");
-			if ((type != 0 && type != Type) || (hdrsize != 0 && HdrSize != hdrsize))
-				throw Error("Serialized regexp incompatible with your system");
+				throw Error("Bad Version in serialized regexp. "
+						"Expected: " + ToString(RE_VERSION_) + ". "
+						"Found: " + ToString(Version));
+			if (type != 0 && type != Type)
+				throw Error("Bad type in serialized regexp. "
+						"Expected: " + ToString(type) + ". "
+						"Found: " + ToString(Type));
+			if (hdrsize != 0 && HdrSize != hdrsize)
+				throw Error("Bad HdrSize in serialized regexp. "
+						"Expected: " + ToString(hdrsize) + ". "
+						"Found: " + ToString(HdrSize));
 		}
 	};
 
