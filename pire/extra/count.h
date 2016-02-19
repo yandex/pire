@@ -45,9 +45,17 @@ public:
 	static void Do(State& s, Action mask)
 	{
 		if (mask & (1 << (I - 1))) {
-			++s.m_current[I - 1];
+			Increment(s);
 		}
 		PerformIncrementer<I - 1>::Do(s, mask);
+	}
+
+private:
+	template<typename State>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Increment(State& s)
+	{
+		++s.m_current[I - 1];
 	}
 };
 
@@ -69,10 +77,18 @@ public:
 	static void Do(State& s, Action mask)
 	{
 		if (mask & (1 << (LoadedScanner::MAX_RE_COUNT + (I - 1))) && s.m_current[I - 1]) {
-			s.m_total[I - 1] = ymax(s.m_total[I - 1], s.m_current[I - 1]);
-			s.m_current[I - 1] = 0;
+			Reset(s);
 		}
 		PerformReseter<I - 1>::Do(s, mask);
+	}
+
+private:
+	template<typename State>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Reset(State& s)
+	{
+		s.m_total[I - 1] = ymax(s.m_total[I - 1], s.m_current[I - 1]);
+		s.m_current[I - 1] = 0;
 	}
 };
 
