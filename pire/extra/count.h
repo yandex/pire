@@ -38,7 +38,7 @@ namespace Impl {
 };
 
 template<size_t I>
-class PerformIncrementer {
+class IncrementPerformer {
 public:
 	template<typename State, typename Action>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
@@ -47,7 +47,7 @@ public:
 		if (mask & (1 << (I - 1))) {
 			Increment(s);
 		}
-		PerformIncrementer<I - 1>::Do(s, mask);
+		IncrementPerformer<I - 1>::Do(s, mask);
 	}
 
 private:
@@ -60,7 +60,7 @@ private:
 };
 
 template<>
-class PerformIncrementer<0> {
+class IncrementPerformer<0> {
 public:
 	template<typename State, typename Action>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
@@ -70,7 +70,7 @@ public:
 };
 
 template<size_t I>
-class PerformReseter {
+class ResetPerformer {
 public:
 	template<typename State, typename Action>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
@@ -79,7 +79,7 @@ public:
 		if (mask & (1 << (LoadedScanner::MAX_RE_COUNT + (I - 1))) && s.m_current[I - 1]) {
 			Reset(s);
 		}
-		PerformReseter<I - 1>::Do(s, mask);
+		ResetPerformer<I - 1>::Do(s, mask);
 	}
 
 private:
@@ -93,7 +93,7 @@ private:
 };
 
 template<>
-class PerformReseter<0> {
+class ResetPerformer<0> {
 public:
 	template<typename State, typename Action>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
@@ -132,10 +132,10 @@ public:
 		friend class CountingScanner;
 
 		template<size_t I>
-		friend class PerformIncrementer;
+		friend class IncrementPerformer;
 
 		template<size_t I>
-		friend class PerformReseter;
+		friend class ResetPerformer;
 
 #ifdef PIRE_DEBUG
 		friend yostream& operator << (yostream& s, const State& state)
@@ -219,7 +219,7 @@ private:
 	void PerformIncrement(State& s, Action mask) const
 	{
 		if (mask) {
-			PerformIncrementer<ActualReCount>::Do(s, mask);
+			IncrementPerformer<ActualReCount>::Do(s, mask);
 			s.m_updatedMask |= ((size_t)mask) << MAX_RE_COUNT;
 		}
 	}
@@ -229,7 +229,7 @@ private:
 	{
 		mask &= s.m_updatedMask;
 		if (mask) {
-			PerformReseter<ActualReCount>::Do(s, mask);
+			ResetPerformer<ActualReCount>::Do(s, mask);
 			s.m_updatedMask &= (Action)~mask;
 		}
 	}
