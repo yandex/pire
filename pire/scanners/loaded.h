@@ -70,6 +70,8 @@ public:
 		DeadFlag  = 0
 	};
 
+	static const size_t MAX_RE_COUNT = 16;
+
 protected:
 	LoadedScanner() { Alias(Null()); }
 
@@ -198,10 +200,8 @@ public:
 
 protected:
 
-	static const size_t MAX_RE_COUNT      = 16;
-
-	static const Action IncrementMask     = 0x0f;
-	static const Action ResetMask         = 0x0f << MAX_RE_COUNT;
+	static const Action IncrementMask     = (1 << MAX_RE_COUNT) - 1;
+	static const Action ResetMask         = IncrementMask << MAX_RE_COUNT;
 
 	// TODO: maybe, put fields in private section and provide data accessors
 

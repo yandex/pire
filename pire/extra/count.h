@@ -37,6 +37,71 @@ namespace Impl {
     class CountingScannerGlueTask;
 };
 
+template<size_t I>
+class IncrementPerformer {
+public:
+	template<typename State, typename Action>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Do(State& s, Action mask)
+	{
+		if (mask & (1 << (I - 1))) {
+			Increment(s);
+		}
+		IncrementPerformer<I - 1>::Do(s, mask);
+	}
+
+private:
+	template<typename State>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Increment(State& s)
+	{
+		++s.m_current[I - 1];
+	}
+};
+
+template<>
+class IncrementPerformer<0> {
+public:
+	template<typename State, typename Action>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Do(State&, Action)
+	{
+	}
+};
+
+template<size_t I>
+class ResetPerformer {
+public:
+	template<typename State, typename Action>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Do(State& s, Action mask)
+	{
+		if (mask & (1 << (LoadedScanner::MAX_RE_COUNT + (I - 1))) && s.m_current[I - 1]) {
+			Reset(s);
+		}
+		ResetPerformer<I - 1>::Do(s, mask);
+	}
+
+private:
+	template<typename State>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Reset(State& s)
+	{
+		s.m_total[I - 1] = ymax(s.m_total[I - 1], s.m_current[I - 1]);
+		s.m_current[I - 1] = 0;
+	}
+};
+
+template<>
+class ResetPerformer<0> {
+public:
+	template<typename State, typename Action>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Do(State&, Action)
+	{
+	}
+};
+
 /**
  * A scanner which counts occurences of the
  * given regexp separated by another regexp
@@ -60,16 +125,23 @@ public:
 		size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
 	private:
 		InternalState m_state;
-		ui32 m_current[OPTIMAL_RE_COUNT];
-		ui32 m_total[OPTIMAL_RE_COUNT];
+		ui32 m_current[MAX_RE_COUNT];
+		ui32 m_total[MAX_RE_COUNT];
 		size_t m_updatedMask;
+
 		friend class CountingScanner;
+
+		template<size_t I>
+		friend class IncrementPerformer;
+
+		template<size_t I>
+		friend class ResetPerformer;
 
 #ifdef PIRE_DEBUG
 		friend yostream& operator << (yostream& s, const State& state)
 		{
 			s << state.m_state << " ( ";
-			for (size_t i = 0; i < OPTIMAL_RE_COUNT; ++i)
+			for (size_t i = 0; i < MAX_RE_COUNT; ++i)
 				s << state.m_current[i] << '/' << state.m_total[i] << ' ';
 			return s << ')';
 		}
@@ -86,13 +158,20 @@ public:
 		state.m_updatedMask = 0;
 	}
 
+	template<size_t ActualReCount>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void TakeActionImpl(State& s, Action a) const
+	{
+		if (a & IncrementMask)
+			PerformIncrement<ActualReCount>(s, a);
+		if (a & ResetMask)
+			PerformReset<ActualReCount>(s, a);
+	}
+
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 	void TakeAction(State& s, Action a) const
 	{
-		if (a & IncrementMask)
-			PerformIncrement(s, a);
-		if (a & ResetMask)
-			PerformReset(s, a);
+		TakeActionImpl<OPTIMAL_RE_COUNT>(s, a);
 	}
 
 	bool CanStop(const State&) const { return false; }
@@ -136,34 +215,21 @@ public:
 private:
 	using LoadedScanner::Init;
 
+	template<size_t ActualReCount>
 	void PerformIncrement(State& s, Action mask) const
 	{
 		if (mask) {
-			if (mask & 1) ++s.m_current[0];
-			if (mask & 2) ++s.m_current[1];
-			if (mask & 4) ++s.m_current[2];
-			if (mask & 8) ++s.m_current[3];
+			IncrementPerformer<ActualReCount>::Do(s, mask);
 			s.m_updatedMask |= ((size_t)mask) << MAX_RE_COUNT;
 		}
-
 	}
 
-	void Reset(State &s, size_t i) const
-	{
-		if (s.m_current[i]) {
-			s.m_total[i] = ymax(s.m_total[i], s.m_current[i]);
-			s.m_current[i] = 0;
-		}
-	}
-
+	template<size_t ActualReCount>
 	void PerformReset(State& s, Action mask) const
 	{
 		mask &= s.m_updatedMask;
 		if (mask) {
-			if (mask & (1 << MAX_RE_COUNT)) Reset(s, 0);
-			if (mask & (2 << MAX_RE_COUNT)) Reset(s, 1);
-			if (mask & (4 << MAX_RE_COUNT)) Reset(s, 2);
-			if (mask & (8 << MAX_RE_COUNT)) Reset(s, 3);
+			ResetPerformer<ActualReCount>::Do(s, mask);
 			s.m_updatedMask &= (Action)~mask;
 		}
 	}
