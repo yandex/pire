@@ -115,7 +115,7 @@ public:
 		Impl::CheckAlign(ptr);
 		LoadedScanner s;
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
-		Impl::ValidateHeader(p, size, 4, sizeof(s.m));
+		Header header = Impl::ValidateHeader(p, size, 4, sizeof(s.m));
 
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
@@ -123,6 +123,10 @@ public:
 
 		Impl::MapPtr(s.m_letters, MaxChar, p, size);
 		Impl::MapPtr(s.m_jumps, s.m.statesCount * s.m.lettersCount, p, size);
+		if (header.Version == Header::RE_VERSION_WITH_MACTIONS) {
+			Action* actions = 0;
+			Impl::MapPtr(actions, s.m.statesCount * s.m.lettersCount, p, size);
+		}
 		Impl::MapPtr(s.m_tags, s.m.statesCount, p, size);
 
 		s.m.initial += reinterpret_cast<size_t>(s.m_jumps);

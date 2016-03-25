@@ -158,13 +158,17 @@ void LoadedScanner::Save(yostream* s) const
 void LoadedScanner::Load(yistream* s)
 {
 	LoadedScanner sc;
-	Impl::ValidateHeader(s, 4, sizeof(sc.m));
+	Header header = Impl::ValidateHeader(s, 4, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	sc.m_buffer = new char[sc.BufSize()];
 	sc.Markup(sc.m_buffer);
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);
+	if (header.Version == Header::RE_VERSION_WITH_MACTIONS) {
+		yauto_ptr<Action> actions(new Action[sc.m.statesCount * sc.m.lettersCount]);
+		Impl::AlignedLoadArray(s, actions.get(), sc.m.statesCount * sc.m.lettersCount);
+	}
 	Impl::AlignedLoadArray(s, sc.m_tags, sc.m.statesCount);
 	sc.m.initial += reinterpret_cast<size_t>(sc.m_jumps);
 	Swap(sc);
