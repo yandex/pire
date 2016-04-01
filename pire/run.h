@@ -187,19 +187,17 @@ namespace Impl {
 	template<class Scanner, class Pred>
 	inline void DoRun(const Scanner& scanner, typename Scanner::State& st, const char* begin, const char* end, Pred pred)
 	{
-		YASSERT(sizeof(void*) <= 8);
+		const size_t* head = reinterpret_cast<const size_t*>((reinterpret_cast<uintptr_t>(begin)) & ~(sizeof(size_t)-1));
+		const size_t* tail = reinterpret_cast<const size_t*>((reinterpret_cast<uintptr_t>(end)) & ~(sizeof(size_t)-1));
 
-		const size_t* head = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(begin)) & ~(sizeof(void*)-1));
-		const size_t* tail = reinterpret_cast<const size_t*>((reinterpret_cast<size_t>(end)) & ~(sizeof(void*)-1));
-
-		size_t headSize = ((const char*) head + sizeof(void*) - begin); // The distance from @p begin to the end of the word containing @p begin
+		size_t headSize = ((const char*) head + sizeof(size_t) - begin); // The distance from @p begin to the end of the word containing @p begin
 		size_t tailSize = end - (const char*) tail; // The distance from the beginning of the word containing @p end to the @p end
 
-		YASSERT(headSize >= 1 && headSize <= sizeof(void*));
-		YASSERT(tailSize < sizeof(void*));
+		YASSERT(headSize >= 1 && headSize <= sizeof(size_t));
+		YASSERT(tailSize < sizeof(size_t));
 
 		if (head == tail) {
-			Impl::SafeRunChunk(scanner, st, head, sizeof(void*) - headSize, end - begin, pred);
+			Impl::SafeRunChunk(scanner, st, head, sizeof(size_t) - headSize, end - begin, pred);
 			return;
 		}
 
@@ -209,7 +207,7 @@ namespace Impl {
 		typename Scanner::State state = st;
 
 		if (begin != (const char*) head) {
-			if (Impl::RunChunk(scanner, state, head, sizeof(void*) - headSize, headSize, pred) == Stop) {
+			if (Impl::RunChunk(scanner, state, head, sizeof(size_t) - headSize, headSize, pred) == Stop) {
 				st = state;
 				return;
 			}
