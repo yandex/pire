@@ -158,18 +158,28 @@ term
 
 int yylex(YYSTYPE* lval, Pire::Lexer& rlex)
 {
-	Pire::Term term = rlex.Lex();
-	if (!term.Value().Empty())
-		*lval = new Any(term.Value());
-	return term.Type();
+	try {
+		Pire::Term term = rlex.Lex();
+		if (!term.Value().Empty())
+			*lval = new Any(term.Value());
+		return term.Type();
+	} catch (Pire::Error &e) {
+		rlex.SetError(e.what());
+		return 0;
+	}
 }
 
 void yyerror(const char* str)
 {
-	throw Error((ystring("Regexp parse error: ") + ystring(str)));
 }
 
-void yyerror(Pire::Lexer&, const char* str) { yyerror(str); }
+void yyerror(Pire::Lexer& rlex, const char* str)
+{
+	if (rlex.GetError().length() == 0)
+		rlex.SetError(ystring("Regexp parse error: ").append(str));
+
+	yyerror(str);
+}
 
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr)
 {
@@ -234,13 +244,27 @@ static int yyparse(void*, Pire::Lexer& rlex);
 
 namespace Pire {
 	namespace Impl {
-		int yre_parse(Pire::Lexer& rlex) { return yyparse(0, rlex); }
+		int yre_parse(Pire::Lexer& rlex)
+		{
+			int rc = yyparse(0, rlex);
+
+			if (rlex.GetError().length() != 0)
+				throw Error(rlex.GetError());
+			return rc;
+		}
 	}
 }
 #else
 namespace Pire {
 	namespace Impl {
-		int yre_parse(Pire::Lexer& rlex) { return yyparse(rlex); }
+		int yre_parse(Pire::Lexer& rlex)
+		{
+			int rc = yyparse(rlex);
+
+			if (rlex.GetError().length() != 0)
+				throw Error(rlex.GetError());
+			return rc;
+		}
 	}
 }
 #endif

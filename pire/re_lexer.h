@@ -146,6 +146,9 @@ public:
 
 	const Pire::Encoding& Encoding() const { return *m_encoding; }
 	Lexer& SetEncoding(const Pire::Encoding& encoding) { m_encoding = &encoding; return *this; }
+	void SetError(const char* msg) { errmsg = msg; }
+	void SetError(ystring msg) { errmsg = msg; }
+	ystring& GetError() { return errmsg; }
 
 	Any& Retval() { return m_retval; }
 
@@ -168,6 +171,7 @@ private:
 	const Pire::Encoding* m_encoding;
 	yvector<Feature*> m_features;
 	Any m_retval;
+	ystring errmsg;
 
 	friend class Feature;
 
