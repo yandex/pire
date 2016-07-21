@@ -18,6 +18,12 @@
 #ifndef PIRE_STUB_DEFAULTS_H_INCLUDED
 #define PIRE_STUB_DEFAULTS_H_INCLUDED
 
+#if defined(__cplusplus) && !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS 1 /* make С++ to be happy */
+#endif
+#if defined(__cplusplus) && !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS 1    /* make С++ to be happy */
+#endif
 #include <stdint.h>
 #include <stddef.h>
 
