@@ -43,6 +43,7 @@ libpire_la_SOURCES = \
 	stub/stl.h \
 	stub/lexical_cast.h \
 	stub/saveload.h \
+	stub/saveload.cpp \
 	stub/singleton.h \
 	stub/utf8.cpp \
 	stub/utf8.h \
