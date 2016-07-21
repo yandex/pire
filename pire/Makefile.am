@@ -49,6 +49,8 @@ libpire_la_SOURCES = \
 	stub/noncopyable.h \
 	stub/codepage_h.h \
 	stub/doccodes_h.h \
+	stub/msgpuck.h \
+	stub/msgpuck.c \
 	stub/unidata_h.h \
 	stub/unidata_cpp.h
 
@@ -105,6 +107,7 @@ pire_scanners_HEADERS = \
 pire_stubdir = $(includedir)/pire/stub
 pire_stub_HEADERS = \
 	stub/stl.h \
+	stub/msgpuck.h \
 	stub/defaults.h \
 	stub/memstreams.h \
 	stub/singleton.h \

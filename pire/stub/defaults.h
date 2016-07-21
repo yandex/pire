@@ -18,6 +18,18 @@
 #ifndef PIRE_STUB_DEFAULTS_H_INCLUDED
 #define PIRE_STUB_DEFAULTS_H_INCLUDED
 
+/*
+ * Some C++ implementations require __STDC_CONSTANT_MACROS
+ * and __STDC_LIMIT_MACROS to be defined before inclusion of
+ * stdint.h to make it possible to use macroses like UINT32_MAX
+ * or UINT32_C. See centos6, for example.
+ */
+#if defined(__cplusplus) && !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS 1
+#endif
+#if defined(__cplusplus) && !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS 1
+#endif
 #include <stdint.h>
 #include <stddef.h>
 
