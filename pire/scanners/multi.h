@@ -302,6 +302,9 @@ public:
 	void Save(yostream*) const;
 	void Load(yistream*);
 
+	void Pack(yostream*) const;
+	void Unpack(yistream*);
+
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
 	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
 
@@ -592,6 +595,197 @@ struct ScannerSaver {
 		scanner.Swap(sc);
 	}
 
+	template<class Relocation, class Shortcutting>
+	static void PackScanner(const Scanner<Relocation, Shortcutting>& scanner, yostream* s)
+	{
+		Pire::Header hdr(1, 0);
+		static const unsigned mp_max_vars_to_write = 8;
+		char buf[mp_max_vars_to_write * MsgpuckSizeofUintMax];
+
+		char *ptr = mp_encode_array(buf, 2);
+		s->write(buf, ptr - buf);
+
+		hdr.Pack(s);
+
+		ptr = mp_encode_array(buf, 2);
+		ptr = mp_encode_bool(ptr, scanner.Empty());
+		if (scanner.Empty()) {
+			ptr = mp_encode_nil(ptr);
+			s->write(buf, ptr - buf);
+			return;
+		}
+		ptr = mp_encode_array(ptr, 9);
+		ptr = mp_encode_uint(ptr, scanner.m.statesCount);
+		ptr = mp_encode_uint(ptr, scanner.m.lettersCount);
+		ptr = mp_encode_uint(ptr, scanner.m.regexpsCount);
+		ptr = mp_encode_uint(ptr, scanner.StateIndex(scanner.m.initial));
+		ptr = mp_encode_uint(ptr, scanner.m.finalTableSize);
+		/* Pack is relocation safe, so we don't need to encode scanner.m.relocationSignature */
+		ptr = mp_encode_uint(ptr, scanner.m.shortcuttingSignature);
+
+		ptr = mp_encode_array(ptr, MaxCharUnaligned);
+		s->write(buf, ptr - buf);
+		for (size_t i = 0; i != MaxCharUnaligned; i++) {
+			if (scanner.m_letters[i] != 0) {
+				ptr = mp_encode_uint(buf, scanner.m_letters[i] - scanner.HEADER_SIZE);
+			} else {
+				ptr = mp_encode_nil(buf);
+			}
+			s->write(buf, ptr - buf);
+		}
+		ptr = mp_encode_array(buf, scanner.m.finalTableSize);
+		s->write(buf, ptr - buf);
+		for (size_t i = 0; i != scanner.m.finalTableSize; i++) {
+			size_t out = scanner.m_final[i];
+
+			if (out == static_cast<size_t>(-1)) {
+				ptr = mp_encode_nil(buf);
+			} else {
+				ptr = mp_encode_uint(buf, out);
+			}
+			s->write(buf, ptr - buf);
+		}
+		ptr = mp_encode_array(buf, scanner.m.statesCount);
+		s->write(buf, ptr - buf);
+		for (size_t i = 0; i != scanner.m.statesCount; i++) {
+			size_t st = scanner.IndexToState(i);
+			const typename Scanner<Relocation, Shortcutting>::ScannerRowHeader hdr = scanner.Header(st);
+			const typename Scanner<Relocation, Shortcutting>::Transition* os
+				= reinterpret_cast<const typename Scanner<Relocation, Shortcutting>::Transition*>(st);
+			ptr = mp_encode_array(buf, 4);
+			ptr = mp_encode_uint(ptr, scanner.m_finalIndex[i]);
+			/* save Header(st) content: flags & ExitMasks */
+			ptr = mp_encode_uint(ptr, hdr.Common.Flags);
+			ptr = mp_encode_array(ptr, Shortcutting::ExitMaskCount);
+			s->write(buf, ptr - buf);
+			for (size_t ind = 0; ind != Shortcutting::ExitMaskCount; ind++) {
+				size_t mask = Shortcutting::GetMaskRaw(hdr, ind);
+
+				/* write 'special mask' flag and then the mask itself */
+				ptr = mp_encode_array(buf, 2);
+				ptr = mp_encode_bool(ptr, mask != 0 && (mask & 0xff00) == 0);
+				ptr = mp_encode_uint(ptr, mask & 0xff);
+				s->write(buf, ptr - buf);
+			}
+			/* save transitions */
+			ptr = mp_encode_array(buf, scanner.LettersCount());
+			s->write(buf, ptr - buf);
+			for (size_t let = 0; let != scanner.LettersCount(); let++) {
+				size_t destIndex = scanner.StateIndex(Relocation::Go(st, os[let + scanner.HEADER_SIZE]));
+				ptr = mp_encode_uint(buf, destIndex);
+				s->write(buf, ptr - buf);
+			}
+		}
+	}
+
+	template<class Relocation, class Shortcutting>
+	static void UnpackScanner(Scanner<Relocation, Shortcutting>& scanner, yistream* s)
+	{
+		typedef Scanner<Relocation, Shortcutting> ScannerType;
+		Pire::Header hdr(1, 0);
+		Scanner<Relocation, Shortcutting> sc;
+
+		if (MsgpuckReadArray(s) != 2) {
+			throw Error("Invalid format");
+		}
+		hdr.Unpack(s);
+
+		if (MsgpuckReadArray(s) != 2) {
+			throw Error("Invalid format");
+		}
+		if (MsgpuckReadBool(s)) {
+			sc.Alias(ScannerType::Null());
+			MsgpuckReadNil(s);
+			scanner.Swap(sc);
+			return;
+		}
+		if (MsgpuckReadArray(s) != 9) {
+			throw Error("Invalid format");
+		}
+		sc.m.statesCount = MsgpuckReadUint(s);
+		sc.m.lettersCount = MsgpuckReadUint(s);
+		sc.m.regexpsCount = MsgpuckReadUint(s);
+		sc.m.initial = MsgpuckReadUint(s);
+		sc.m.finalTableSize = MsgpuckReadUint(s);
+		sc.m.shortcuttingSignature = MsgpuckReadUint(s);
+		if (Shortcutting::Signature != sc.m.shortcuttingSignature) {
+			throw Error("This scanner has different shortcutting type");
+		}
+		sc.m_buffer = new char[sc.BufSize() + sizeof(size_t)];
+		memset(sc.m_buffer, 0, sc.BufSize() + sizeof(size_t));
+		sc.Markup(AlignUp(sc.m_buffer, sizeof(size_t)));
+		sc.m_finalEnd = sc.m_final; // Actually not used
+		sc.m.initial = sc.IndexToState(sc.m.initial);
+
+		if (MsgpuckReadArray(s) != MaxCharUnaligned) {
+			throw Error("Invalid format");
+		}
+		size_t i = 0;
+		for (; i != MaxCharUnaligned; i++) {
+			if (MsgpuckTypeof(s) != MP_NIL) {
+				sc.m_letters[i] = MsgpuckReadUint(s) + sc.HEADER_SIZE;
+			} else {
+				MsgpuckReadNil(s);
+			}
+		}
+		/* This should be filled for all the remaining letters */
+		for (; i != MaxChar; i++) {
+			sc.m_letters[i] = sc.HEADER_SIZE;
+		}
+		if (MsgpuckReadArray(s) != sc.m.finalTableSize) {
+			throw Error("Invalid format");
+		}
+		for (i = 0; i != sc.m.finalTableSize; i++) {
+			if (MsgpuckTypeof(s) != MP_NIL) {
+				sc.m_final[i] = MsgpuckReadUint(s);
+			} else {
+				sc.m_final[i] = static_cast<size_t>(-1);
+				MsgpuckReadNil(s);
+			}
+		}
+		if (MsgpuckReadArray(s) != sc.m.statesCount) {
+			throw Error("Invalid format");
+		}
+		for (i = 0; i != sc.m.statesCount; i++) {
+			size_t st = sc.IndexToState(i);
+
+			sc.Header(st) = typename ScannerType::ScannerRowHeader();
+			typename ScannerType::ScannerRowHeader &hdr = sc.Header(st);
+			typename ScannerType::Transition* ns = reinterpret_cast<typename ScannerType::Transition*>(st);
+
+			if (MsgpuckReadArray(s) != 4) {
+				throw Error("Invalid format");
+			}
+			sc.m_finalIndex[i] = MsgpuckReadUint(s);
+			hdr.Common.Flags = MsgpuckReadUint(s);
+
+			if (MsgpuckReadArray(s) != Shortcutting::ExitMaskCount) {
+				throw Error("Invalid format");
+			}
+			for (size_t ind = 0; ind != Shortcutting::ExitMaskCount; ind++) {
+				if (MsgpuckReadArray(s) != 2) {
+					throw Error("Invalid format");
+				}
+				bool special = MsgpuckReadBool(s);
+				size_t val = MsgpuckReadUint(s);
+				if (special) {
+					Shortcutting::SetMaskRaw(hdr, ind, val);
+				} else {
+					Shortcutting::SetMask(hdr, ind, (char)val);
+				}
+			}
+			if (MsgpuckReadArray(s) != sc.LettersCount()) {
+				throw Error("Invalid format");
+			}
+			for (size_t let = 0; let != sc.LettersCount(); let++) {
+				size_t destIndex = MsgpuckReadUint(s);
+				typename ScannerType::Transition tr = Relocation::Diff(st, sc.IndexToState(destIndex));
+				ns[let + sc.HEADER_SIZE] = tr;
+			}
+		}
+		scanner.Swap(sc);
+	}
+
 	// TODO: implement more effective serialization
 	// of nonrelocatable scanner if necessary
 	
@@ -621,6 +815,18 @@ template<class Relocation, class Shortcutting>
 void Scanner<Relocation, Shortcutting>::Load(yistream* s)
 {
 	ScannerSaver::LoadScanner(*this, s);
+}
+
+template<class Relocation, class Shortcutting>
+void Scanner<Relocation, Shortcutting>::Pack(yostream* s) const
+{
+	ScannerSaver::PackScanner(*this, s);
+}
+
+template<class Relocation, class Shortcutting>
+void Scanner<Relocation, Shortcutting>::Unpack(yistream* s)
+{
+	ScannerSaver::UnpackScanner(*this, s);
 }
 
 template<class Relocation, class Shortcutting>
@@ -773,9 +979,21 @@ public:
 	}
 
 	template <class Header>
+	static size_t GetMaskRaw(Header& header, size_t ind)
+	{
+		return header.Mask(ind);
+	}
+
+	template <class Header>
+	static void SetMaskRaw(Header& header, size_t ind, size_t val)
+	{
+		header.SetMask(ind, val);
+	}
+
+	template <class Header>
 	static void SetMask(Header& header, size_t ind, char c)
 	{
-		header.SetMask(ind, FillSizeT(c));
+		SetMaskRaw(header, ind, FillSizeT(c));
 	}
 
 	template <class Header>
@@ -839,6 +1057,12 @@ struct NoShortcuts {
 
 	template <class Header>
 	static void SetNoShortcut(Header&) {}
+
+	template <class Header>
+	static size_t GetMaskRaw(Header&, size_t) {return 0;}
+
+	template <class Header>
+	static void SetMaskRaw(Header& header, size_t ind, size_t val) {}
 
 	template <class Header>
 	static void SetMask(Header&, size_t, char) {}
