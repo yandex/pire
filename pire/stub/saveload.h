@@ -27,7 +27,9 @@
 #include <sys/types.h>
 #include <iostream>
 #include <vector>
+#include "defaults.h"
 #include "stl.h"
+#include "msgpuck.h"
 
 namespace Pire {
 
@@ -168,6 +170,12 @@ namespace Pire {
 	{
 		s->read((char*) t, len * sizeof(*t));
 	}
+
+	enum mp_type MsgpuckTypeof(yistream* s);
+	uint32_t MsgpuckReadArray(yistream* s);
+	uint64_t MsgpuckReadUint(yistream* s);
+	bool MsgpuckReadBool(yistream* s);
+	void MsgpuckReadNil(yistream* s);
 };
 
 #endif
