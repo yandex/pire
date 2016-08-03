@@ -102,6 +102,11 @@ print <<EOF;
 #define YASSERT(e) do {} while (0)
 #endif
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 namespace Pire {
 EOF
 
@@ -160,6 +165,10 @@ print <<EOF;
 	}
 
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #endif
 EOF
