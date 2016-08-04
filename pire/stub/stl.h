@@ -51,6 +51,11 @@
 #define YASSERT(e) do {} while (0)
 #endif
 
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 namespace Pire {
 	template< class T, class A = std::allocator<T> >
 	class yvector: public std::vector<T, A> {
@@ -229,5 +234,9 @@ namespace Pire {
 	}
 
 }
+
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic pop
+#endif
 
 #endif
