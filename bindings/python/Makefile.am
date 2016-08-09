@@ -1,3 +1,5 @@
+SUBDIRS = . tests
+
 BUILT_SOURCES = $(srcdir)/pire_wrap.cpp
 CYTHON_SOURCES = $(srcdir)/pire.pyx
 
