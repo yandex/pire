@@ -28,6 +28,16 @@ if ! test -r "$srcdir"/pire/inline.cpp && test x"$LEX" = "x:"; then
 	AC_MSG_ERROR([[flex/lex not found (and no prebuilt pire-inline lexer used)]])
 fi
 
+# python binding setup
+if test x"$enable_python" = xyes; then
+	AC_PATH_PROGS([CYTHON], [cython])
+	if ! test -r "$srcdir"/bindings/python/pire_wrap.cpp && test x"$CYTHON" = x; then
+		AC_MSG_ERROR([[Cython not found (and no prebuilt python wrapper used)]])
+	fi
+	AM_PATH_PYTHON
+	AX_PYTHON_DEVEL
+fi
+
 # Just for conscience' sake
 AC_CHECK_HEADERS([stdlib.h stdint.h string.h sys/time.h])
 AC_HEADER_STDBOOL
@@ -81,9 +91,11 @@ AX_DEFINE_IF_COMPILES([HAVE_SCOPED_EXPR], [gcc-specific scoped expressions are s
 AC_ARG_ENABLE([extra], AS_HELP_STRING([--enable-extra], [Add extra functionality (capturing scanner, etc...)]))
 AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [Make Pire dump all constructed FSMs to std::clog (useless unless debugging Pire)]))
 AC_ARG_ENABLE([checked], AS_HELP_STRING([--enable-checked], [Enable asserts]))
+AC_ARG_ENABLE([python], AS_HELP_STRING([--enable-python], [Generate python bindings]))
 AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
+AM_CONDITIONAL([ENABLE_PYTHON], [test x"$enable_python" = xyes])
 
 AC_ARG_ENABLE([valgrind_safe], AS_HELP_STRING([--enable-valgrind-safe], [Make Pire fetch data in a way which does not upset Valgrind]))
 if test x"$enable_valgrind_safe" = xyes; then
@@ -97,6 +109,8 @@ AC_CONFIG_FILES([
 	Makefile
 	pire/Makefile
 	tests/Makefile
+	bindings/Makefile
+	bindings/python/Makefile
 	pkg/Makefile
 	tools/Makefile
 	tools/bench/Makefile
