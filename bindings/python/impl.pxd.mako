@@ -1,7 +1,8 @@
 # vim: ft=pyrex
 
-from libcpp.string cimport string
 from libcpp cimport bool
+
+from .stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
@@ -12,7 +13,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         size_t Size()
 
-        void Append(const string&)
+        void Append(const ystring&)
 
 
     Fsm Fsm_MakeFalse "Pire::Fsm::MakeFalse"()

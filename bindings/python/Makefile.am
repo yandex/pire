@@ -3,7 +3,7 @@ SUBDIRS = . tests
 RENDER_PY = $(srcdir)/render.py
 
 MAKO_SOURCES = $(srcdir)/pire.pyx.mako $(srcdir)/impl.pxd.mako
-CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd
+CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd $(srcdir)/stub.pxd
 CXX_SOURCES = $(srcdir)/pire_wrap.cpp
 
 MAINTAINERCLEANFILES = $(CXX_SOURCES) $(CYTHON_SOURCES)

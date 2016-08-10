@@ -31,7 +31,7 @@ cdef class Fsm:
         return self.fsm_impl.Size()
 
     def Append(self, bytes line):
-        self.fsm_impl.Append(<impl.string>line)
+        self.fsm_impl.Append(<impl.ystring>line)
         return self
 
     def Compile(self, object scanner_class=None):
