@@ -1,4 +1,6 @@
 # vim: ft=pyrex
+cimport cython
+
 cimport impl
 
 
@@ -33,6 +35,51 @@ cdef class Fsm:
     def Append(self, bytes line):
         self.fsm_impl.Append(<impl.ystring>line)
         return self
+
+    def AppendStrings(self, strings):
+        self.fsm_impl.AppendStrings(<impl.yvector[impl.ystring]>strings)
+        return self
+
+    % for unary in FSM_INPLACE_UNARIES:
+    def ${unary}(self):
+        self.fsm_impl.${unary}()
+        return self
+    % endfor
+
+    % for _, operation, _, rhs_type in FSM_BINARIES:
+    <%
+        unwrapped_rhs = "rhs.fsm_impl" if rhs_type == "Fsm" else "rhs"
+        not_none = "not None" if rhs_type != "size_t" else ""
+        inplace_op = "__i{}__".format(operation)
+        explace_op = "__{}__".format(operation)
+    %>
+    def ${inplace_op}(self, ${rhs_type} rhs ${not_none}):
+        self.fsm_impl.${inplace_op}(${unwrapped_rhs})
+        return self
+
+    def _${operation}(self, ${rhs_type} rhs ${not_none}):
+        return wrap_fsm(self.fsm_impl.${explace_op}(${unwrapped_rhs}))
+
+    def ${explace_op}(self, rhs):
+        if isinstance(self, Fsm):
+            return self._${operation}(rhs)
+        return rhs.${explace_op}(self)  # __rmul__ mode, rhs is Fsm
+    %endfor
+
+    def Surrounded(self):
+        return wrap_fsm(self.fsm_impl.Surrounded())
+
+    def Iterated(self):
+        return wrap_fsm(cython.operator.dereference(self.fsm_impl))
+
+    def __invert__(self):
+        return wrap_fsm(~self.fsm_impl)
+
+    def Determine(self, size_t max_size=0):
+        return self.fsm_impl.Determine(max_size)
+
+    def IsDetermined(self):
+        return self.fsm_impl.IsDetermined()
 
     def Compile(self, object scanner_class=None):
         if scanner_class is None:
