@@ -13,7 +13,29 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         size_t Size()
 
+        void Append(char)
         void Append(const ystring&)
+
+        void AppendStrings(const yvector[ystring]&)
+
+        % for unary in fsm_inplace_unaries:
+        void ${unary}()
+        % endfor
+
+        % for sign, operation, rhs_type, _ in fsm_binaries:
+        void __i${operation}__ "operator ${sign}=" (${rhs_type})
+        Fsm __${operation}__ "operator ${sign}" (${rhs_type})
+        % endfor
+
+        Fsm Surrounded()
+
+        Fsm operator * ()
+        Fsm operator ~ ()
+
+        TScanner Compile[TScanner]()
+
+        bool Determine(size_t maxSize)
+        bool IsDetermined()
 
 
     Fsm Fsm_MakeFalse "Pire::Fsm::MakeFalse"()
