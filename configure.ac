@@ -30,12 +30,18 @@ fi
 
 # python binding setup
 if test x"$enable_python" = xyes; then
-	AC_PATH_PROGS([CYTHON], [cython])
-	if ! test -r "$srcdir"/bindings/python/pire_wrap.cpp && test x"$CYTHON" = x; then
-		AC_MSG_ERROR([[Cython not found (and no prebuilt python wrapper used)]])
-	fi
 	AM_PATH_PYTHON
 	AX_PYTHON_DEVEL
+	AC_PATH_PROGS([CYTHON], [cython])
+	if ! test -r "$srcdir"/bindings/python/pire_wrap.cpp; then
+		if test x"$CYTHON" = x; then
+			AC_MSG_ERROR([[Cython not found (and no pregenerated extension sources used)]])
+		fi
+		if ! test -r "$srcdir"/bindings/python/pire.pyx || \
+				! test -r "$srcdir"/bindings/python/impl.pxd; then
+			AX_PYTHON_MODULE([mako], [fatal])
+		fi
+	fi
 fi
 
 # Just for conscience' sake
