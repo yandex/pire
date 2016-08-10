@@ -24,6 +24,8 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         void Assign(const char* begin, const char* end)
 
+        void AddFeature(Feature*)
+
         Fsm Parse() except +
 
 
@@ -42,4 +44,14 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
 
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
+    % endfor
+
+
+    cdef cppclass Feature:
+        pass
+
+
+cdef extern from "pire/pire.h" namespace "Pire::Features":
+    % for feature in features:
+    Feature* ${feature}()
     % endfor

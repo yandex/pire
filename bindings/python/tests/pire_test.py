@@ -30,8 +30,15 @@ def scanner_class(request):
 
 @pytest.fixture()
 def parse_scanner(scanner_class):
-    def scanner_factory(pattern):
+    def scanner_factory(pattern, options=""):
         lexer = pire.Lexer(pattern)
+        for opt in options:
+            if opt == "i":
+                lexer.AddFeature(pire.CaseInsensitive())
+            elif opt == "a":
+                lexer.AddFeature(pire.AndNotSupport())
+            else:
+                raise ValueError("Unknown option {}".format(opt))
         fsm = lexer.Parse()
         return scanner_class(fsm)
     return scanner_factory
@@ -82,6 +89,11 @@ class TestLexer(object):
             rejects=["some"],
         )
         check_scanner(
+            parse_scanner("(2.*)&([0-9]*_1+)", "a"),
+            accepts=["2123_1111", "2_1"],
+            rejects=["123_1111", "2123_1111$", "^_1"],
+        )
+        check_scanner(
             parse_scanner("a|b|c"),
             accepts=["a", "b", "c"],
             rejects=["", "ab", "ac", "bc", "aa", "bb", "cc"],
@@ -89,6 +101,16 @@ class TestLexer(object):
 
     def test_lexer_raises_on_parsing_invalid_regexp(self):
         pytest.raises(Exception, pire.Lexer("[ab").Parse)
+
+    def test_empty_feature_cannot_be_added(self):
+        pytest.raises(ValueError, pire.Lexer().AddFeature, pire.Feature())
+
+    def test_features_cannot_be_reused(self):
+        lexer1 = pire.Lexer()
+        lexer2 = pire.Lexer()
+        feature = pire.CaseInsensitive()
+        lexer1.AddFeature(feature)
+        pytest.raises(ValueError, lexer2.AddFeature, feature)
 
 
 class TestScanner(object):

@@ -7,6 +7,10 @@ import mako.template
 
 
 MAKO_GLOBALS = {
+    "features": [
+        "CaseInsensitive",
+        "AndNotSupport",
+    ],
     "scanners": [
         "Scanner",
         "NonrelocScanner",

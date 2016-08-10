@@ -40,12 +40,36 @@ cdef class Fsm:
         return scanner_class(self)
 
 
+
+cdef inline wrap_feature(impl.Feature* feature_impl):
+    ret = Feature()
+    ret.feature_impl = feature_impl
+    return ret
+
+
+cdef class Feature:
+    cdef impl.Feature* feature_impl
+
+
+% for feature in features:
+def ${feature}():
+    return wrap_feature(impl.${feature}())
+% endfor
+
+
+
 cdef class Lexer:
     cdef impl.Lexer lexer_impl
 
     def __cinit__(self, bytes line=None):
         if line is not None:
             self.lexer_impl.Assign(begin(line), end(line))
+
+    def AddFeature(self, Feature feature):
+        if feature.feature_impl == NULL:
+            raise ValueError("Empty feature wrapper. Features cannot be reused.")
+        self.lexer_impl.AddFeature(feature.feature_impl)
+        feature.feature_impl = NULL
 
     def Parse(self):
         return wrap_fsm(self.lexer_impl.Parse())
