@@ -6,6 +6,13 @@ from .stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
+    ctypedef unsigned short Char
+
+    cdef enum SpecialChar:
+        % for ch in special_chars:
+        ${ch}
+        % endfor
+
     cdef cppclass Fsm:
         Fsm()
 
@@ -15,6 +22,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         void Append(char)
         void Append(const ystring&)
+        void AppendSpecial(Char)
 
         void AppendStrings(const yvector[ystring]&)
 

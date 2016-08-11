@@ -36,6 +36,13 @@ MAKO_GLOBALS = {
         "ScannerNoMask",
         "NonrelocScannerNoMask",
     ],
+    "special_chars": [
+        "Epsilon",
+        "BeginMark",
+        "EndMark",
+        "MaxCharUnaligned",
+        "MaxChar",
+    ],
 }
 
 

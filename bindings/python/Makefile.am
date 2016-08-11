@@ -6,7 +6,7 @@ MAKO_SOURCES = $(srcdir)/pire.pyx.mako $(srcdir)/impl.pxd.mako
 CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd $(srcdir)/stub.pxd
 CXX_SOURCES = $(srcdir)/pire_wrap.cpp
 
-MAINTAINERCLEANFILES = $(CXX_SOURCES) $(CYTHON_SOURCES)
+MAINTAINERCLEANFILES = $(CXX_SOURCES) pire_wrap.h $(CYTHON_SOURCES)
 
 pkgpython_PYTHON =
 pkgpyexec_LTLIBRARIES =

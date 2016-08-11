@@ -84,6 +84,18 @@ class TestFsm(object):
         fsm.Append("c")
         assert not fsm_copy.Compile().Matches("abc")
 
+    def test_fsm_raises_when_appending_invalid_special(self):
+        invalid_specials = [
+            pire.MaxCharUnaligned,
+            pire.MaxCharUnaligned + 2,
+            2**30,
+            -42,
+            -1,
+            2**200,
+        ]
+        for invalid in invalid_specials:
+            pytest.raises(Exception, pire.Fsm().AppendSpecial, invalid)
+
     def test_fsm_supports_appending_several_strings(self, scanner_class):
         fsm = pire.Fsm().Append("-")
         fsm.AppendStrings(["abc", "de"])

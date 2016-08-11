@@ -6,6 +6,16 @@ cimport cython
 cimport impl
 
 
+cdef public enum SpecialChar:
+    % for ch in special_chars:
+    ${ch} = impl.${ch}
+    % endfor
+
+cdef inline void check_impl_char(impl.Char special) except *:
+    if special >= MaxCharUnaligned:
+        raise ValueError("Unknown special character {}".format(special))
+
+
 cdef inline const char* begin(bytes line):
     return line
 
@@ -36,6 +46,11 @@ cdef class Fsm:
 
     def Append(self, bytes line):
         self.fsm_impl.Append(<impl.ystring>line)
+        return self
+
+    def AppendSpecial(self, impl.Char ch):
+        check_impl_char(ch)
+        self.fsm_impl.AppendSpecial(ch)
         return self
 
     def AppendStrings(self, strings):
