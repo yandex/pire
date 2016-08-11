@@ -11,6 +11,7 @@ SCANNER_CLASSES = [
     pire.NonrelocScanner,
     pire.NonrelocScannerNoMask,
     pire.SimpleScanner,
+    pire.SlowScanner,
 ]
 
 
@@ -226,7 +227,8 @@ class TestScanner(object):
     def test_scanner_is_default_constructible(self, scanner_class):
         scanner = scanner_class()
         assert scanner.Empty()
-        assert 1 == scanner.Size()
+        if scanner_class is not pire.SlowScanner:
+            assert 1 == scanner.Size()
         check_scanner(scanner, rejects=["", "some"])
 
     def test_scanner_raises_when_matching_not_string_but_stays_valid(self, example_scanner):
@@ -271,7 +273,7 @@ class TestScanner(object):
         assert None is scanner.ShortestSuffix("nonexistent")
 
     def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
-        if scanner_class is pire.SimpleScanner:
+        if scanner_class in (pire.SimpleScanner, pire.SlowScanner):
             return
 
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))

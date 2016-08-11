@@ -236,8 +236,10 @@ cdef class ${Scanner}(BaseScanner):
     % endif
 
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:
+    %     if method not in spec.ignored_methods:
     def ${method}(self):
         return self.scanner_impl.${method}()
+    %     endif
     % endfor
 
     def Matches(self, bytes line not None):

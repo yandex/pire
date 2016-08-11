@@ -68,11 +68,15 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         void Swap(${Scanner}&)
 
+        % if "Size" not in spec.ignored_methods:
         size_t Size()
+        % endif
         bool Empty()
 
         size_t RegexpsCount()
+        % if "LettersCount" not in spec.ignored_methods:
         size_t LettersCount()
+        % endif
 
         void Initialize(${Scanner}State&)
         bool Final(const ${Scanner}State&)
