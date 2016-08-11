@@ -84,6 +84,8 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         void Load(yistream*)
 
 
+    ${Scanner} Glue "Pire::${Scanner}::Glue"(const ${Scanner}&, const ${Scanner}&, size_t maxSize)
+
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
 
     void Step(const ${Scanner}&, ${Scanner}State&, Char)

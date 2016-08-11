@@ -267,6 +267,22 @@ class TestScanner(object):
         assert None is scanner.LongestSuffix("nonexistent")
         assert None is scanner.ShortestSuffix("nonexistent")
 
+    def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
+        glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
+
+        state = glued.InitState()
+        check_state(state, final=False, dead=False)
+        check_state(state.Run("ab"), final=True, accepted_regexps=(0,))
+        check_state(state.Run("cd"), final=False, dead=False)
+        check_state(state.End(), final=True, accepted_regexps=(1,))
+        check_state(state.Run("-"), final=False, dead=True)
+
+        doubled = glued.GluedWith(glued)
+
+        state = doubled.InitState()
+        check_state(state.Run("ab"), final=True, accepted_regexps=(0, 2))
+        check_state(state.Run("cd").End(), final=True, accepted_regexps=(1, 3))
+
     def test_state_remembers_its_scanner(self, scanner_class):
         scanner = scanner_class()
         state = scanner.InitState()

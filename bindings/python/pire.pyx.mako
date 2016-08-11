@@ -228,6 +228,9 @@ cdef class ${Scanner}(BaseScanner):
     def InitState(self):
         return ${Scanner}State.__new__(${Scanner}State, self)
 
+    def GluedWith(self, ${Scanner} rhs not None, size_t max_size=0):
+        return wrap_${Scanner}(impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size))
+
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:
     def ${method}(self):
         return self.scanner_impl.${method}()
