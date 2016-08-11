@@ -46,6 +46,15 @@ def parse_scanner(scanner_class):
     return scanner_factory
 
 
+@pytest.fixture()
+def example_scanner(parse_scanner):
+    return parse_scanner("s(om)*e")
+
+
+def check_scanner_is_like_example_scanner(scanner):
+    check_scanner(scanner, accepts=["se", "somome"], rejects=["", "s"])
+
+
 class TestFsm(object):
     def test_fsm_is_default_constructible(self):
         f = pire.Fsm()
@@ -174,20 +183,17 @@ class TestScanner(object):
         assert 1 == scanner.Size()
         check_scanner(scanner, rejects=["", "some"])
 
-    def test_scanner_raises_when_matching_not_string_but_stays_valid(self, parse_scanner):
-        scanner = parse_scanner("s(om)*e")
+    def test_scanner_raises_when_matching_not_string_but_stays_valid(self, example_scanner):
         for invalid_input in [None, False, True, 0, 42]:
-            pytest.raises(Exception, scanner.Matches, invalid_input)
-        check_scanner(scanner, accepts=["se", "somome"], rejects=["", "s"])
+            pytest.raises(Exception, example_scanner.Matches, invalid_input)
+        check_scanner_is_like_example_scanner(example_scanner)
 
-    def test_scanner_is_picklable(self, parse_scanner):
-        original = parse_scanner("s(om)*e")
-        packed = pickle.dumps(original)
+    def test_scanner_is_picklable(self, example_scanner):
+        packed = pickle.dumps(example_scanner)
         unpacked = pickle.loads(packed)
-        check_scanner(unpacked, accepts=["se", "somome"], rejects=["", "s"])
+        check_scanner_is_like_example_scanner(unpacked)
 
-    def test_scanner_is_saveable_and_loadable(self, scanner_class, parse_scanner):
-        original = parse_scanner("s(om)*e")
-        packed = original.Save()
-        unpacked = scanner_class.Load(packed)
-        check_scanner(unpacked, accepts=["se", "somome"], rejects=["", "s"])
+    def test_scanner_is_saveable_and_loadable(self, example_scanner):
+        packed = example_scanner.Save()
+        unpacked = example_scanner.__class__.Load(packed)
+        check_scanner_is_like_example_scanner(unpacked)
