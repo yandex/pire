@@ -171,4 +171,28 @@ cdef class ${Scanner}(BaseScanner):
 
     def Matches(self, bytes line not None):
         return impl.Matches(self. scanner_impl, begin(line), end(line))
+
+    % for method in ["LongestPrefix", "ShortestPrefix"]:
+    def ${method}(self, bytes line not None):
+        cdef:
+            const char* line_begin = begin(line)
+            const char* line_end = end(line)
+            const char* prefix_end
+        prefix_end = impl.${method}(self.scanner_impl, line_begin, line_end)
+        if prefix_end != NULL:
+            return prefix_end - line_begin
+        return None
+    % endfor
+
+    % for method in ["LongestSuffix", "ShortestSuffix"]:
+    def ${method}(self, bytes line not None):
+        cdef:
+            const char* rbegin = end(line) - 1
+            const char* rend = begin(line) - 1
+            const char* suffix_begin
+        suffix_begin = impl.${method}(self.scanner_impl, rbegin, rend)
+        if suffix_begin != NULL:
+            return suffix_begin - rend
+        return None
+    % endfor
 % endfor

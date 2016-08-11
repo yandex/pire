@@ -197,3 +197,29 @@ class TestScanner(object):
         packed = example_scanner.Save()
         unpacked = example_scanner.__class__.Load(packed)
         check_scanner_is_like_example_scanner(unpacked)
+
+    def test_scanner_finds_prefixes_and_suffixes(self, scanner_class):
+        fsm = pire.Lexer("-->").Parse()
+        any_occurence = scanner_class(~pire.Fsm.MakeFalse() + fsm)
+        first_occurence = scanner_class(~fsm.Surrounded() + fsm)
+        reverse_occurence = scanner_class(fsm.Reverse())
+
+        text = "1234567890 --> middle --> end"
+        assert 14 == first_occurence.LongestPrefix(text)
+        assert 11 == reverse_occurence.LongestSuffix(text[:14])
+
+        assert 25 == any_occurence.LongestPrefix(text)
+        assert 22 == reverse_occurence.LongestSuffix(text[:25])
+
+        assert 14 == first_occurence.ShortestPrefix(text)
+        assert 11 == reverse_occurence.ShortestSuffix(text[:14])
+
+        assert 14 == any_occurence.ShortestPrefix(text)
+        assert 11 == reverse_occurence.ShortestSuffix(text[:14])
+
+    def test_scanner_does_not_find_nonexistent_prefixes_and_suffixes(self, parse_scanner):
+        scanner = parse_scanner("text")
+        assert None is scanner.LongestPrefix("nonexistent")
+        assert None is scanner.ShortestPrefix("nonexistent")
+        assert None is scanner.LongestSuffix("nonexistent")
+        assert None is scanner.ShortestSuffix("nonexistent")

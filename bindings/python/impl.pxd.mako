@@ -69,6 +69,12 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
 
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
+
+    const char* LongestPrefix(const ${Scanner}& scanner, const char* begin, const char* end)
+    const char* ShortestPrefix(const ${Scanner}& scanner, const char* begin, const char* end)
+
+    const char* LongestSuffix(const ${Scanner}& scanner, const char* rbegin, const char* rend)
+    const char* ShortestSuffix(const ${Scanner}& scanner, const char* rbegin, const char* rend)
     % endfor
 
 
