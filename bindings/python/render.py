@@ -6,6 +6,13 @@ import os
 import mako.template
 
 
+class ScannerSpec(object):
+    def __init__(self, state_t="size_t", extra_methods=(), ignored_methods=()):
+        self.state_t = state_t
+        self.extra_methods = extra_methods
+        self.ignored_methods = ignored_methods
+
+
 MAKO_GLOBALS = {
     "features": [
         "CaseInsensitive",
@@ -30,12 +37,12 @@ MAKO_GLOBALS = {
         "Canonize",
         "Minimize",
     ],
-    "scanners": [
-        ("Scanner", "size_t"),
-        ("NonrelocScanner", "size_t"),
-        ("ScannerNoMask", "size_t"),
-        ("NonrelocScannerNoMask", "size_t"),
-    ],
+    "scanners": {
+        "Scanner": ScannerSpec(),
+        "NonrelocScanner": ScannerSpec(),
+        "ScannerNoMask": ScannerSpec(),
+        "NonrelocScannerNoMask": ScannerSpec(),
+    },
     "special_chars": [
         "Epsilon",
         "BeginMark",

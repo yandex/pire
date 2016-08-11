@@ -148,7 +148,7 @@ cdef class BaseScanner:
     pass
 
 
-% for Scanner, _ in scanners:
+% for Scanner, spec in scanners.items():
 cdef class ${Scanner}State(BaseState):
     cdef readonly ${Scanner} scanner
     cdef impl.${Scanner}State state_impl

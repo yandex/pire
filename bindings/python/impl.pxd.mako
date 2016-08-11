@@ -59,9 +59,9 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         Fsm Parse() except +
 
 
-    % for Scanner, state_t in scanners:
+    % for Scanner, spec in scanners.items():
 
-    ctypedef ${state_t} ${Scanner}State "Pire::${Scanner}::State"
+    ctypedef ${spec.state_t} ${Scanner}State "Pire::${Scanner}::State"
     cdef cppclass ${Scanner}:
         ${Scanner}()
         ${Scanner}(Fsm&)
