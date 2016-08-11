@@ -2,8 +2,16 @@
 
 import argparse
 import os
+import sys
 
 import mako.template
+
+
+class ScannerSpec(object):
+    def __init__(self, state_t="size_t", extra_methods=(), ignored_methods=()):
+        self.state_t = state_t
+        self.extra_methods = extra_methods
+        self.ignored_methods = ignored_methods
 
 
 MAKO_GLOBALS = {
@@ -30,11 +38,23 @@ MAKO_GLOBALS = {
         "Canonize",
         "Minimize",
     ],
-    "SCANNERS": [
-        "Scanner",
-        "NonrelocScanner",
-        "ScannerNoMask",
-        "NonrelocScannerNoMask",
+    "SCANNERS": {
+        "Scanner": ScannerSpec(),
+        "NonrelocScanner": ScannerSpec(),
+        "ScannerNoMask": ScannerSpec(),
+        "NonrelocScannerNoMask": ScannerSpec(),
+        "SimpleScanner": ScannerSpec(ignored_methods={"AcceptedRegexps", "Glue"}),
+        "SlowScanner": ScannerSpec(
+            state_t="yvector[size_t]",
+            ignored_methods={"Glue", "Size", "LettersCount"}
+        ),
+    },
+    "SPECIAL_CHARS": [
+        "Epsilon",
+        "BeginMark",
+        "EndMark",
+        "MaxCharUnaligned",
+        "MaxChar",
     ],
 }
 
@@ -56,7 +76,17 @@ def main():
     options = make_argparser().parse_args()
 
     template = mako.template.Template(filename=os.path.abspath(options.input))
-    rendered = template.render(**MAKO_GLOBALS)
+
+    try:
+        rendered = template.render(**MAKO_GLOBALS)
+    except:
+        traceback = mako.exceptions.RichTraceback()
+        for (filename, lineno, function, line) in traceback.traceback:
+            print "  File %s, line %s, in %s" % (filename, lineno, function)
+            print "    %s" % line
+        print "%s: %s" % (str(traceback.error.__class__.__name__), traceback.error)
+        sys.exit(1)
+
     with open(options.output, "w") as out_file:
         out_file.write(rendered)
 

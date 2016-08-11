@@ -118,6 +118,8 @@ AC_CONFIG_FILES([
 	bindings/Makefile
 	bindings/python/Makefile
 	bindings/python/tests/Makefile
+	bindings/python/tests/run-with-pypath
+	bindings/python/tests/run-bench
 	bindings/python/tests/run-pytest
 	pkg/Makefile
 	tools/Makefile
@@ -127,6 +129,8 @@ AC_CONFIG_FILES([
 	samples/blacklist/Makefile
 	samples/pigrep/Makefile
 ], [
+	chmod +x bindings/python/tests/run-with-pypath
+	chmod +x bindings/python/tests/run-bench
 	chmod +x bindings/python/tests/run-pytest
 ])
 AC_OUTPUT_COMMANDS([sed 's/#define \([A-Z]\)/#define PIRE_\1/' < config.h.in > pire/config.h])

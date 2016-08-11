@@ -10,6 +10,8 @@ SCANNER_CLASSES = [
     pire.ScannerNoMask,
     pire.NonrelocScanner,
     pire.NonrelocScannerNoMask,
+    pire.SimpleScanner,
+    pire.SlowScanner,
 ]
 
 
@@ -23,6 +25,20 @@ def check_scanner(scanner, accepts=(), rejects=()):
 def check_equivalence(scanner1, scanner2, examples):
     for line in examples:
         assert scanner1.Matches(line) == scanner2.Matches(line), '"%s"' % line
+
+
+def check_state(state, final=None, dead=None, accepted_regexps=None):
+    if dead is None and final:
+        dead = False
+
+    if accepted_regexps is None and final is False:
+        accepted_regexps = ()
+    if isinstance(state, pire.SimpleScannerState):
+        accepted_regexps = None
+
+    assert final is None or state.Final() == final
+    assert dead is None or state.Dead() == dead
+    assert accepted_regexps is None or tuple(state.AcceptedRegexps()) == tuple(accepted_regexps)
 
 
 @pytest.fixture(params=SCANNER_CLASSES)
@@ -44,6 +60,15 @@ def parse_scanner(scanner_class):
         fsm = lexer.Parse()
         return scanner_class(fsm)
     return scanner_factory
+
+
+@pytest.fixture()
+def example_scanner(parse_scanner):
+    return parse_scanner("s(om)*e")
+
+
+def check_scanner_is_like_example_scanner(scanner):
+    check_scanner(scanner, accepts=["se", "somome"], rejects=["", "s"])
 
 
 class TestFsm(object):
@@ -74,6 +99,31 @@ class TestFsm(object):
 
         fsm.Append("c")
         assert not fsm_copy.Compile().Matches("abc")
+
+    def test_fsm_supports_appending_special(self, scanner_class):
+        fsm = pire.Fsm()
+        fsm.AppendSpecial(pire.BeginMark)
+        fsm.Append('a')
+        fsm.AppendSpecial(pire.EndMark)
+
+        scanner = scanner_class(fsm)
+        state = scanner.InitState()
+
+        check_state(state.Begin(), final=False, dead=False)
+        check_state(state.Run('a'), final=False, dead=False)
+        check_state(state.Step(pire.EndMark), final=True)
+
+    def test_fsm_raises_when_appending_invalid_special(self):
+        invalid_specials = [
+            pire.MaxCharUnaligned,
+            pire.MaxCharUnaligned + 2,
+            2**30,
+            -42,
+            -1,
+            2**200,
+        ]
+        for invalid in invalid_specials:
+            pytest.raises(Exception, pire.Fsm().AppendSpecial, invalid)
 
     def test_fsm_supports_appending_several_strings(self, scanner_class):
         fsm = pire.Fsm().Append("-")
@@ -168,14 +218,82 @@ class TestScanner(object):
     def test_scanner_inherits_from_base_scanner(self, scanner_class):
         assert issubclass(scanner_class, pire.BaseScanner)
 
+    def test_state_inherits_from_base_state(self, scanner_class):
+        assert issubclass(scanner_class.StateType, pire.BaseState)
+
+    def test_state_type_property_is_set_right(self, scanner_class):
+        assert isinstance(scanner_class().InitState(), scanner_class.StateType)
+
     def test_scanner_is_default_constructible(self, scanner_class):
         scanner = scanner_class()
         assert scanner.Empty()
-        assert 1 == scanner.Size()
+        if scanner_class is not pire.SlowScanner:
+            assert 1 == scanner.Size()
         check_scanner(scanner, rejects=["", "some"])
 
-    def test_scanner_raises_when_matching_not_string_but_stays_valid(self, parse_scanner):
-        scanner = parse_scanner("s(om)*e")
+    def test_scanner_raises_when_matching_not_string_but_stays_valid(self, example_scanner):
         for invalid_input in [None, False, True, 0, 42]:
-            pytest.raises(Exception, scanner.Matches, invalid_input)
-        check_scanner(scanner, accepts=["se", "somome"], rejects=["", "s"])
+            pytest.raises(Exception, example_scanner.Matches, invalid_input)
+        check_scanner_is_like_example_scanner(example_scanner)
+
+    def test_scanner_is_picklable(self, example_scanner):
+        packed = pickle.dumps(example_scanner)
+        unpacked = pickle.loads(packed)
+        check_scanner_is_like_example_scanner(unpacked)
+
+    def test_scanner_is_saveable_and_loadable(self, example_scanner):
+        packed = example_scanner.Save()
+        unpacked = example_scanner.__class__.Load(packed)
+        check_scanner_is_like_example_scanner(unpacked)
+
+    def test_scanner_finds_prefixes_and_suffixes(self, scanner_class):
+        fsm = pire.Lexer("-->").Parse()
+        any_occurence = scanner_class(~pire.Fsm.MakeFalse() + fsm)
+        first_occurence = scanner_class(~fsm.Surrounded() + fsm)
+        reverse_occurence = scanner_class(fsm.Reverse())
+
+        text = "1234567890 --> middle --> end"
+        assert 14 == first_occurence.LongestPrefix(text)
+        assert 11 == reverse_occurence.LongestSuffix(text[:14])
+
+        assert 25 == any_occurence.LongestPrefix(text)
+        assert 22 == reverse_occurence.LongestSuffix(text[:25])
+
+        assert 14 == first_occurence.ShortestPrefix(text)
+        assert 11 == reverse_occurence.ShortestSuffix(text[:14])
+
+        assert 14 == any_occurence.ShortestPrefix(text)
+        assert 11 == reverse_occurence.ShortestSuffix(text[:14])
+
+    def test_scanner_does_not_find_nonexistent_prefixes_and_suffixes(self, parse_scanner):
+        scanner = parse_scanner("text")
+        assert None is scanner.LongestPrefix("nonexistent")
+        assert None is scanner.ShortestPrefix("nonexistent")
+        assert None is scanner.LongestSuffix("nonexistent")
+        assert None is scanner.ShortestSuffix("nonexistent")
+
+    def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
+        if scanner_class in (pire.SimpleScanner, pire.SlowScanner):
+            return
+
+        glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
+
+        assert 2 == glued.RegexpsCount()
+
+        state = glued.InitState()
+        check_state(state, final=False, dead=False)
+        check_state(state.Run("ab"), final=True, accepted_regexps=(0,))
+        check_state(state.Run("cd"), final=False, dead=False)
+        check_state(state.End(), final=True, accepted_regexps=(1,))
+        check_state(state.Run("-"), final=False, dead=True)
+
+        doubled = glued.GluedWith(glued)
+
+        state = doubled.InitState()
+        check_state(state.Run("ab"), final=True, accepted_regexps=(0, 2))
+        check_state(state.Run("cd").End(), final=True, accepted_regexps=(1, 3))
+
+    def test_state_remembers_its_scanner(self, scanner_class):
+        scanner = scanner_class()
+        state = scanner.InitState()
+        assert state.scanner == scanner

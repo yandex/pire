@@ -6,6 +6,13 @@ from stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
+    ctypedef unsigned short Char
+
+    cdef enum SpecialChar:
+        % for ch in SPECIAL_CHARS:
+        ${ch}
+        % endfor
+
     cdef cppclass Fsm:
         Fsm()
 
@@ -15,6 +22,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         void Append(char)
         void Append(const ystring&)
+        void AppendSpecial(Char)
 
         void AppendStrings(const yvector[ystring]&)
 
@@ -51,21 +59,52 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         Fsm Parse() except +
 
 
-    % for Scanner in SCANNERS:
+    % for Scanner, spec in SCANNERS.items():
+
+    ctypedef ${spec.state_t} ${Scanner}State "Pire::${Scanner}::State"
     cdef cppclass ${Scanner}:
         ${Scanner}()
         ${Scanner}(Fsm&)
 
         void Swap(${Scanner}&)
 
+        % if "Size" not in spec.ignored_methods:
         size_t Size()
+        % endif
         bool Empty()
 
         size_t RegexpsCount()
+        % if "LettersCount" not in spec.ignored_methods:
         size_t LettersCount()
+        % endif
 
+        void Initialize(${Scanner}State&)
+        bool Final(const ${Scanner}State&)
+        bool Dead(const ${Scanner}State&)
+
+        % if "AcceptedRegexps" not in spec.ignored_methods:
+        ypair[const size_t*, const size_t*] AcceptedRegexps(const ${Scanner}State&)
+        % endif
+
+        void Save(yostream*)
+        void Load(yistream*)
+
+
+    % if "Glue" not in spec.ignored_methods:
+    ${Scanner} Glue "Pire::${Scanner}::Glue"(const ${Scanner}&, const ${Scanner}&, size_t maxSize)
+    % endif
 
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
+
+    void Step(const ${Scanner}&, ${Scanner}State&, Char)
+
+    void Run(const ${Scanner}&, ${Scanner}State&, const char* begin, const char* end)
+
+    const char* LongestPrefix(const ${Scanner}& scanner, const char* begin, const char* end)
+    const char* ShortestPrefix(const ${Scanner}& scanner, const char* begin, const char* end)
+
+    const char* LongestSuffix(const ${Scanner}& scanner, const char* rbegin, const char* rend)
+    const char* ShortestSuffix(const ${Scanner}& scanner, const char* rbegin, const char* rend)
     % endfor
 
 

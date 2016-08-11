@@ -1,7 +1,19 @@
 # vim: ft=pyrex
+import copy_reg
+
 cimport cython
 
 cimport impl
+
+
+cdef public enum SpecialChar:
+    % for ch in SPECIAL_CHARS:
+    ${ch} = impl.${ch}
+    % endfor
+
+cdef inline void check_impl_char(impl.Char special) except *:
+    if special >= MaxCharUnaligned:
+        raise ValueError("Unknown special character {}".format(special))
 
 
 cdef inline const char* begin(bytes line):
@@ -36,6 +48,11 @@ cdef class Fsm:
         self.fsm_impl.Append(<impl.ystring>line)
         return self
 
+    def AppendSpecial(self, impl.Char ch):
+        check_impl_char(ch)
+        self.fsm_impl.AppendSpecial(ch)
+        return self
+
     def AppendStrings(self, strings):
         self.fsm_impl.AppendStrings(<impl.yvector[impl.ystring]>strings)
         return self
@@ -64,7 +81,7 @@ cdef class Fsm:
         if isinstance(self, Fsm):
             return self._${operation}(rhs)
         return rhs.${explace_op}(self)  # __rmul__ mode, rhs is Fsm
-    %endfor
+    % endfor
 
     def Surrounded(self):
         return wrap_fsm(self.fsm_impl.Surrounded())
@@ -123,15 +140,77 @@ cdef class Lexer:
 
 
 
+cdef class BaseState:
+    pass
+
+
 cdef class BaseScanner:
     pass
 
 
-% for Scanner in SCANNERS:
+% for Scanner, spec in SCANNERS.items():
+cdef class ${Scanner}State(BaseState):
+    cdef readonly ${Scanner} scanner
+    cdef impl.${Scanner}State state_impl
+
+    def __cinit__(self, ${Scanner} scanner not None):
+        self.scanner = scanner
+        scanner.scanner_impl.Initialize(self.state_impl)
+
+    % for method in ["Final", "__nonzero__"]:
+    def ${method}(self):
+        return self.scanner.scanner_impl.Final(self.state_impl)
+    % endfor
+
+    def Dead(self):
+        return self.scanner.scanner_impl.Dead(self.state_impl)
+
+    % if "AcceptedRegexps" not in spec.ignored_methods:
+    def AcceptedRegexps(self):
+        cdef:
+            impl.ypair[const size_t*, const size_t*] span
+            impl.yvector[size_t] regexps
+        span = self.scanner.scanner_impl.AcceptedRegexps(self.state_impl)
+        regexps.assign(span.first, span.second)
+        return regexps
+    % endif
+
+    def Step(self, impl.Char ch):
+        check_impl_char(ch)
+        impl.Step(self.scanner.scanner_impl, self.state_impl, ch)
+        return self
+
+    % for method in ["Begin", "End"]:
+    def ${method}(self):
+        impl.Step(self.scanner.scanner_impl, self.state_impl, ${method}Mark)
+        return self
+    % endfor
+
+    def Run(self, bytes line not None):
+        impl.Run(self.scanner.scanner_impl, self.state_impl, begin(line), end(line))
+        return self
+
+    ScannerType = ${Scanner}
+
+
 cdef inline object wrap_${Scanner}(impl.${Scanner} scanner_impl):
     ret = ${Scanner}()
     ret.scanner_impl.Swap(scanner_impl)
     return ret
+
+
+def _${Scanner}_Load(bytes data not None):
+    cdef:
+        impl.yauto_ptr[impl.yistream] stream
+        impl.${Scanner} loaded_scanner
+    stream.reset(new impl.yistream(data))
+    loaded_scanner.Load(stream.get())
+    return wrap_${Scanner}(loaded_scanner)
+
+
+def _reduce_${Scanner}(instance):
+    return _${Scanner}_Load, (instance.Save(),)
+copy_reg.pickle(${Scanner}, _reduce_${Scanner})
 
 
 cdef class ${Scanner}(BaseScanner):
@@ -141,11 +220,54 @@ cdef class ${Scanner}(BaseScanner):
         if fsm is not None:
             self.scanner_impl = impl.${Scanner}(fsm.fsm_impl)
 
+    def Save(self):
+        cdef impl.yostream stream
+        self.scanner_impl.Save(&stream)
+        return stream.GetStr()
+
+    Load = _${Scanner}_Load
+
+    def InitState(self):
+        return ${Scanner}State.__new__(${Scanner}State, self)
+
+    % if "Glue" not in spec.ignored_methods:
+    def GluedWith(self, ${Scanner} rhs not None, size_t max_size=0):
+        return wrap_${Scanner}(impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size))
+    % endif
+
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:
+    %     if method not in spec.ignored_methods:
     def ${method}(self):
         return self.scanner_impl.${method}()
+    %     endif
     % endfor
 
     def Matches(self, bytes line not None):
         return impl.Matches(self. scanner_impl, begin(line), end(line))
+
+    % for method in ["LongestPrefix", "ShortestPrefix"]:
+    def ${method}(self, bytes line not None):
+        cdef:
+            const char* line_begin = begin(line)
+            const char* line_end = end(line)
+            const char* prefix_end
+        prefix_end = impl.${method}(self.scanner_impl, line_begin, line_end)
+        if prefix_end == NULL:
+            return None
+        return prefix_end - line_begin
+    % endfor
+
+    % for method in ["LongestSuffix", "ShortestSuffix"]:
+    def ${method}(self, bytes line not None):
+        cdef:
+            const char* rbegin = end(line) - 1
+            const char* rend = begin(line) - 1
+            const char* suffix_begin
+        suffix_begin = impl.${method}(self.scanner_impl, rbegin, rend)
+        if suffix_begin == NULL:
+            return None
+        return suffix_begin - rend
+    % endfor
+
+    StateType = ${Scanner}State
 % endfor

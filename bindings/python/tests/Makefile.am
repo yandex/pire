@@ -1,6 +1,10 @@
 check_SCRIPTS = run-pytest
 
-EXTRA_DIST = pire_test.py
+EXTRA_DIST = \
+	bench.py \
+	pire_test.py \
+	run-bench \
+	run-with-pypath
 
 if ENABLE_PYTHON
 TESTS = run-pytest

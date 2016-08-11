@@ -7,7 +7,7 @@ GENERATED_CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd
 CYTHON_SOURCES = $(GENERATED_CYTHON_SOURCES) $(srcdir)/stub.pxd
 CXX_SOURCES = $(srcdir)/pire_wrap.cpp
 
-MAINTAINERCLEANFILES = $(CXX_SOURCES) $(GENERATED_CYTHON_SOURCES)
+MAINTAINERCLEANFILES = $(CXX_SOURCES) pire_wrap.h $(GENERATED_CYTHON_SOURCES)
 
 pkgpython_PYTHON =
 pkgpyexec_LTLIBRARIES =
@@ -27,5 +27,7 @@ endif
 %.pxd: %.pxd.mako $(RENDER_PY)
 	$(PYTHON) $(RENDER_PY) -i $< -o $@
 
+CYTHONFLAGS=
+
 $(srcdir)/pire_wrap.cpp: $(CYTHON_SOURCES)
-	$(CYTHON) -2 --cplus -I$(top_srcdir) -o $@ $(srcdir)/pire.pyx
+	$(CYTHON) -2 --cplus $(CYTHONFLAGS) -I$(top_srcdir) -o $@ $(srcdir)/pire.pyx
