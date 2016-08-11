@@ -78,13 +78,17 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         bool Final(const ${Scanner}State&)
         bool Dead(const ${Scanner}State&)
 
+        % if "AcceptedRegexps" not in spec.ignored_methods:
         ypair[const size_t*, const size_t*] AcceptedRegexps(const ${Scanner}State&)
+        % endif
 
         void Save(yostream*)
         void Load(yistream*)
 
 
+    % if "Glue" not in spec.ignored_methods:
     ${Scanner} Glue "Pire::${Scanner}::Glue"(const ${Scanner}&, const ${Scanner}&, size_t maxSize)
+    % endif
 
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
 

@@ -10,6 +10,7 @@ SCANNER_CLASSES = [
     pire.ScannerNoMask,
     pire.NonrelocScanner,
     pire.NonrelocScannerNoMask,
+    pire.SimpleScanner,
 ]
 
 
@@ -31,6 +32,8 @@ def check_state(state, final=None, dead=None, accepted_regexps=None):
 
     if accepted_regexps is None and final is False:
         accepted_regexps = ()
+    if isinstance(state, pire.SimpleScannerState):
+        accepted_regexps = None
 
     assert final is None or state.Final() == final
     assert dead is None or state.Dead() == dead
@@ -268,6 +271,9 @@ class TestScanner(object):
         assert None is scanner.ShortestSuffix("nonexistent")
 
     def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
+        if scanner_class is pire.SimpleScanner:
+            return
+
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
 
         state = glued.InitState()

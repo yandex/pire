@@ -81,7 +81,7 @@ cdef class Fsm:
         if isinstance(self, Fsm):
             return self._${operation}(rhs)
         return rhs.${explace_op}(self)  # __rmul__ mode, rhs is Fsm
-    %endfor
+    % endfor
 
     def Surrounded(self):
         return wrap_fsm(self.fsm_impl.Surrounded())
@@ -165,6 +165,7 @@ cdef class ${Scanner}State(BaseState):
     def Dead(self):
         return self.scanner.scanner_impl.Dead(self.state_impl)
 
+    % if "AcceptedRegexps" not in spec.ignored_methods:
     def AcceptedRegexps(self):
         cdef:
             impl.ypair[const size_t*, const size_t*] span
@@ -172,6 +173,7 @@ cdef class ${Scanner}State(BaseState):
         span = self.scanner.scanner_impl.AcceptedRegexps(self.state_impl)
         regexps.assign(span.first, span.second)
         return regexps
+    % endif
 
     def Step(self, impl.Char ch):
         check_impl_char(ch)
@@ -228,8 +230,10 @@ cdef class ${Scanner}(BaseScanner):
     def InitState(self):
         return ${Scanner}State.__new__(${Scanner}State, self)
 
+    % if "Glue" not in spec.ignored_methods:
     def GluedWith(self, ${Scanner} rhs not None, size_t max_size=0):
         return wrap_${Scanner}(impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size))
+    % endif
 
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:
     def ${method}(self):

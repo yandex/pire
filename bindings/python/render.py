@@ -42,6 +42,7 @@ MAKO_GLOBALS = {
         "NonrelocScanner": ScannerSpec(),
         "ScannerNoMask": ScannerSpec(),
         "NonrelocScannerNoMask": ScannerSpec(),
+        "SimpleScanner": ScannerSpec(ignored_methods={"AcceptedRegexps", "Glue"}),
     },
     "special_chars": [
         "Epsilon",
