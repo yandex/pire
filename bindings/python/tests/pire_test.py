@@ -113,14 +113,14 @@ class TestFsm(object):
     def test_fsm_supports_nonmodifying_operations(self, scanner_class, parse_scanner):
         a, b, c, d, e = [pire.Lexer(char).Parse() for char in "abcde"]
 
-        expression = ((a + b.Iterated()) | c.Surrounded() | (d * 3)) & ~e
-        expected_scanner = parse_scanner("((ab*)|(.*c.*)|(d{3}))&~e", "a")
+        expression = ((a + b.Iterated()) | c.Surrounded() | (2 * (d * 2))) & ~e
+        expected_scanner = parse_scanner("((ab*)|(.*c.*)|(d{4}))&~e", "a")
 
         check_equivalence(
             expected_scanner,
             scanner_class(expression), [
                 "a", "abbbb", "c", "--c-",
-                "ddd", "--", "e", "-ee-", "",
+                "dddd", "--", "e", "-ee-", "",
             ]
         )
 

@@ -57,11 +57,13 @@ cdef class Fsm:
         self.fsm_impl.${inplace_op}(${unwrapped_rhs})
         return self
 
-    def _${operation}(self, ${rhs_type} rhs):
+    def _${operation}(self, ${rhs_type} rhs ${not_none}):
         return wrap_fsm(self.fsm_impl.${explace_op}(${unwrapped_rhs}))
 
-    def ${explace_op}(self, ${rhs_type} rhs ${not_none}):
-        return self._${operation}(rhs)
+    def ${explace_op}(self, rhs):
+        if isinstance(self, Fsm):
+            return self._${operation}(rhs)
+        return rhs.${explace_op}(self)  # __rmul__ mode, rhs is Fsm
     %endfor
 
     def Surrounded(self):
