@@ -64,6 +64,9 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         size_t RegexpsCount()
         size_t LettersCount()
 
+        void Save(yostream*)
+        void Load(yistream*)
+
 
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
     % endfor

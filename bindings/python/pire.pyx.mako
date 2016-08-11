@@ -1,4 +1,6 @@
 # vim: ft=pyrex
+import copy_reg
+
 cimport cython
 
 cimport impl
@@ -134,12 +136,33 @@ cdef inline object wrap_${Scanner}(impl.${Scanner} scanner_impl):
     return ret
 
 
+def _${Scanner}_Load(bytes data not None):
+    cdef:
+        impl.yauto_ptr[impl.yistream] stream
+        impl.${Scanner} loaded_scanner
+    stream.reset(new impl.yistream(data))
+    loaded_scanner.Load(stream.get())
+    return wrap_${Scanner}(loaded_scanner)
+
+
+def _reduce_${Scanner}(instance):
+    return _${Scanner}_Load, (instance.Save(),)
+copy_reg.pickle(${Scanner}, _reduce_${Scanner})
+
+
 cdef class ${Scanner}(BaseScanner):
     cdef impl.${Scanner} scanner_impl
 
     def __cinit__(self, Fsm fsm=None):
         if fsm is not None:
             self.scanner_impl = impl.${Scanner}(fsm.fsm_impl)
+
+    def Save(self):
+        cdef impl.yostream stream
+        self.scanner_impl.Save(&stream)
+        return stream.GetStr()
+
+    Load = _${Scanner}_Load
 
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:
     def ${method}(self):

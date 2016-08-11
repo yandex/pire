@@ -179,3 +179,15 @@ class TestScanner(object):
         for invalid_input in [None, False, True, 0, 42]:
             pytest.raises(Exception, scanner.Matches, invalid_input)
         check_scanner(scanner, accepts=["se", "somome"], rejects=["", "s"])
+
+    def test_scanner_is_picklable(self, parse_scanner):
+        original = parse_scanner("s(om)*e")
+        packed = pickle.dumps(original)
+        unpacked = pickle.loads(packed)
+        check_scanner(unpacked, accepts=["se", "somome"], rejects=["", "s"])
+
+    def test_scanner_is_saveable_and_loadable(self, scanner_class, parse_scanner):
+        original = parse_scanner("s(om)*e")
+        packed = original.Save()
+        unpacked = scanner_class.Load(packed)
+        check_scanner(unpacked, accepts=["se", "somome"], rejects=["", "s"])
