@@ -59,7 +59,9 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         Fsm Parse() except +
 
 
-    % for Scanner in scanners:
+    % for Scanner, state_t in scanners:
+
+    ctypedef ${state_t} ${Scanner}State "Pire::${Scanner}::State"
     cdef cppclass ${Scanner}:
         ${Scanner}()
         ${Scanner}(Fsm&)
@@ -72,11 +74,21 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         size_t RegexpsCount()
         size_t LettersCount()
 
+        void Initialize(${Scanner}State&)
+        bool Final(const ${Scanner}State&)
+        bool Dead(const ${Scanner}State&)
+
+        ypair[const size_t*, const size_t*] AcceptedRegexps(const ${Scanner}State&)
+
         void Save(yostream*)
         void Load(yistream*)
 
 
     bool Matches(const ${Scanner}&, const char* begin, const char* end)
+
+    void Step(const ${Scanner}&, ${Scanner}State&, Char)
+
+    void Run(const ${Scanner}&, ${Scanner}State&, const char* begin, const char* end)
 
     const char* LongestPrefix(const ${Scanner}& scanner, const char* begin, const char* end)
     const char* ShortestPrefix(const ${Scanner}& scanner, const char* begin, const char* end)

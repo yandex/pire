@@ -25,6 +25,18 @@ def check_equivalence(scanner1, scanner2, examples):
         assert scanner1.Matches(line) == scanner2.Matches(line), '"%s"' % line
 
 
+def check_state(state, final=None, dead=None, accepted_regexps=None):
+    if dead is None and final:
+        dead = False
+
+    if accepted_regexps is None and final is False:
+        accepted_regexps = ()
+
+    assert final is None or state.Final() == final
+    assert dead is None or state.Dead() == dead
+    assert accepted_regexps is None or tuple(state.AcceptedRegexps()) == tuple(accepted_regexps)
+
+
 @pytest.fixture(params=SCANNER_CLASSES)
 def scanner_class(request):
     return request.param
@@ -83,6 +95,19 @@ class TestFsm(object):
 
         fsm.Append("c")
         assert not fsm_copy.Compile().Matches("abc")
+
+    def test_fsm_supports_appending_special(self, scanner_class):
+        fsm = pire.Fsm()
+        fsm.AppendSpecial(pire.BeginMark)
+        fsm.Append('a')
+        fsm.AppendSpecial(pire.EndMark)
+
+        scanner = scanner_class(fsm)
+        state = scanner.InitState()
+
+        check_state(state.Begin(), final=False, dead=False)
+        check_state(state.Run('a'), final=False, dead=False)
+        check_state(state.Step(pire.EndMark), final=True)
 
     def test_fsm_raises_when_appending_invalid_special(self):
         invalid_specials = [
@@ -189,6 +214,12 @@ class TestScanner(object):
     def test_scanner_inherits_from_base_scanner(self, scanner_class):
         assert issubclass(scanner_class, pire.BaseScanner)
 
+    def test_state_inherits_from_base_state(self, scanner_class):
+        assert issubclass(scanner_class.StateType, pire.BaseState)
+
+    def test_state_type_property_is_set_right(self, scanner_class):
+        assert isinstance(scanner_class().InitState(), scanner_class.StateType)
+
     def test_scanner_is_default_constructible(self, scanner_class):
         scanner = scanner_class()
         assert scanner.Empty()
@@ -235,3 +266,8 @@ class TestScanner(object):
         assert None is scanner.ShortestPrefix("nonexistent")
         assert None is scanner.LongestSuffix("nonexistent")
         assert None is scanner.ShortestSuffix("nonexistent")
+
+    def test_state_remembers_its_scanner(self, scanner_class):
+        scanner = scanner_class()
+        state = scanner.InitState()
+        assert state.scanner == scanner

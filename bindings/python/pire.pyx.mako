@@ -140,11 +140,57 @@ cdef class Lexer:
 
 
 
+cdef class BaseState:
+    pass
+
+
 cdef class BaseScanner:
     pass
 
 
-% for Scanner in scanners:
+% for Scanner, _ in scanners:
+cdef class ${Scanner}State(BaseState):
+    cdef readonly ${Scanner} scanner
+    cdef impl.${Scanner}State state_impl
+
+    def __cinit__(self, ${Scanner} scanner not None):
+        self.scanner = scanner
+        scanner.scanner_impl.Initialize(self.state_impl)
+
+    % for method in ["Final", "__nonzero__"]:
+    def ${method}(self):
+        return self.scanner.scanner_impl.Final(self.state_impl)
+    % endfor
+
+    def Dead(self):
+        return self.scanner.scanner_impl.Dead(self.state_impl)
+
+    def AcceptedRegexps(self):
+        cdef:
+            impl.ypair[const size_t*, const size_t*] span
+            impl.yvector[size_t] regexps
+        span = self.scanner.scanner_impl.AcceptedRegexps(self.state_impl)
+        regexps.assign(span.first, span.second)
+        return regexps
+
+    def Step(self, impl.Char ch):
+        check_impl_char(ch)
+        impl.Step(self.scanner.scanner_impl, self.state_impl, ch)
+        return self
+
+    % for method in ["Begin", "End"]:
+    def ${method}(self):
+        impl.Step(self.scanner.scanner_impl, self.state_impl, ${method}Mark)
+        return self
+    % endfor
+
+    def Run(self, bytes line not None):
+        impl.Run(self.scanner.scanner_impl, self.state_impl, begin(line), end(line))
+        return self
+
+    ScannerType = ${Scanner}
+
+
 cdef inline object wrap_${Scanner}(impl.${Scanner} scanner_impl):
     ret = ${Scanner}()
     ret.scanner_impl.Swap(scanner_impl)
@@ -179,6 +225,9 @@ cdef class ${Scanner}(BaseScanner):
 
     Load = _${Scanner}_Load
 
+    def InitState(self):
+        return ${Scanner}State.__new__(${Scanner}State, self)
+
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:
     def ${method}(self):
         return self.scanner_impl.${method}()
@@ -210,4 +259,6 @@ cdef class ${Scanner}(BaseScanner):
             return suffix_begin - rend
         return None
     % endfor
+
+    StateType = ${Scanner}State
 % endfor

@@ -31,10 +31,10 @@ MAKO_GLOBALS = {
         "Minimize",
     ],
     "scanners": [
-        "Scanner",
-        "NonrelocScanner",
-        "ScannerNoMask",
-        "NonrelocScannerNoMask",
+        ("Scanner", "size_t"),
+        ("NonrelocScanner", "size_t"),
+        ("ScannerNoMask", "size_t"),
+        ("NonrelocScannerNoMask", "size_t"),
     ],
     "special_chars": [
         "Epsilon",
