@@ -2,7 +2,7 @@
 
 from libcpp cimport bool
 
-from .stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
+from stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
