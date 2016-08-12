@@ -2,7 +2,7 @@
 
 from libcpp cimport bool
 
-from stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
+from stub cimport yvector, ypair, yset, ystring, yauto_ptr, yistream, yostream
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
@@ -53,8 +53,6 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         Lexer()
 
         void Assign(const char* begin, const char* end)
-
-        void AddFeature(Feature*)
 
         Fsm Parse() except +
 
@@ -108,11 +106,17 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
     % endfor
 
 
-    cdef cppclass Feature:
-        pass
+cdef extern from "pire/easy.h" namespace "Pire":
+    cdef cppclass Options:
+        void Apply(Lexer&)
 
 
-cdef extern from "pire/pire.h" namespace "Pire::Features":
-    % for feature in FEATURES:
-    Feature* ${feature}()
-    % endfor
+cdef extern from "options.h" namespace "PireBinding":
+    cdef enum OptionFlag:
+        % for option in OPTIONS:
+        ${option}
+        % endfor
+    ctypedef yset[OptionFlag] FlagSet
+
+
+    yauto_ptr[Options] ConvertFlagSetToOptions(const FlagSet&)

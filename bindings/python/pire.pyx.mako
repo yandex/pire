@@ -105,23 +105,6 @@ cdef class Fsm:
 
 
 
-cdef inline wrap_feature(impl.Feature* feature_impl):
-    ret = Feature()
-    ret.feature_impl = feature_impl
-    return ret
-
-
-cdef class Feature:
-    cdef impl.Feature* feature_impl
-
-
-% for feature in FEATURES:
-def ${feature}():
-    return wrap_feature(impl.${feature}())
-% endfor
-
-
-
 cdef class Lexer:
     cdef impl.Lexer lexer_impl
 
@@ -129,11 +112,9 @@ cdef class Lexer:
         if line is not None:
             self.lexer_impl.Assign(begin(line), end(line))
 
-    def AddFeature(self, Feature feature):
-        if feature.feature_impl == NULL:
-            raise ValueError("Empty feature wrapper. Features cannot be reused.")
-        self.lexer_impl.AddFeature(feature.feature_impl)
-        feature.feature_impl = NULL
+    def AddOptions(self, Options options not None):
+        options.Apply(self)
+        return self
 
     def Parse(self):
         return wrap_fsm(self.lexer_impl.Parse())
@@ -270,4 +251,36 @@ cdef class ${Scanner}(BaseScanner):
     % endfor
 
     StateType = ${Scanner}State
+% endfor
+
+
+
+cdef class Options:
+    cdef set option_set
+
+    def __cinit__(self, set option_set=None):
+        if option_set is None:
+            option_set = set()
+        self.option_set = option_set
+
+    def __init__(self):
+        pass
+
+    def __ior__(self, Options rhs not None):
+        self.option_set |= rhs.option_set
+        return self
+
+    def __or__(Options self not None, Options rhs not None):
+        return Options.__new__(Options, self.option_set | rhs.option_set)
+
+    cdef inline impl.yauto_ptr[impl.Options] Convert(self):
+        return impl.ConvertFlagSetToOptions(<impl.FlagSet>self.option_set)
+
+    cdef inline void Apply(self, Lexer lexer):
+        cdef impl.yauto_ptr[impl.Options] converted = self.Convert()
+        converted.get().Apply(lexer.lexer_impl)
+
+
+% for option in OPTIONS:
+${option} = Options.__new__(Options, {impl.${option}})
 % endfor

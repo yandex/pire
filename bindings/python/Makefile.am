@@ -2,9 +2,9 @@ SUBDIRS = . tests
 
 RENDER_PY = $(srcdir)/render.py
 
-MAKO_SOURCES = $(srcdir)/pire.pyx.mako $(srcdir)/impl.pxd.mako
+MAKO_SOURCES = $(srcdir)/pire.pyx.mako $(srcdir)/impl.pxd.mako $(srcdir)/options.h.mako
 CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd $(srcdir)/stub.pxd
-CXX_SOURCES = $(srcdir)/pire_wrap.cpp
+CXX_SOURCES = $(srcdir)/pire_wrap.cpp $(srcdir)/options.h
 
 MAINTAINERCLEANFILES = $(CXX_SOURCES) pire_wrap.h $(CYTHON_SOURCES)
 
@@ -25,8 +25,10 @@ endif
 	$(PYTHON) $(RENDER_PY) -i $< -o $@
 %.pxd: %.pxd.mako $(RENDER_PY)
 	$(PYTHON) $(RENDER_PY) -i $< -o $@
+$(srcdir)/options.h: options.h.mako $(RENDER_PY)
+	$(PYTHON) $(RENDER_PY) -i $< -o $@
 
 CYTHONFLAGS=
 
-$(srcdir)/pire_wrap.cpp: $(CYTHON_SOURCES)
+$(srcdir)/pire_wrap.cpp: $(CYTHON_SOURCES) $(srcdir)/options.h
 	$(CYTHON) -2 --cplus $(CYTHONFLAGS) -I$(top_srcdir) -o $@ $(srcdir)/pire.pyx

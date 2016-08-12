@@ -14,11 +14,12 @@ class ScannerSpec(object):
         self.ignored_methods = ignored_methods
 
 
+class OptionSpec(object):
+    def __init__(self, cpp_getter):
+        self.cpp_getter = cpp_getter
+
+
 MAKO_GLOBALS = {
-    "FEATURES": [
-        "CaseInsensitive",
-        "AndNotSupport",
-    ],
     "FSM_BINARIES": [
         ("+", "add", "const Fsm&", "Fsm"),
         ("|", "or", "const Fsm&", "Fsm"),
@@ -38,6 +39,12 @@ MAKO_GLOBALS = {
         "Canonize",
         "Minimize",
     ],
+    "OPTIONS": {
+        "LATIN1": OptionSpec("Pire::Encodings::Latin1()"),
+        "UTF8": OptionSpec("Pire::Encodings::Utf8()"),
+        "I": OptionSpec("Pire::Features::CaseInsensitive()"),
+        "ANDNOT": OptionSpec("Pire::Features::AndNotSupport()"),
+    },
     "SCANNERS": {
         "Scanner": ScannerSpec(),
         "NonrelocScanner": ScannerSpec(),

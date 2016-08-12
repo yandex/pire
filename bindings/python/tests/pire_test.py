@@ -52,9 +52,11 @@ def parse_scanner(scanner_class):
         lexer = pire.Lexer(pattern)
         for opt in options:
             if opt == "i":
-                lexer.AddFeature(pire.CaseInsensitive())
+                lexer.AddOptions(pire.I)
             elif opt == "a":
-                lexer.AddFeature(pire.AndNotSupport())
+                lexer.AddOptions(pire.ANDNOT)
+            elif opt == "u":
+                lexer.AddOptions(pire.UTF8)
             else:
                 raise ValueError("Unknown option {}".format(opt))
         fsm = lexer.Parse()
@@ -202,16 +204,6 @@ class TestLexer(object):
 
     def test_lexer_raises_on_parsing_invalid_regexp(self):
         pytest.raises(Exception, pire.Lexer("[ab").Parse)
-
-    def test_empty_feature_cannot_be_added(self):
-        pytest.raises(ValueError, pire.Lexer().AddFeature, pire.Feature())
-
-    def test_features_cannot_be_reused(self):
-        lexer1 = pire.Lexer()
-        lexer2 = pire.Lexer()
-        feature = pire.CaseInsensitive()
-        lexer1.AddFeature(feature)
-        pytest.raises(ValueError, lexer2.AddFeature, feature)
 
 
 class TestScanner(object):
