@@ -106,11 +106,23 @@ cdef class Fsm:
 
 
 cdef class Lexer:
-    cdef impl.Lexer lexer_impl
+    cdef impl.yauto_ptr[impl.Lexer] lexer_impl
 
-    def __cinit__(self, bytes line=None, options=None):
-        if line is not None:
-            self.lexer_impl.Assign(begin(line), end(line))
+    def __cinit__(self, line=None, options=None):
+        cdef:
+            bytes utf8
+            impl.yvector[impl.wchar32] ucs4
+
+        if line is None:
+            self.lexer_impl.reset(new impl.Lexer())
+        else:
+            if isinstance(line, unicode):
+                utf8 = (<unicode>line).encode("utf8")
+                ucs4 = impl.Utf8ToUcs4(begin(utf8), end(utf8))
+                self.lexer_impl.reset(new impl.Lexer(ucs4))
+            else:
+                self.lexer_impl.reset(new impl.Lexer(begin(line), end(line)))
+
         if options is not None:
             if not isinstance(options, Options):
                 options = Options.Parse(options)
@@ -121,7 +133,7 @@ cdef class Lexer:
         return self
 
     def Parse(self):
-        return wrap_fsm(self.lexer_impl.Parse())
+        return wrap_fsm(self.lexer_impl.get().Parse())
 
 
 
@@ -289,7 +301,7 @@ cdef class Options:
 
     cdef inline void Apply(self, Lexer lexer):
         cdef impl.yauto_ptr[impl.Options] converted = self.Convert()
-        converted.get().Apply(lexer.lexer_impl)
+        converted.get().Apply(cython.operator.dereference(lexer.lexer_impl))
 
 
 % for option in OPTIONS:

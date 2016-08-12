@@ -1,3 +1,4 @@
+# encoding: utf-8
 import pickle
 
 import pytest
@@ -195,6 +196,13 @@ class TestLexer(object):
 
     def test_lexer_raises_on_parsing_invalid_regexp(self):
         pytest.raises(Exception, pire.Lexer("[ab").Parse)
+
+    def test_lexer_accepts_unicode_pattern(self, parse_scanner):
+        check_scanner(
+            parse_scanner(u"юникод", "u"),
+            accepts=["\xd1\x8e\xd0\xbd\xd0\xb8\xd0\xba\xd0\xbe\xd0\xb4"],
+            rejects=["\xd1", ""],
+        )
 
 
 class TestScanner(object):

@@ -6,6 +6,14 @@ from stub cimport yvector, ypair, yset, ystring, yauto_ptr, yistream, yostream
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
+    ctypedef int wchar32
+
+
+cdef extern from "encoding.h" namespace "PireBinding" nogil:
+    yvector[wchar32] Utf8ToUcs4(const char* begin, const char* end)
+
+
+cdef extern from "pire/pire.h" namespace "Pire" nogil:
     ctypedef unsigned short Char
 
     cdef enum SpecialChar:
@@ -51,8 +59,8 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
     cdef cppclass Lexer:
         Lexer()
-
-        void Assign(const char* begin, const char* end)
+        Lexer(const char* begin, const char* end)
+        Lexer(const yvector[wchar32]&)
 
         Fsm Parse() except +
 
