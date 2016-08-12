@@ -1,3 +1,4 @@
+# encoding: utf-8
 import pickle
 
 import pytest
@@ -12,6 +13,7 @@ SCANNER_CLASSES = [
     pire.NonrelocScannerNoMask,
     pire.SimpleScanner,
     pire.SlowScanner,
+    pire.CapturingScanner,
 ]
 
 
@@ -33,7 +35,7 @@ def check_state(state, final=None, dead=None, accepted_regexps=None):
 
     if accepted_regexps is None and final is False:
         accepted_regexps = ()
-    if isinstance(state, pire.SimpleScannerState):
+    if isinstance(state, (pire.SimpleScannerState, pire.CapturingScannerState)):
         accepted_regexps = None
 
     assert final is None or state.Final() == final
@@ -49,14 +51,7 @@ def scanner_class(request):
 @pytest.fixture()
 def parse_scanner(scanner_class):
     def scanner_factory(pattern, options=""):
-        lexer = pire.Lexer(pattern)
-        for opt in options:
-            if opt == "i":
-                lexer.AddFeature(pire.CaseInsensitive())
-            elif opt == "a":
-                lexer.AddFeature(pire.AndNotSupport())
-            else:
-                raise ValueError("Unknown option {}".format(opt))
+        lexer = pire.Lexer(pattern, options)
         fsm = lexer.Parse()
         return scanner_class(fsm)
     return scanner_factory
@@ -203,15 +198,12 @@ class TestLexer(object):
     def test_lexer_raises_on_parsing_invalid_regexp(self):
         pytest.raises(Exception, pire.Lexer("[ab").Parse)
 
-    def test_empty_feature_cannot_be_added(self):
-        pytest.raises(ValueError, pire.Lexer().AddFeature, pire.Feature())
-
-    def test_features_cannot_be_reused(self):
-        lexer1 = pire.Lexer()
-        lexer2 = pire.Lexer()
-        feature = pire.CaseInsensitive()
-        lexer1.AddFeature(feature)
-        pytest.raises(ValueError, lexer2.AddFeature, feature)
+    def test_lexer_accepts_unicode_pattern(self, parse_scanner):
+        check_scanner(
+            parse_scanner(u"юникод", "u"),
+            accepts=["\xd1\x8e\xd0\xbd\xd0\xb8\xd0\xba\xd0\xbe\xd0\xb4"],
+            rejects=["\xd1", ""],
+        )
 
 
 class TestScanner(object):
@@ -273,7 +265,12 @@ class TestScanner(object):
         assert None is scanner.ShortestSuffix("nonexistent")
 
     def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
-        if scanner_class in (pire.SimpleScanner, pire.SlowScanner):
+        scanners_without_glue = [
+            pire.SimpleScanner,
+            pire.SlowScanner,
+            pire.CapturingScanner,
+        ]
+        if scanner_class in scanners_without_glue:
             return
 
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
@@ -297,3 +294,96 @@ class TestScanner(object):
         scanner = scanner_class()
         state = scanner.InitState()
         assert state.scanner == scanner
+
+
+class TestEasy(object):
+    def test_options_have_only_default_constuctor(self):
+        pire.Options()
+        pytest.raises(Exception, pire.Options, 1)
+
+    def test_regexp_matches(self):
+        re = pire.Regexp("(foo|bar)+", pire.I)
+        assert "prefix fOoBaR suffix" in re
+        assert "bla bla bla" not in re
+        assert re.Matches("barfoo")
+
+    def test_regexp_honors_utf8(self):
+        re = pire.Regexp("^.$", pire.I | pire.UTF8)
+        assert "\x41" in re
+        assert "\x81" not in re
+
+    def test_regexp_uses_two_features(self):
+        re = pire.Regexp("^(a.c&.b.)$", pire.I | pire.ANDNOT)
+        assert "abc" in re
+        assert "ABC" in re
+        assert "adc" not in re
+
+
+class TestExtra(object):
+    def test_lexer_glues_similar_glyphs(self):
+        almost_regexp = u"rеgехр"  # 'е', 'х' and 'р' are cyrillic
+        exactly_regexp = "regexp"  # all latin1
+        for pattern in [almost_regexp, exactly_regexp]:
+            scanner = pire.Lexer(
+                pattern,
+                pire.UTF8 | pire.GLUE_SIMILAR_GLYPHS,
+            ).Parse().Compile()
+            check_scanner(
+                scanner,
+                accepts=[exactly_regexp, almost_regexp.encode("utf8")],
+            )
+
+    def test_capturing_trivial(self):
+        """
+        This is the "Trivial" test from tests/capture_ut.cpp.
+        """
+        lexer = pire.Lexer("google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;")
+        fsm = lexer.AddOptions(pire.I).AddCapturing(1).Parse()
+        scanner = fsm.Surround().Compile(pire.CapturingScanner)
+
+        text = "google_id = 'abcde';"
+        captured = scanner.InitState().Begin().Run(text).End().Captured()
+        assert captured
+        assert "abcde" == text[captured[0] - 1:captured[1] - 1]
+
+        text = "var google_id = 'abcde'; eval(google_id);"
+        captured = scanner.InitState().Begin().Run(text).End().Captured()
+        assert captured
+        assert "abcde" == text[captured[0] - 1:captured[1] - 1]
+
+        text = "google_id != 'abcde';"
+        captured = scanner.InitState().Begin().Run(text).End().Captured()
+        assert None is captured
+
+    def test_counting_scanner_is_default_constructible(self):
+        fsm = pire.Fsm()
+        pire.CountingScanner()
+
+    def test_counting_scanner_raises_when_constructed_without_second_fsm(self):
+        fsm = pire.Fsm()
+        pytest.raises(Exception, pire.CountingScanner, fsm)
+        pytest.raises(Exception, pire.CountingScanner, pattern=fsm)
+        pytest.raises(Exception, pire.CountingScanner, sep=fsm)
+
+    def test_counting_scanner_state_has_right_result(self):
+        scanner = pire.CountingScanner(
+            pattern=pire.Lexer("[a-z]+").Parse(),
+            sep=pire.Lexer(r"\s").Parse(),
+        )
+        text = "abc def, abc def ghi, abc"
+        state = scanner.InitState().Begin().Run(text).End()
+        assert 3 == state.Result(0)
+
+    def test_glued_counting_scanner_state_has_right_results(self):
+        separator_fsm = pire.Lexer(".*").Parse()
+        scanner1, scanner2 = [
+            pire.CountingScanner(pire.Lexer(pattern).Parse(), separator_fsm)
+            for pattern in ["[a-z]+", "[0-9]+"]
+        ]
+        glued = scanner1.GluedWith(scanner2)
+
+        state = glued.InitState()
+        state.Begin().Run("abc defg 123 jklmn 4567 opqrst").End()
+
+        assert 4 == state.Result(0)
+        assert 2 == state.Result(1)

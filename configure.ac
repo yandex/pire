@@ -33,12 +33,16 @@ if test x"$enable_python" = xyes; then
 	AM_PATH_PYTHON
 	AX_PYTHON_DEVEL
 	AC_PATH_PROGS([CYTHON], [cython])
+	if ! test x"$enable_extra" = xyes; then
+		AC_MSG_ERROR([[Python bindings expect libpire to be built with --enable-extra]])
+	fi
 	if ! test -r "$srcdir"/bindings/python/pire_wrap.cpp; then
 		if test x"$CYTHON" = x; then
 			AC_MSG_ERROR([[Cython not found (and no pregenerated extension sources used)]])
 		fi
 		if ! test -r "$srcdir"/bindings/python/pire.pyx || \
-				! test -r "$srcdir"/bindings/python/impl.pxd; then
+				! test -r "$srcdir"/bindings/python/impl.pxd || \
+				! test -r "$srcdir"/bindings/python/options.h; then
 			AX_PYTHON_MODULE([mako], [fatal])
 		fi
 	fi

@@ -14,11 +14,14 @@ class ScannerSpec(object):
         self.ignored_methods = ignored_methods
 
 
+class OptionSpec(object):
+    def __init__(self, cpp_getter, letter=""):
+        assert len(letter) <= 1
+        self.cpp_getter = cpp_getter
+        self.letter = letter
+
+
 MAKO_GLOBALS = {
-    "FEATURES": [
-        "CaseInsensitive",
-        "AndNotSupport",
-    ],
     "FSM_BINARIES": [
         ("+", "add", "const Fsm&", "Fsm"),
         ("|", "or", "const Fsm&", "Fsm"),
@@ -38,6 +41,13 @@ MAKO_GLOBALS = {
         "Canonize",
         "Minimize",
     ],
+    "OPTIONS": {
+        "LATIN1": OptionSpec("Pire::Encodings::Latin1()", "l"),
+        "UTF8": OptionSpec("Pire::Encodings::Utf8()", "u"),
+        "I": OptionSpec("Pire::Features::CaseInsensitive()", "i"),
+        "ANDNOT": OptionSpec("Pire::Features::AndNotSupport()", "a"),
+        "GLUE_SIMILAR_GLYPHS": OptionSpec("Pire::Features::GlueSimilarGlyphs()", "y"),
+    },
     "SCANNERS": {
         "Scanner": ScannerSpec(),
         "NonrelocScanner": ScannerSpec(),
@@ -47,6 +57,14 @@ MAKO_GLOBALS = {
         "SlowScanner": ScannerSpec(
             state_t="yvector[size_t]",
             ignored_methods={"Glue", "Size", "LettersCount"}
+        ),
+        "CapturingScanner": ScannerSpec(
+            state_t="__nontrivial__",
+            ignored_methods={"AcceptedRegexps", "Glue"},
+        ),
+        "CountingScanner": ScannerSpec(
+            state_t="__nontrivial__",
+            ignored_methods={"AcceptedRegexps"},
         ),
     },
     "SPECIAL_CHARS": [

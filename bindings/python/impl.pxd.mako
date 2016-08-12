@@ -2,7 +2,15 @@
 
 from libcpp cimport bool
 
-from stub cimport yvector, ypair, ystring, yauto_ptr, yistream, yostream
+from stub cimport yvector, ypair, yset, ystring, yauto_ptr, yistream, yostream
+
+
+cdef extern from "pire/pire.h" namespace "Pire" nogil:
+    ctypedef int wchar32
+
+
+cdef extern from "encoding.h" namespace "PireBinding" nogil:
+    yvector[wchar32] Utf8ToUcs4(const char* begin, const char* end)
 
 
 cdef extern from "pire/pire.h" namespace "Pire" nogil:
@@ -49,22 +57,48 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
     Fsm Fsm_MakeFalse "Pire::Fsm::MakeFalse"()
 
 
+    cdef cppclass Feature:
+        pass
+
+cdef extern from "pire/extra.h" namespace "Pire::Features" nogil:
+    Feature* Capture(size_t)
+
+
+cdef extern from "pire/pire.h" namespace "Pire" nogil:
     cdef cppclass Lexer:
         Lexer()
+        Lexer(const char* begin, const char* end)
+        Lexer(const yvector[wchar32]&)
 
-        void Assign(const char* begin, const char* end)
+        Fsm Parse() except +
 
         void AddFeature(Feature*)
 
-        Fsm Parse() except +
+
+    cdef cppclass CapturingScannerState "Pire::CapturingScanner::State":
+        bool Captured()
+        size_t Begin()
+        size_t End()
+
+
+    cdef cppclass CountingScannerState "Pire::CountingScanner::State":
+        size_t Result(size_t index)
 
 
     % for Scanner, spec in SCANNERS.items():
 
+    % if spec.state_t != "__nontrivial__":
     ctypedef ${spec.state_t} ${Scanner}State "Pire::${Scanner}::State"
+    % endif
+
     cdef cppclass ${Scanner}:
         ${Scanner}()
+
+        % if Scanner != "CountingScanner":
         ${Scanner}(Fsm&)
+        % else:
+        ${Scanner}(Fsm& pattern, Fsm& sep)
+        % endif
 
         void Swap(${Scanner}&)
 
@@ -108,11 +142,25 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
     % endfor
 
 
-    cdef cppclass Feature:
-        pass
+cdef extern from "pire/easy.h" namespace "Pire" nogil:
+    cdef cppclass Options:
+        void Apply(Lexer&)
+
+    cdef cppclass Regexp:
+        Regexp(const ystring&, const Options&)
+
+        Regexp(Scanner)
+        Regexp(SlowScanner)
+
+        bool Matches(const char* begin, const char* end)
 
 
-cdef extern from "pire/pire.h" namespace "Pire::Features" nogil:
-    % for feature in FEATURES:
-    Feature* ${feature}()
-    % endfor
+cdef extern from "options.h" namespace "PireBinding" nogil:
+    cdef enum OptionFlag:
+        % for option in OPTIONS:
+        ${option}
+        % endfor
+    ctypedef yset[OptionFlag] FlagSet
+
+
+    yauto_ptr[Options] ConvertFlagSetToOptions(const FlagSet&)

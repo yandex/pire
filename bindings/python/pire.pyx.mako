@@ -105,38 +105,39 @@ cdef class Fsm:
 
 
 
-cdef inline wrap_feature(impl.Feature* feature_impl):
-    ret = Feature()
-    ret.feature_impl = feature_impl
-    return ret
-
-
-cdef class Feature:
-    cdef impl.Feature* feature_impl
-
-
-% for feature in FEATURES:
-def ${feature}():
-    return wrap_feature(impl.${feature}())
-% endfor
-
-
-
 cdef class Lexer:
-    cdef impl.Lexer lexer_impl
+    cdef impl.yauto_ptr[impl.Lexer] lexer_impl
 
-    def __cinit__(self, bytes line=None):
-        if line is not None:
-            self.lexer_impl.Assign(begin(line), end(line))
+    def __cinit__(self, line=None, options=None):
+        cdef:
+            bytes utf8
+            impl.yvector[impl.wchar32] ucs4
 
-    def AddFeature(self, Feature feature):
-        if feature.feature_impl == NULL:
-            raise ValueError("Empty feature wrapper. Features cannot be reused.")
-        self.lexer_impl.AddFeature(feature.feature_impl)
-        feature.feature_impl = NULL
+        if line is None:
+            self.lexer_impl.reset(new impl.Lexer())
+        else:
+            if isinstance(line, unicode):
+                utf8 = (<unicode>line).encode("utf8")
+                ucs4 = impl.Utf8ToUcs4(begin(utf8), end(utf8))
+                self.lexer_impl.reset(new impl.Lexer(ucs4))
+            else:
+                self.lexer_impl.reset(new impl.Lexer(begin(line), end(line)))
+
+        if options is not None:
+            if not isinstance(options, Options):
+                options = Options.Parse(options)
+            self.AddOptions(options)
+
+    def AddOptions(self, Options options not None):
+        options.Apply(self)
+        return self
+
+    def AddCapturing(self, size_t index):
+        self.lexer_impl.get().AddFeature(impl.Capture(index))
+        return self
 
     def Parse(self):
-        return wrap_fsm(self.lexer_impl.Parse())
+        return wrap_fsm(self.lexer_impl.get().Parse())
 
 
 
@@ -192,6 +193,18 @@ cdef class ${Scanner}State(BaseState):
 
     ScannerType = ${Scanner}
 
+    % if Scanner == "CapturingScanner":
+    def Captured(self):
+        if self.state_impl.Captured():
+            return self.state_impl.Begin(), self.state_impl.End()
+        return None
+    % endif
+
+    % if Scanner == "CountingScanner":
+    def Result(self, size_t index):
+        return self.state_impl.Result(index)
+    % endif
+
 
 cdef inline object wrap_${Scanner}(impl.${Scanner} scanner_impl):
     ret = ${Scanner}()
@@ -216,9 +229,19 @@ copy_reg.pickle(${Scanner}, _reduce_${Scanner})
 cdef class ${Scanner}(BaseScanner):
     cdef impl.${Scanner} scanner_impl
 
+    % if Scanner != "CountingScanner":
     def __cinit__(self, Fsm fsm=None):
         if fsm is not None:
             self.scanner_impl = impl.${Scanner}(fsm.fsm_impl)
+    % else:
+    def __cinit__(self, Fsm pattern=None, Fsm sep=None):
+        if pattern is not None or sep is not None:
+            if pattern is None or sep is None:
+                raise ValueError(
+                    "Expected both pattern and separator, got only one of them"
+                )
+            self.scanner_impl = impl.CountingScanner(pattern.fsm_impl, sep.fsm_impl)
+    % endif
 
     def Save(self):
         cdef impl.yostream stream
@@ -271,3 +294,76 @@ cdef class ${Scanner}(BaseScanner):
 
     StateType = ${Scanner}State
 % endfor
+
+
+
+cdef class Options:
+    cdef set option_set
+
+    def __cinit__(self, set option_set=None):
+        if option_set is None:
+            option_set = set()
+        self.option_set = option_set
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def Parse(bytes letters not None):
+        cdef parsed = Options()
+        for letter in letters:
+            parsed |= _LETTER_MAP[letter]
+        return parsed
+
+    def __ior__(self, Options rhs not None):
+        self.option_set |= rhs.option_set
+        return self
+
+    def __or__(Options self not None, Options rhs not None):
+        return Options.__new__(Options, self.option_set | rhs.option_set)
+
+    cdef inline impl.yauto_ptr[impl.Options] Convert(self):
+        return impl.ConvertFlagSetToOptions(<impl.FlagSet>self.option_set)
+
+    cdef inline void Apply(self, Lexer lexer):
+        cdef impl.yauto_ptr[impl.Options] converted = self.Convert()
+        converted.get().Apply(cython.operator.dereference(lexer.lexer_impl))
+
+
+% for option in OPTIONS:
+${option} = Options.__new__(Options, set([impl.${option}]))
+% endfor
+
+_LETTER_MAP = {
+    % for option, spec in OPTIONS.items():
+    %     if spec.letter:
+    "${spec.letter}": ${option},
+    %     endif
+    % endfor
+}
+
+
+cdef class Regexp:
+    cdef impl.yauto_ptr[impl.Regexp] regexp_impl
+
+    def __cinit__(self, pattern, Options options=None):
+        cdef impl.yauto_ptr[impl.Options] converted_options
+        if isinstance(pattern, Scanner):
+            self.regexp_impl.reset(new impl.Regexp((<Scanner>pattern).scanner_impl))
+        elif isinstance(pattern, SlowScanner):
+            self.regexp_impl.reset(new impl.Regexp((<SlowScanner>pattern).scanner_impl))
+        else:
+            if options is None:
+                options = Options()
+            converted_options = options.Convert()
+            self.regexp_impl.reset(
+                new impl.Regexp(
+                    <impl.ystring>pattern,
+                    cython.operator.dereference(converted_options),
+                )
+            )
+
+    % for matches in ["Matches", "__contains__"]:
+    def ${matches}(self, bytes line not None):
+        return self.regexp_impl.get().Matches(begin(line), end(line))
+    % endfor
