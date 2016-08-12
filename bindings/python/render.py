@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import sys
 
 import mako.template
 
@@ -72,7 +73,17 @@ def main():
     options = make_argparser().parse_args()
 
     template = mako.template.Template(filename=os.path.abspath(options.input))
-    rendered = template.render(**MAKO_GLOBALS)
+
+    try:
+        rendered = template.render(**MAKO_GLOBALS)
+    except:
+        traceback = mako.exceptions.RichTraceback()
+        for (filename, lineno, function, line) in traceback.traceback:
+            print "  File %s, line %s, in %s" % (filename, lineno, function)
+            print "    %s" % line
+        print "%s: %s" % (str(traceback.error.__class__.__name__), traceback.error)
+        sys.exit(1)
+
     with open(options.output, "w") as out_file:
         out_file.write(rendered)
 
