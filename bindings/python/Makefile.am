@@ -26,5 +26,7 @@ endif
 %.pxd: %.pxd.mako $(RENDER_PY)
 	$(PYTHON) $(RENDER_PY) -i $< -o $@
 
+CYTHONFLAGS=
+
 $(srcdir)/pire_wrap.cpp: $(CYTHON_SOURCES)
-	$(CYTHON) -2 --cplus -I$(top_srcdir) -o $@ $(srcdir)/pire.pyx
+	$(CYTHON) -2 --cplus $(CYTHONFLAGS) -I$(top_srcdir) -o $@ $(srcdir)/pire.pyx
