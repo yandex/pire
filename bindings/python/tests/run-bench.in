@@ -1,0 +1,3 @@
+#!@SHELL@
+
+exec "@builddir@"/run-with-pypath @PYTHON@ "@srcdir@"/bench.py -f "@top_srcdir@"/tools/bench/test_file -m 5000 -p ".*[net]$"

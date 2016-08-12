@@ -1,16 +1,3 @@
 #!@SHELL@
 
-## Borrowed from http://stackoverflow.com/a/5125879
-
-
-# Darwin needs some help in figuring out where non-installed libtool
-# libraries are (on this platform libtool encodes the expected final
-# path of dependent libraries in each library).
-modpath='../.libs:@top_builddir@/src/.libs'
-
-# .. is for the *.py files, and ../.libs for the *.so.
-pypath='..:../.libs:@srcdir@/..:@srcdir@/../.libs:$PYTHONPATH'
-
-pytest=py.test
-
-PYTHONPATH=$pypath DYLD_LIBRARY_PATH=$modpath exec $pytest "@srcdir@"
+exec "@builddir@"/run-with-pypath py.test "@srcdir@"
