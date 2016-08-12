@@ -16,6 +16,8 @@ cdef extern from "sstream" namespace "std":
         auto_ptr()
 
         T* get()
+        T& operator * ()
+
         void reset(T*)
 
 
