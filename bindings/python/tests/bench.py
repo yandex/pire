@@ -54,15 +54,22 @@ def make_argparser():
         "-f", "--file",
         type=argparse.FileType("r"),
         default=sys.stdin,
+        help="File with lines to run on.",
     )
     parser.add_argument(
         "-m", "--multiply-input",
         type=int,
         default=1,
+        help=(
+            "The list of lines will be repeated (multiplied by) this number."
+            "It can be used to scale the number of runs without need to create"
+            "large input file."
+        ),
     )
     parser.add_argument(
         "-p", "--pattern",
         required=True,
+        help="Regular expression to compile.",
     )
     return parser
 
