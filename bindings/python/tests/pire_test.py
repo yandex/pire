@@ -49,16 +49,7 @@ def scanner_class(request):
 @pytest.fixture()
 def parse_scanner(scanner_class):
     def scanner_factory(pattern, options=""):
-        lexer = pire.Lexer(pattern)
-        for opt in options:
-            if opt == "i":
-                lexer.AddOptions(pire.I)
-            elif opt == "a":
-                lexer.AddOptions(pire.ANDNOT)
-            elif opt == "u":
-                lexer.AddOptions(pire.UTF8)
-            else:
-                raise ValueError("Unknown option {}".format(opt))
+        lexer = pire.Lexer(pattern, options)
         fsm = lexer.Parse()
         return scanner_class(fsm)
     return scanner_factory

@@ -15,8 +15,10 @@ class ScannerSpec(object):
 
 
 class OptionSpec(object):
-    def __init__(self, cpp_getter):
+    def __init__(self, cpp_getter, letter=""):
+        assert len(letter) <= 1
         self.cpp_getter = cpp_getter
+        self.letter = letter
 
 
 MAKO_GLOBALS = {
@@ -40,10 +42,10 @@ MAKO_GLOBALS = {
         "Minimize",
     ],
     "OPTIONS": {
-        "LATIN1": OptionSpec("Pire::Encodings::Latin1()"),
-        "UTF8": OptionSpec("Pire::Encodings::Utf8()"),
-        "I": OptionSpec("Pire::Features::CaseInsensitive()"),
-        "ANDNOT": OptionSpec("Pire::Features::AndNotSupport()"),
+        "LATIN1": OptionSpec("Pire::Encodings::Latin1()", "l"),
+        "UTF8": OptionSpec("Pire::Encodings::Utf8()", "u"),
+        "I": OptionSpec("Pire::Features::CaseInsensitive()", "i"),
+        "ANDNOT": OptionSpec("Pire::Features::AndNotSupport()", "a"),
     },
     "SCANNERS": {
         "Scanner": ScannerSpec(),

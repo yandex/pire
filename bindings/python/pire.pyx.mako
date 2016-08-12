@@ -108,9 +108,13 @@ cdef class Fsm:
 cdef class Lexer:
     cdef impl.Lexer lexer_impl
 
-    def __cinit__(self, bytes line=None):
+    def __cinit__(self, bytes line=None, options=None):
         if line is not None:
             self.lexer_impl.Assign(begin(line), end(line))
+        if options is not None:
+            if not isinstance(options, Options):
+                options = Options.Parse(options)
+            self.AddOptions(options)
 
     def AddOptions(self, Options options not None):
         options.Apply(self)
@@ -266,6 +270,13 @@ cdef class Options:
     def __init__(self):
         pass
 
+    @staticmethod
+    def Parse(bytes letters not None):
+        cdef parsed = Options()
+        for letter in letters:
+            parsed |= _LETTER_MAP[letter]
+        return parsed
+
     def __ior__(self, Options rhs not None):
         self.option_set |= rhs.option_set
         return self
@@ -285,6 +296,13 @@ cdef class Options:
 ${option} = Options.__new__(Options, {impl.${option}})
 % endfor
 
+_LETTER_MAP = {
+    % for option, spec in OPTIONS.items():
+    %     if spec.letter:
+    "${spec.letter}": ${option},
+    %     endif
+    % endfor
+}
 
 
 cdef class Regexp:
