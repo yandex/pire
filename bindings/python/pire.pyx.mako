@@ -284,3 +284,30 @@ cdef class Options:
 % for option in OPTIONS:
 ${option} = Options.__new__(Options, {impl.${option}})
 % endfor
+
+
+
+cdef class Regexp:
+    cdef impl.yauto_ptr[impl.Regexp] regexp_impl
+
+    def __cinit__(self, pattern, Options options=None):
+        cdef impl.yauto_ptr[impl.Options] converted_options
+        if isinstance(pattern, Scanner):
+            self.regexp_impl.reset(new impl.Regexp((<Scanner>pattern).scanner_impl))
+        elif isinstance(pattern, SlowScanner):
+            self.regexp_impl.reset(new impl.Regexp((<SlowScanner>pattern).scanner_impl))
+        else:
+            if options is None:
+                options = Options()
+            converted_options = options.Convert()
+            self.regexp_impl.reset(
+                new impl.Regexp(
+                    <impl.ystring>pattern,
+                    cython.operator.dereference(converted_options),
+                )
+            )
+
+    % for matches in ["Matches", "__contains__"]:
+    def ${matches}(self, bytes line not None):
+        return self.regexp_impl.get().Matches(begin(line), end(line))
+    % endfor

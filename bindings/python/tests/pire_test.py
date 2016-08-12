@@ -289,3 +289,26 @@ class TestScanner(object):
         scanner = scanner_class()
         state = scanner.InitState()
         assert state.scanner == scanner
+
+
+class TestEasy(object):
+    def test_options_have_only_default_constuctor(self):
+        pire.Options()
+        pytest.raises(Exception, pire.Options, 1)
+
+    def test_regexp_matches(self):
+        re = pire.Regexp("(foo|bar)+", pire.I)
+        assert "prefix fOoBaR suffix" in re
+        assert "bla bla bla" not in re
+        assert re.Matches("barfoo")
+
+    def test_regexp_honors_utf8(self):
+        re = pire.Regexp("^.$", pire.I | pire.UTF8)
+        assert "\x41" in re
+        assert "\x81" not in re
+
+    def test_regexp_uses_two_features(self):
+        re = pire.Regexp("^(a.c&.b.)$", pire.I | pire.ANDNOT)
+        assert "abc" in re
+        assert "ABC" in re
+        assert "adc" not in re

@@ -110,6 +110,14 @@ cdef extern from "pire/easy.h" namespace "Pire":
     cdef cppclass Options:
         void Apply(Lexer&)
 
+    cdef cppclass Regexp:
+        Regexp(const ystring&, const Options&)
+
+        Regexp(Scanner)
+        Regexp(SlowScanner)
+
+        bool Matches(const char* begin, const char* end)
+
 
 cdef extern from "options.h" namespace "PireBinding":
     cdef enum OptionFlag:
