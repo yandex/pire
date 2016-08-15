@@ -278,6 +278,8 @@ class TestScanner(object):
 
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
 
+        assert 2 == glued.RegexpsCount()
+
         state = glued.InitState()
         check_state(state, final=False, dead=False)
         check_state(state.Run("ab"), final=True, accepted_regexps=(0,))
