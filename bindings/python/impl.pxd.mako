@@ -60,11 +60,11 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
     cdef cppclass Feature:
         pass
 
-cdef extern from "pire/extra.h" namespace "Pire::Features":
+cdef extern from "pire/extra.h" namespace "Pire::Features" nogil:
     Feature* Capture(size_t)
 
 
-cdef extern from "pire/pire.h" namespace "Pire":
+cdef extern from "pire/pire.h" namespace "Pire" nogil:
     cdef cppclass Lexer:
         Lexer()
         Lexer(const char* begin, const char* end)
@@ -142,7 +142,7 @@ cdef extern from "pire/pire.h" namespace "Pire":
     % endfor
 
 
-cdef extern from "pire/easy.h" namespace "Pire":
+cdef extern from "pire/easy.h" namespace "Pire" nogil:
     cdef cppclass Options:
         void Apply(Lexer&)
 
@@ -155,7 +155,7 @@ cdef extern from "pire/easy.h" namespace "Pire":
         bool Matches(const char* begin, const char* end)
 
 
-cdef extern from "options.h" namespace "PireBinding":
+cdef extern from "options.h" namespace "PireBinding" nogil:
     cdef enum OptionFlag:
         % for option in OPTIONS:
         ${option}
