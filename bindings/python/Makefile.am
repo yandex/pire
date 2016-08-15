@@ -3,10 +3,11 @@ SUBDIRS = . tests
 RENDER_PY = $(srcdir)/render.py
 
 MAKO_SOURCES = $(srcdir)/pire.pyx.mako $(srcdir)/impl.pxd.mako $(srcdir)/options.h.mako
-CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd $(srcdir)/stub.pxd
+GENERATED_CYTHON_SOURCES = $(srcdir)/pire.pyx $(srcdir)/impl.pxd
+CYTHON_SOURCES = $(GENERATED_CYTHON_SOURCES) $(srcdir)/stub.pxd
 CXX_SOURCES = $(srcdir)/pire_wrap.cpp $(srcdir)/options.h
 
-MAINTAINERCLEANFILES = $(CXX_SOURCES) pire_wrap.h $(CYTHON_SOURCES)
+MAINTAINERCLEANFILES = $(CXX_SOURCES) pire_wrap.h $(GENERATED_CYTHON_SOURCES)
 
 pkgpython_PYTHON =
 pkgpyexec_LTLIBRARIES =
