@@ -15,17 +15,17 @@ class ScannerSpec(object):
 
 
 MAKO_GLOBALS = {
-    "features": [
+    "FEATURES": [
         "CaseInsensitive",
         "AndNotSupport",
     ],
-    "fsm_binaries": [
+    "FSM_BINARIES": [
         ("+", "add", "const Fsm&", "Fsm"),
         ("|", "or", "const Fsm&", "Fsm"),
         ("&", "and", "const Fsm&", "Fsm"),
         ("*", "mul", "size_t", "size_t"),
     ],
-    "fsm_inplace_unaries": [
+    "FSM_INPLACE_UNARIES": [
         "AppendDot",
         "Surround",
         "Iterate",
@@ -38,7 +38,7 @@ MAKO_GLOBALS = {
         "Canonize",
         "Minimize",
     ],
-    "scanners": {
+    "SCANNERS": {
         "Scanner": ScannerSpec(),
         "NonrelocScanner": ScannerSpec(),
         "ScannerNoMask": ScannerSpec(),
@@ -46,7 +46,7 @@ MAKO_GLOBALS = {
         "SimpleScanner": ScannerSpec(ignored_methods={"AcceptedRegexps", "Glue"}),
         "SlowScanner": ScannerSpec(ignored_methods={"Glue", "Size", "LettersCount"}),
     },
-    "special_chars": [
+    "SPECIAL_CHARS": [
         "Epsilon",
         "BeginMark",
         "EndMark",

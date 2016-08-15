@@ -7,7 +7,7 @@ cimport impl
 
 
 cdef public enum SpecialChar:
-    % for ch in special_chars:
+    % for ch in SPECIAL_CHARS:
     ${ch} = impl.${ch}
     % endfor
 
@@ -57,13 +57,13 @@ cdef class Fsm:
         self.fsm_impl.AppendStrings(<impl.yvector[impl.ystring]>strings)
         return self
 
-    % for unary in fsm_inplace_unaries:
+    % for unary in FSM_INPLACE_UNARIES:
     def ${unary}(self):
         self.fsm_impl.${unary}()
         return self
     % endfor
 
-    % for _, operation, _, rhs_type in fsm_binaries:
+    % for _, operation, _, rhs_type in FSM_BINARIES:
     <%
         unwrapped_rhs = "rhs.fsm_impl" if rhs_type == "Fsm" else "rhs"
         not_none = "not None" if rhs_type != "size_t" else ""
@@ -115,7 +115,7 @@ cdef class Feature:
     cdef impl.Feature* feature_impl
 
 
-% for feature in features:
+% for feature in FEATURES:
 def ${feature}():
     return wrap_feature(impl.${feature}())
 % endfor
@@ -148,7 +148,7 @@ cdef class BaseScanner:
     pass
 
 
-% for Scanner, spec in scanners.items():
+% for Scanner, spec in SCANNERS.items():
 cdef class ${Scanner}State(BaseState):
     cdef readonly ${Scanner} scanner
     cdef impl.${Scanner}State state_impl

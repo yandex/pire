@@ -9,7 +9,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
     ctypedef unsigned short Char
 
     cdef enum SpecialChar:
-        % for ch in special_chars:
+        % for ch in SPECIAL_CHARS:
         ${ch}
         % endfor
 
@@ -26,11 +26,11 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         void AppendStrings(const yvector[ystring]&)
 
-        % for unary in fsm_inplace_unaries:
+        % for unary in FSM_INPLACE_UNARIES:
         void ${unary}()
         % endfor
 
-        % for sign, operation, rhs_type, _ in fsm_binaries:
+        % for sign, operation, rhs_type, _ in FSM_BINARIES:
         void __i${operation}__ "operator ${sign}=" (${rhs_type})
         Fsm __${operation}__ "operator ${sign}" (${rhs_type})
         % endfor
@@ -59,7 +59,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         Fsm Parse() except +
 
 
-    % for Scanner, spec in scanners.items():
+    % for Scanner, spec in SCANNERS.items():
 
     ctypedef ${spec.state_t} ${Scanner}State "Pire::${Scanner}::State"
     cdef cppclass ${Scanner}:
@@ -113,6 +113,6 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
 
 cdef extern from "pire/pire.h" namespace "Pire::Features":
-    % for feature in features:
+    % for feature in FEATURES:
     Feature* ${feature}()
     % endfor
