@@ -2,6 +2,7 @@
 
 #include "pire/pire.h"
 #include "pire/easy.h"
+#include "pire/extra.h"
 
 
 namespace PireBinding {

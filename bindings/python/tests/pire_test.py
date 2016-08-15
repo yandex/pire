@@ -311,3 +311,18 @@ class TestEasy(object):
         assert "abc" in re
         assert "ABC" in re
         assert "adc" not in re
+
+
+class TestExtra(object):
+    def test_lexer_glues_similar_glyphs(self):
+        almost_regexp = u"rеgехр"  # 'е', 'х' and 'р' are cyrillic
+        exactly_regexp = "regexp"  # all latin1
+        for pattern in [almost_regexp, exactly_regexp]:
+            scanner = pire.Lexer(
+                pattern,
+                pire.UTF8 | pire.GLUE_SIMILAR_GLYPHS,
+            ).Parse().Compile()
+            check_scanner(
+                scanner,
+                accepts=[exactly_regexp, almost_regexp.encode("utf8")],
+            )
