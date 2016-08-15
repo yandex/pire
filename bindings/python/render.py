@@ -58,6 +58,10 @@ MAKO_GLOBALS = {
             state_t="yvector[size_t]",
             ignored_methods={"Glue", "Size", "LettersCount"}
         ),
+        "CapturingScanner": ScannerSpec(
+            state_t="__nontrivial__",
+            ignored_methods={"AcceptedRegexps", "Glue"},
+        ),
     },
     "SPECIAL_CHARS": [
         "Epsilon",

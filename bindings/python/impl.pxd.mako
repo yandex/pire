@@ -57,6 +57,14 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
     Fsm Fsm_MakeFalse "Pire::Fsm::MakeFalse"()
 
 
+    cdef cppclass Feature:
+        pass
+
+cdef extern from "pire/extra.h" namespace "Pire::Features":
+    Feature* Capture(size_t)
+
+
+cdef extern from "pire/pire.h" namespace "Pire":
     cdef cppclass Lexer:
         Lexer()
         Lexer(const char* begin, const char* end)
@@ -64,10 +72,21 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
 
         Fsm Parse() except +
 
+        void AddFeature(Feature*)
+
+
+    cdef cppclass CapturingScannerState "Pire::CapturingScanner::State":
+        bool Captured()
+        size_t Begin()
+        size_t End()
+
 
     % for Scanner, spec in SCANNERS.items():
 
+    % if spec.state_t != "__nontrivial__":
     ctypedef ${spec.state_t} ${Scanner}State "Pire::${Scanner}::State"
+    % endif
+
     cdef cppclass ${Scanner}:
         ${Scanner}()
         ${Scanner}(Fsm&)

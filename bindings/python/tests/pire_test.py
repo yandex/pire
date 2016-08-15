@@ -13,6 +13,7 @@ SCANNER_CLASSES = [
     pire.NonrelocScannerNoMask,
     pire.SimpleScanner,
     pire.SlowScanner,
+    pire.CapturingScanner,
 ]
 
 
@@ -34,7 +35,7 @@ def check_state(state, final=None, dead=None, accepted_regexps=None):
 
     if accepted_regexps is None and final is False:
         accepted_regexps = ()
-    if isinstance(state, pire.SimpleScannerState):
+    if isinstance(state, (pire.SimpleScannerState, pire.CapturingScannerState)):
         accepted_regexps = None
 
     assert final is None or state.Final() == final
@@ -264,7 +265,12 @@ class TestScanner(object):
         assert None is scanner.ShortestSuffix("nonexistent")
 
     def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
-        if scanner_class in (pire.SimpleScanner, pire.SlowScanner):
+        scanners_without_glue = [
+            pire.SimpleScanner,
+            pire.SlowScanner,
+            pire.CapturingScanner,
+        ]
+        if scanner_class in scanners_without_glue:
             return
 
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
@@ -326,3 +332,25 @@ class TestExtra(object):
                 scanner,
                 accepts=[exactly_regexp, almost_regexp.encode("utf8")],
             )
+
+    def test_capturing_trivial(self):
+        """
+        This is the "Trivial" test from tests/capture_ut.cpp.
+        """
+        lexer = pire.Lexer("google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;")
+        fsm = lexer.AddOptions(pire.I).AddCapturing(1).Parse()
+        scanner = fsm.Surround().Compile(pire.CapturingScanner)
+
+        text = "google_id = 'abcde';"
+        captured = scanner.InitState().Begin().Run(text).End().Captured()
+        assert captured
+        assert "abcde" == text[captured[0] - 1:captured[1] - 1]
+
+        text = "var google_id = 'abcde'; eval(google_id);"
+        captured = scanner.InitState().Begin().Run(text).End().Captured()
+        assert captured
+        assert "abcde" == text[captured[0] - 1:captured[1] - 1]
+
+        text = "google_id != 'abcde';"
+        captured = scanner.InitState().Begin().Run(text).End().Captured()
+        assert None is captured

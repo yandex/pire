@@ -132,6 +132,10 @@ cdef class Lexer:
         options.Apply(self)
         return self
 
+    def AddCapturing(self, size_t index):
+        self.lexer_impl.get().AddFeature(impl.Capture(index))
+        return self
+
     def Parse(self):
         return wrap_fsm(self.lexer_impl.get().Parse())
 
@@ -188,6 +192,13 @@ cdef class ${Scanner}State(BaseState):
         return self
 
     ScannerType = ${Scanner}
+
+    % if Scanner == "CapturingScanner":
+    def Captured(self):
+        if self.state_impl.Captured():
+            return self.state_impl.Begin(), self.state_impl.End()
+        return None
+    % endif
 
 
 cdef inline object wrap_${Scanner}(impl.${Scanner} scanner_impl):
