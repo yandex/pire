@@ -129,6 +129,11 @@ class TestFsm(object):
             rejects=["-", "abc", ""],
         )
 
+    def test_fsm_raises_when_one_of_appended_strings_is_empty(self):
+        fsm = pire.Fsm()
+        pytest.raises(Exception, fsm.AppendStrings, [""])
+        pytest.raises(Exception, fsm.AppendStrings, ["nonempty", ""])
+
     def test_fsm_supports_fluent_inplace_operations(self, scanner_class, parse_scanner):
         a = pire.Fsm().Append("a").AppendDot()
 

@@ -32,7 +32,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         void Append(const ystring&)
         void AppendSpecial(Char)
 
-        void AppendStrings(const yvector[ystring]&)
+        void AppendStrings(const yvector[ystring]&) except +
 
         % for unary in FSM_INPLACE_UNARIES:
         void ${unary}()
