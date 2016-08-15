@@ -121,7 +121,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         % endif
 
         void Save(yostream*)
-        void Load(yistream*)
+        void Load(yistream*) except +
 
 
     % if "Glue" not in spec.ignored_methods:

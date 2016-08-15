@@ -243,6 +243,13 @@ class TestScanner(object):
         unpacked = example_scanner.__class__.Load(packed)
         check_scanner_is_like_example_scanner(unpacked)
 
+    def test_scanner_raises_when_loading_from_invalid_data(self, scanner_class):
+        invalid_data = "invalid"
+        pytest.raises(Exception, scanner_class.Load, invalid_data)
+
+        saved = scanner_class().Save()
+        pytest.raises(Exception, scanner_class.Load, saved[1:])
+
     def test_scanner_finds_prefixes_and_suffixes(self, scanner_class):
         fsm = pire.Lexer("-->").Parse()
         any_occurence = scanner_class(~pire.Fsm.MakeFalse() + fsm)
