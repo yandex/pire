@@ -81,6 +81,10 @@ cdef extern from "pire/pire.h" namespace "Pire":
         size_t End()
 
 
+    cdef cppclass CountingScannerState "Pire::CountingScanner::State":
+        size_t Result(size_t index)
+
+
     % for Scanner, spec in SCANNERS.items():
 
     % if spec.state_t != "__nontrivial__":
@@ -89,7 +93,12 @@ cdef extern from "pire/pire.h" namespace "Pire":
 
     cdef cppclass ${Scanner}:
         ${Scanner}()
+
+        % if Scanner != "CountingScanner":
         ${Scanner}(Fsm&)
+        % else:
+        ${Scanner}(Fsm& pattern, Fsm& sep)
+        % endif
 
         void Swap(${Scanner}&)
 

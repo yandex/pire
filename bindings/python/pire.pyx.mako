@@ -200,6 +200,11 @@ cdef class ${Scanner}State(BaseState):
         return None
     % endif
 
+    % if Scanner == "CountingScanner":
+    def Result(self, size_t index):
+        return self.state_impl.Result(index)
+    % endif
+
 
 cdef inline object wrap_${Scanner}(impl.${Scanner} scanner_impl):
     ret = ${Scanner}()
@@ -224,9 +229,19 @@ copy_reg.pickle(${Scanner}, _reduce_${Scanner})
 cdef class ${Scanner}(BaseScanner):
     cdef impl.${Scanner} scanner_impl
 
+    % if Scanner != "CountingScanner":
     def __cinit__(self, Fsm fsm=None):
         if fsm is not None:
             self.scanner_impl = impl.${Scanner}(fsm.fsm_impl)
+    % else:
+    def __cinit__(self, Fsm pattern=None, Fsm sep=None):
+        if pattern is not None or sep is not None:
+            if pattern is None or sep is None:
+                raise ValueError(
+                    "Expected both pattern and separator, got only one of them"
+                )
+            self.scanner_impl = impl.CountingScanner(pattern.fsm_impl, sep.fsm_impl)
+    % endif
 
     def Save(self):
         cdef impl.yostream stream

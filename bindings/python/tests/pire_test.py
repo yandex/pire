@@ -354,3 +354,36 @@ class TestExtra(object):
         text = "google_id != 'abcde';"
         captured = scanner.InitState().Begin().Run(text).End().Captured()
         assert None is captured
+
+    def test_counting_scanner_is_default_constructible(self):
+        fsm = pire.Fsm()
+        pire.CountingScanner()
+
+    def test_counting_scanner_raises_when_constructed_without_second_fsm(self):
+        fsm = pire.Fsm()
+        pytest.raises(Exception, pire.CountingScanner, fsm)
+        pytest.raises(Exception, pire.CountingScanner, pattern=fsm)
+        pytest.raises(Exception, pire.CountingScanner, sep=fsm)
+
+    def test_counting_scanner_state_has_right_result(self):
+        scanner = pire.CountingScanner(
+            pattern=pire.Lexer("[a-z]+").Parse(),
+            sep=pire.Lexer(r"\s").Parse(),
+        )
+        text = "abc def, abc def ghi, abc"
+        state = scanner.InitState().Begin().Run(text).End()
+        assert 3 == state.Result(0)
+
+    def test_glued_counting_scanner_state_has_right_results(self):
+        separator_fsm = pire.Lexer(".*").Parse()
+        scanner1, scanner2 = [
+            pire.CountingScanner(pire.Lexer(pattern).Parse(), separator_fsm)
+            for pattern in ["[a-z]+", "[0-9]+"]
+        ]
+        glued = scanner1.GluedWith(scanner2)
+
+        state = glued.InitState()
+        state.Begin().Run("abc defg 123 jklmn 4567 opqrst").End()
+
+        assert 4 == state.Result(0)
+        assert 2 == state.Result(1)

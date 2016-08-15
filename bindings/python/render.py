@@ -62,6 +62,10 @@ MAKO_GLOBALS = {
             state_t="__nontrivial__",
             ignored_methods={"AcceptedRegexps", "Glue"},
         ),
+        "CountingScanner": ScannerSpec(
+            state_t="__nontrivial__",
+            ignored_methods={"AcceptedRegexps"},
+        ),
     },
     "SPECIAL_CHARS": [
         "Epsilon",
