@@ -16,6 +16,12 @@ SCANNER_CLASSES = [
     pire.CapturingScanner,
 ]
 
+SCANNERS_WITHOUT_GLUE = [
+    pire.SimpleScanner,
+    pire.SlowScanner,
+    pire.CapturingScanner,
+]
+
 
 def check_scanner(scanner, accepts=(), rejects=()):
     for line in accepts:
@@ -89,7 +95,7 @@ class TestFsm(object):
         check_equivalence(
             fsm.Compile(),
             fsm_copy.Compile(),
-            ["", "a", "ab", "ab-", "-"]
+            ["", "a", "ab", "ab-", "-"],
         )
 
         fsm.Append("c")
@@ -109,16 +115,17 @@ class TestFsm(object):
         check_state(state.Step(pire.EndMark), final=True)
 
     def test_fsm_raises_when_appending_invalid_special(self):
-        invalid_specials = [
+        invalid_chars = [
             pire.MaxCharUnaligned,
             pire.MaxCharUnaligned + 2,
-            2**30,
-            -42,
-            -1,
-            2**200,
         ]
-        for invalid in invalid_specials:
-            pytest.raises(Exception, pire.Fsm().AppendSpecial, invalid)
+        fsm = pire.Fsm()
+        for invalid_char in invalid_chars:
+            with pytest.raises(ValueError):
+                fsm.AppendSpecial(invalid_char)
+        for not_convertible in [-1, -42, 2**200, 2**30]:
+            with pytest.raises(OverflowError):
+                fsm.AppendSpecial(not_convertible)
 
     def test_fsm_supports_appending_several_strings(self, scanner_class):
         fsm = pire.Fsm().Append("-")
@@ -128,6 +135,12 @@ class TestFsm(object):
             accepts=["-abc", "-de"],
             rejects=["-", "abc", ""],
         )
+
+    def test_fsm_raises_when_one_of_appended_strings_is_empty(self):
+        fsm = pire.Fsm()
+        for invalid_strings in [[""], ["nonempty", ""]]:
+            with pytest.raises(ValueError):
+                fsm.AppendStrings(invalid_strings)
 
     def test_fsm_supports_fluent_inplace_operations(self, scanner_class, parse_scanner):
         a = pire.Fsm().Append("a").AppendDot()
@@ -176,7 +189,8 @@ class TestLexer(object):
         assert pire.Fsm == type(lexer.Parse())
 
     def test_lexer_cannot_be_constructed_with_wrong_argument(self):
-        pytest.raises(TypeError, pire.Lexer, 42)
+        with pytest.raises(TypeError):
+            pire.Lexer(42)
 
     def test_lexer_parses_valid_regexp_right(self, parse_scanner):
         check_scanner(
@@ -196,7 +210,9 @@ class TestLexer(object):
         )
 
     def test_lexer_raises_on_parsing_invalid_regexp(self):
-        pytest.raises(Exception, pire.Lexer("[ab").Parse)
+        lexer = pire.Lexer("[ab")
+        with pytest.raises(ValueError):
+            lexer.Parse()
 
     def test_lexer_accepts_unicode_pattern(self, parse_scanner):
         check_scanner(
@@ -225,7 +241,8 @@ class TestScanner(object):
 
     def test_scanner_raises_when_matching_not_string_but_stays_valid(self, example_scanner):
         for invalid_input in [None, False, True, 0, 42]:
-            pytest.raises(Exception, example_scanner.Matches, invalid_input)
+            with pytest.raises(TypeError):
+                example_scanner.Matches(invalid_input)
         check_scanner_is_like_example_scanner(example_scanner)
 
     def test_scanner_is_picklable(self, example_scanner):
@@ -237,6 +254,15 @@ class TestScanner(object):
         packed = example_scanner.Save()
         unpacked = example_scanner.__class__.Load(packed)
         check_scanner_is_like_example_scanner(unpacked)
+
+    def test_scanner_raises_when_loading_from_invalid_data(self, scanner_class):
+        invalid_data = "invalid"
+        with pytest.raises(ValueError):
+            scanner_class.Load(invalid_data)
+
+        saved = scanner_class().Save()
+        with pytest.raises(ValueError):
+            scanner_class.Load(saved[1:])
 
     def test_scanner_finds_prefixes_and_suffixes(self, scanner_class):
         fsm = pire.Lexer("-->").Parse()
@@ -265,12 +291,7 @@ class TestScanner(object):
         assert None is scanner.ShortestSuffix("nonexistent")
 
     def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
-        scanners_without_glue = [
-            pire.SimpleScanner,
-            pire.SlowScanner,
-            pire.CapturingScanner,
-        ]
-        if scanner_class in scanners_without_glue:
+        if scanner_class in SCANNERS_WITHOUT_GLUE:
             return
 
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
@@ -290,6 +311,45 @@ class TestScanner(object):
         check_state(state.Run("ab"), final=True, accepted_regexps=(0, 2))
         check_state(state.Run("cd").End(), final=True, accepted_regexps=(1, 3))
 
+    def test_gluing_too_many_scanners_raises(self, scanner_class):
+        if scanner_class in SCANNERS_WITHOUT_GLUE:
+            return
+
+        many_patterns = [
+            '/product/',
+            '/catalog/',
+            '/?(\?.*)?$',
+            '/.*/a',
+            '/.*/b',
+            '/.*/c',
+            '/.*/d',
+            '/.*/e',
+            '/.*/f',
+            '/.*/g',
+            '/.*/1234567891011',
+            '/.*/qwertyuiopasdfgh',
+            '/.*/do_it_yourself/'
+            '/.*/doityourself/'
+        ]
+
+        with pytest.raises(OverflowError):
+            scanner = scanner_class()
+            for pattern in many_patterns:
+                new_scanner = (
+                    pire.Lexer("^" + pattern + ".*")
+                        .Parse()
+                        .Compile(scanner_class)
+                )
+                scanner = scanner.GluedWith(new_scanner)
+                assert not scanner.Empty()
+            assert scanner.RegexpsCount() == len(many_patterns)
+
+
+    def test_gluing_two_empty_scanners_does_not_raise(self, scanner_class):
+        if scanner_class not in SCANNERS_WITHOUT_GLUE:
+            scanner_class().GluedWith(scanner_class())
+
+
     def test_state_remembers_its_scanner(self, scanner_class):
         scanner = scanner_class()
         state = scanner.InitState()
@@ -299,7 +359,8 @@ class TestScanner(object):
 class TestEasy(object):
     def test_options_have_only_default_constuctor(self):
         pire.Options()
-        pytest.raises(Exception, pire.Options, 1)
+        with pytest.raises(TypeError):
+            pire.Options({1})
 
     def test_regexp_matches(self):
         re = pire.Regexp("(foo|bar)+", pire.I)
@@ -309,8 +370,9 @@ class TestEasy(object):
 
     def test_regexp_honors_utf8(self):
         re = pire.Regexp("^.$", pire.I | pire.UTF8)
-        assert "\x41" in re
-        assert "\x81" not in re
+        assert "\x41" in re  # "A", valid UTF-8 string
+        assert "\x81" not in re  # invalid UTF-8 string
+        assert u"Я".encode("utf8") in re
 
     def test_regexp_uses_two_features(self):
         re = pire.Regexp("^(a.c&.b.)$", pire.I | pire.ANDNOT)
@@ -337,7 +399,7 @@ class TestExtra(object):
         """
         This is the "Trivial" test from tests/capture_ut.cpp.
         """
-        lexer = pire.Lexer("google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;")
+        lexer = pire.Lexer(r"""google_id\s*=\s*['"]([a-z0-9]+)['"]\s*;""")
         fsm = lexer.AddOptions(pire.I).AddCapturing(1).Parse()
         scanner = fsm.Surround().Compile(pire.CapturingScanner)
 
@@ -361,9 +423,12 @@ class TestExtra(object):
 
     def test_counting_scanner_raises_when_constructed_without_second_fsm(self):
         fsm = pire.Fsm()
-        pytest.raises(Exception, pire.CountingScanner, fsm)
-        pytest.raises(Exception, pire.CountingScanner, pattern=fsm)
-        pytest.raises(Exception, pire.CountingScanner, sep=fsm)
+        with pytest.raises(ValueError):
+            pire.CountingScanner(fsm)
+        with pytest.raises(ValueError):
+            pire.CountingScanner(pattern=fsm)
+        with pytest.raises(ValueError):
+            pire.CountingScanner(sep=fsm)
 
     def test_counting_scanner_state_has_right_result(self):
         scanner = pire.CountingScanner(

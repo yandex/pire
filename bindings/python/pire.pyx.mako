@@ -235,12 +235,12 @@ cdef class ${Scanner}(BaseScanner):
             self.scanner_impl = impl.${Scanner}(fsm.fsm_impl)
     % else:
     def __cinit__(self, Fsm pattern=None, Fsm sep=None):
-        if pattern is not None or sep is not None:
-            if pattern is None or sep is None:
-                raise ValueError(
-                    "Expected both pattern and separator, got only one of them"
-                )
+        if pattern is not None and sep is not None:
             self.scanner_impl = impl.CountingScanner(pattern.fsm_impl, sep.fsm_impl)
+        elif pattern is not None or sep is not None:
+            raise ValueError(
+                "Expected both pattern and separator or neither, got only one of them"
+            )
     % endif
 
     def Save(self):
@@ -255,7 +255,12 @@ cdef class ${Scanner}(BaseScanner):
 
     % if "Glue" not in spec.ignored_methods:
     def GluedWith(self, ${Scanner} rhs not None, size_t max_size=0):
-        return wrap_${Scanner}(impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size))
+        cdef ${Scanner} glued = wrap_${Scanner}(
+                impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size)
+        )
+        if glued.Empty() and not (self.Empty() and rhs.Empty()):
+            raise OverflowError("Too many regexps to glue")
+        return glued
     % endif
 
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:

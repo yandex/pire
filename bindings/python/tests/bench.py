@@ -1,4 +1,8 @@
 #!/usr/bin/env python2
+"""
+Call cProfile.run for few similar scenarios of matching strings using re and
+pire modules.
+"""
 
 import argparse
 import cProfile
@@ -49,7 +53,10 @@ class TestRunner(object):
 
 
 def make_argparser():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "-f", "--file",
         type=argparse.FileType("r"),
