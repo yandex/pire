@@ -275,9 +275,9 @@ cdef class ${Scanner}(BaseScanner):
             const char* line_end = end(line)
             const char* prefix_end
         prefix_end = impl.${method}(self.scanner_impl, line_begin, line_end)
-        if prefix_end != NULL:
-            return prefix_end - line_begin
-        return None
+        if prefix_end == NULL:
+            return None
+        return prefix_end - line_begin
     % endfor
 
     % for method in ["LongestSuffix", "ShortestSuffix"]:
@@ -287,9 +287,9 @@ cdef class ${Scanner}(BaseScanner):
             const char* rend = begin(line) - 1
             const char* suffix_begin
         suffix_begin = impl.${method}(self.scanner_impl, rbegin, rend)
-        if suffix_begin != NULL:
-            return suffix_begin - rend
-        return None
+        if suffix_begin == NULL:
+            return None
+        return suffix_begin - rend
     % endfor
 
     StateType = ${Scanner}State
