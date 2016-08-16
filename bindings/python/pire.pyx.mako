@@ -235,12 +235,12 @@ cdef class ${Scanner}(BaseScanner):
             self.scanner_impl = impl.${Scanner}(fsm.fsm_impl)
     % else:
     def __cinit__(self, Fsm pattern=None, Fsm sep=None):
-        if pattern is not None or sep is not None:
-            if pattern is None or sep is None:
-                raise ValueError(
-                    "Expected both pattern and separator, got only one of them"
-                )
+        if pattern is not None and sep is not None:
             self.scanner_impl = impl.CountingScanner(pattern.fsm_impl, sep.fsm_impl)
+        elif pattern is not None or sep is not None:
+            raise ValueError(
+                "Expected both pattern and separator or neither, got only one of them"
+            )
     % endif
 
     def Save(self):
