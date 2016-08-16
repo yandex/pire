@@ -321,8 +321,9 @@ class TestEasy(object):
 
     def test_regexp_honors_utf8(self):
         re = pire.Regexp("^.$", pire.I | pire.UTF8)
-        assert "\x41" in re
-        assert "\x81" not in re
+        assert "\x41" in re  # "A", valid UTF-8 string
+        assert "\x81" not in re  # invalid UTF-8 string
+        assert u"Я".encode("utf8") in re
 
     def test_regexp_uses_two_features(self):
         re = pire.Regexp("^(a.c&.b.)$", pire.I | pire.ANDNOT)
