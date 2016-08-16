@@ -115,9 +115,11 @@ class TestFsm(object):
         ]
         fsm = pire.Fsm()
         for invalid_char in invalid_chars:
-            pytest.raises(ValueError, fsm.AppendSpecial, invalid_char)
+            with pytest.raises(ValueError):
+                fsm.AppendSpecial(invalid_char)
         for not_convertible in [-1, -42, 2**200, 2**30]:
-            pytest.raises(OverflowError, fsm.AppendSpecial, not_convertible)
+            with pytest.raises(OverflowError):
+                fsm.AppendSpecial(not_convertible)
 
     def test_fsm_supports_appending_several_strings(self, scanner_class):
         fsm = pire.Fsm().Append("-")
@@ -130,8 +132,9 @@ class TestFsm(object):
 
     def test_fsm_raises_when_one_of_appended_strings_is_empty(self):
         fsm = pire.Fsm()
-        pytest.raises(ValueError, fsm.AppendStrings, [""])
-        pytest.raises(ValueError, fsm.AppendStrings, ["nonempty", ""])
+        for invalid_strings in [[""], ["nonempty", ""]]:
+            with pytest.raises(ValueError):
+                fsm.AppendStrings(invalid_strings)
 
     def test_fsm_supports_fluent_inplace_operations(self, scanner_class, parse_scanner):
         a = pire.Fsm().Append("a").AppendDot()
@@ -180,7 +183,8 @@ class TestLexer(object):
         assert pire.Fsm == type(lexer.Parse())
 
     def test_lexer_cannot_be_constructed_with_wrong_argument(self):
-        pytest.raises(TypeError, pire.Lexer, 42)
+        with pytest.raises(TypeError):
+            pire.Lexer(42)
 
     def test_lexer_parses_valid_regexp_right(self, parse_scanner):
         check_scanner(
@@ -200,7 +204,9 @@ class TestLexer(object):
         )
 
     def test_lexer_raises_on_parsing_invalid_regexp(self):
-        pytest.raises(ValueError, pire.Lexer("[ab").Parse)
+        lexer = pire.Lexer("[ab")
+        with pytest.raises(ValueError):
+            lexer.Parse()
 
     def test_lexer_accepts_unicode_pattern(self, parse_scanner):
         check_scanner(
@@ -229,7 +235,8 @@ class TestScanner(object):
 
     def test_scanner_raises_when_matching_not_string_but_stays_valid(self, example_scanner):
         for invalid_input in [None, False, True, 0, 42]:
-            pytest.raises(TypeError, example_scanner.Matches, invalid_input)
+            with pytest.raises(TypeError):
+                example_scanner.Matches(invalid_input)
         check_scanner_is_like_example_scanner(example_scanner)
 
     def test_scanner_is_picklable(self, example_scanner):
@@ -244,10 +251,12 @@ class TestScanner(object):
 
     def test_scanner_raises_when_loading_from_invalid_data(self, scanner_class):
         invalid_data = "invalid"
-        pytest.raises(ValueError, scanner_class.Load, invalid_data)
+        with pytest.raises(ValueError):
+            scanner_class.Load(invalid_data)
 
         saved = scanner_class().Save()
-        pytest.raises(ValueError, scanner_class.Load, saved[1:])
+        with pytest.raises(ValueError):
+            scanner_class.Load(saved[1:])
 
     def test_scanner_finds_prefixes_and_suffixes(self, scanner_class):
         fsm = pire.Lexer("-->").Parse()
@@ -310,7 +319,8 @@ class TestScanner(object):
 class TestEasy(object):
     def test_options_have_only_default_constuctor(self):
         pire.Options()
-        pytest.raises(TypeError, pire.Options, {1})
+        with pytest.raises(TypeError):
+            pire.Options({1})
 
     def test_regexp_matches(self):
         re = pire.Regexp("(foo|bar)+", pire.I)
@@ -373,9 +383,12 @@ class TestExtra(object):
 
     def test_counting_scanner_raises_when_constructed_without_second_fsm(self):
         fsm = pire.Fsm()
-        pytest.raises(ValueError, pire.CountingScanner, fsm)
-        pytest.raises(ValueError, pire.CountingScanner, pattern=fsm)
-        pytest.raises(ValueError, pire.CountingScanner, sep=fsm)
+        with pytest.raises(ValueError):
+            pire.CountingScanner(fsm)
+        with pytest.raises(ValueError):
+            pire.CountingScanner(pattern=fsm)
+        with pytest.raises(ValueError):
+            pire.CountingScanner(sep=fsm)
 
     def test_counting_scanner_state_has_right_result(self):
         scanner = pire.CountingScanner(
