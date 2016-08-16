@@ -89,7 +89,7 @@ class TestFsm(object):
         check_equivalence(
             fsm.Compile(),
             fsm_copy.Compile(),
-            ["", "a", "ab", "ab-", "-"]
+            ["", "a", "ab", "ab-", "-"],
         )
 
         fsm.Append("c")
