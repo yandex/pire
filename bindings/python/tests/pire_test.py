@@ -349,7 +349,7 @@ class TestExtra(object):
         """
         This is the "Trivial" test from tests/capture_ut.cpp.
         """
-        lexer = pire.Lexer("google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;")
+        lexer = pire.Lexer(r"""google_id\s*=\s*['"]([a-z0-9]+)['"]\s*;""")
         fsm = lexer.AddOptions(pire.I).AddCapturing(1).Parse()
         scanner = fsm.Surround().Compile(pire.CapturingScanner)
 
