@@ -32,7 +32,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         void Append(const ystring&)
         void AppendSpecial(Char)
 
-        void AppendStrings(const yvector[ystring]&) except +
+        void AppendStrings(const yvector[ystring]&) except +ValueError
 
         % for unary in FSM_INPLACE_UNARIES:
         void ${unary}() except +
@@ -70,7 +70,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         Lexer(const char* begin, const char* end)
         Lexer(const yvector[wchar32]&)
 
-        Fsm Parse() except +
+        Fsm Parse() except +ValueError
 
         void AddFeature(Feature*)
 
@@ -121,7 +121,7 @@ cdef extern from "pire/pire.h" namespace "Pire" nogil:
         % endif
 
         void Save(yostream*)
-        void Load(yistream*) except +
+        void Load(yistream*) except +ValueError
 
 
     % if "Glue" not in spec.ignored_methods:
