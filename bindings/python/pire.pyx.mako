@@ -331,7 +331,7 @@ cdef class Options:
 
 
 % for option in OPTIONS:
-${option} = Options.__new__(Options, {impl.${option}})
+${option} = Options.__new__(Options, set([impl.${option}]))
 % endfor
 
 _LETTER_MAP = {
