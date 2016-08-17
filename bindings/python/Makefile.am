@@ -15,7 +15,7 @@ pkgpyexec_LTLIBRARIES =
 if ENABLE_PYTHON
 
 pkgpyexec_LTLIBRARIES += pire.la
-pire_la_SOURCES = $(CXX_SOURCES) $(CYTHON_SOURCES) $(MAKO_SOURCES)
+pire_la_SOURCES = $(CXX_SOURCES) $(CYTHON_SOURCES) $(MAKO_SOURCES) $(RENDER_PY)
 pire_la_CPPFLAGS = $(PYTHON_CPPFLAGS) -I$(top_srcdir) $(AM_CXXFLAGS)
 pire_la_LDFLAGS = -module
 pire_la_LIBADD = ../../pire/libpire.la
