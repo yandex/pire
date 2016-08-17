@@ -53,7 +53,7 @@ MAKO_GLOBALS = {
         "UTF8": OptionSpec("Pire::Encodings::Utf8()", "u"),
         "I": OptionSpec("Pire::Features::CaseInsensitive()", "i"),
         "ANDNOT": OptionSpec("Pire::Features::AndNotSupport()", "a"),
-        "GLUE_SIMILAR_GLYPHS": OptionSpec("Pire::Features::GlueSimilarGlyphs()", "g"),
+        "GLUE_SIMILAR_GLYPHS": OptionSpec("Pire::Features::GlueSimilarGlyphs()", "y"),
     },
     "SCANNERS": {
         "Scanner": ScannerSpec(),
