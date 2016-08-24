@@ -255,7 +255,12 @@ cdef class ${Scanner}(BaseScanner):
 
     % if "Glue" not in spec.ignored_methods:
     def GluedWith(self, ${Scanner} rhs not None, size_t max_size=0):
-        return wrap_${Scanner}(impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size))
+        cdef ${Scanner} glued = wrap_${Scanner}(
+                impl.Glue(self.scanner_impl, rhs.scanner_impl, max_size)
+        )
+        if glued.Empty() and not (self.Empty() and rhs.Empty()):
+            raise OverflowError("Too many regexps to glue")
+        return glued
     % endif
 
     % for method in ["Size", "Empty", "RegexpsCount", "LettersCount"]:

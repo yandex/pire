@@ -16,6 +16,12 @@ SCANNER_CLASSES = [
     pire.CapturingScanner,
 ]
 
+SCANNERS_WITHOUT_GLUE = [
+    pire.SimpleScanner,
+    pire.SlowScanner,
+    pire.CapturingScanner,
+]
+
 
 def check_scanner(scanner, accepts=(), rejects=()):
     for line in accepts:
@@ -285,12 +291,7 @@ class TestScanner(object):
         assert None is scanner.ShortestSuffix("nonexistent")
 
     def test_glued_scanners_have_runnable_state(self, scanner_class, parse_scanner):
-        scanners_without_glue = [
-            pire.SimpleScanner,
-            pire.SlowScanner,
-            pire.CapturingScanner,
-        ]
-        if scanner_class in scanners_without_glue:
+        if scanner_class in SCANNERS_WITHOUT_GLUE:
             return
 
         glued = parse_scanner("ab").GluedWith(parse_scanner("abcd$"))
@@ -309,6 +310,45 @@ class TestScanner(object):
         state = doubled.InitState()
         check_state(state.Run("ab"), final=True, accepted_regexps=(0, 2))
         check_state(state.Run("cd").End(), final=True, accepted_regexps=(1, 3))
+
+    def test_gluing_too_many_scanners_raises(self, scanner_class):
+        if scanner_class in SCANNERS_WITHOUT_GLUE:
+            return
+
+        many_patterns = [
+            '/product/',
+            '/catalog/',
+            '/?(\?.*)?$',
+            '/.*/a',
+            '/.*/b',
+            '/.*/c',
+            '/.*/d',
+            '/.*/e',
+            '/.*/f',
+            '/.*/g',
+            '/.*/1234567891011',
+            '/.*/qwertyuiopasdfgh',
+            '/.*/do_it_yourself/'
+            '/.*/doityourself/'
+        ]
+
+        with pytest.raises(OverflowError):
+            scanner = scanner_class()
+            for pattern in many_patterns:
+                new_scanner = (
+                    pire.Lexer("^" + pattern + ".*")
+                        .Parse()
+                        .Compile(scanner_class)
+                )
+                scanner = scanner.GluedWith(new_scanner)
+                assert not scanner.Empty()
+            assert scanner.RegexpsCount() == len(many_patterns)
+
+
+    def test_gluing_two_empty_scanners_does_not_raise(self, scanner_class):
+        if scanner_class not in SCANNERS_WITHOUT_GLUE:
+            scanner_class().GluedWith(scanner_class())
+
 
     def test_state_remembers_its_scanner(self, scanner_class):
         scanner = scanner_class()
