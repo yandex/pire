@@ -185,7 +185,7 @@ private:
 */
 class Feature {
 public:
-	/// Precedence of features. The higher the priority, the eariler
+	/// Precedence of features. The less the priority, the earlier
 	/// will Lex() be called, and the later will Alter() and Parenthesized() be called.
 	virtual int Priority() const { return 50; }
 
