@@ -28,6 +28,26 @@ if ! test -r "$srcdir"/pire/inline.cpp && test x"$LEX" = "x:"; then
 	AC_MSG_ERROR([[flex/lex not found (and no prebuilt pire-inline lexer used)]])
 fi
 
+# python binding setup
+if test x"$enable_python" = xyes; then
+	AM_PATH_PYTHON
+	AX_PYTHON_DEVEL
+	AC_PATH_PROGS([CYTHON], [cython])
+	if ! test x"$enable_extra" = xyes; then
+		AC_MSG_ERROR([[Python bindings expect libpire to be built with --enable-extra]])
+	fi
+	if ! test -r "$srcdir"/bindings/python/pire_wrap.cpp; then
+		if test x"$CYTHON" = x; then
+			AC_MSG_ERROR([[Cython not found (and no pregenerated extension sources used)]])
+		fi
+		if ! test -r "$srcdir"/bindings/python/pire.pyx || \
+				! test -r "$srcdir"/bindings/python/impl.pxd || \
+				! test -r "$srcdir"/bindings/python/options.h; then
+			AX_PYTHON_MODULE([mako], [fatal])
+		fi
+	fi
+fi
+
 # Just for conscience' sake
 AC_CHECK_HEADERS([stdlib.h stdint.h string.h sys/time.h])
 AC_HEADER_STDBOOL
@@ -81,9 +101,11 @@ AX_DEFINE_IF_COMPILES([HAVE_SCOPED_EXPR], [gcc-specific scoped expressions are s
 AC_ARG_ENABLE([extra], AS_HELP_STRING([--enable-extra], [Add extra functionality (capturing scanner, etc...)]))
 AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [Make Pire dump all constructed FSMs to std::clog (useless unless debugging Pire)]))
 AC_ARG_ENABLE([checked], AS_HELP_STRING([--enable-checked], [Enable asserts]))
+AC_ARG_ENABLE([python], AS_HELP_STRING([--enable-python], [Generate python bindings]))
 AM_CONDITIONAL([ENABLE_EXTRA], [test x"$enable_extra" = xyes])
 AM_CONDITIONAL([ENABLE_DEBUG], [test x"$enable_debug" = xyes])
 AM_CONDITIONAL([ENABLE_CHECKED], [test x"$enable_checked" = xyes])
+AM_CONDITIONAL([ENABLE_PYTHON], [test x"$enable_python" = xyes])
 
 AC_ARG_ENABLE([valgrind_safe], AS_HELP_STRING([--enable-valgrind-safe], [Make Pire fetch data in a way which does not upset Valgrind]))
 if test x"$enable_valgrind_safe" = xyes; then
@@ -97,6 +119,12 @@ AC_CONFIG_FILES([
 	Makefile
 	pire/Makefile
 	tests/Makefile
+	bindings/Makefile
+	bindings/python/Makefile
+	bindings/python/tests/Makefile
+	bindings/python/tests/run-with-pypath
+	bindings/python/tests/run-bench
+	bindings/python/tests/run-pytest
 	pkg/Makefile
 	tools/Makefile
 	tools/bench/Makefile
@@ -104,6 +132,10 @@ AC_CONFIG_FILES([
 	samples/inline/Makefile
 	samples/blacklist/Makefile
 	samples/pigrep/Makefile
+], [
+	chmod +x bindings/python/tests/run-with-pypath
+	chmod +x bindings/python/tests/run-bench
+	chmod +x bindings/python/tests/run-pytest
 ])
 AC_OUTPUT_COMMANDS([sed 's/#define \([A-Z]\)/#define PIRE_\1/' < config.h.in > pire/config.h])
 AC_OUTPUT
