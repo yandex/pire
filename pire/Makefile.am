@@ -43,12 +43,15 @@ libpire_la_SOURCES = \
 	stub/stl.h \
 	stub/lexical_cast.h \
 	stub/saveload.h \
+	stub/saveload.cpp \
 	stub/singleton.h \
 	stub/utf8.cpp \
 	stub/utf8.h \
 	stub/noncopyable.h \
 	stub/codepage_h.h \
 	stub/doccodes_h.h \
+	stub/msgpuck.h \
+	stub/msgpuck.c \
 	stub/unidata_h.h \
 	stub/unidata_cpp.h
 
@@ -105,6 +108,7 @@ pire_scanners_HEADERS = \
 pire_stubdir = $(includedir)/pire/stub
 pire_stub_HEADERS = \
 	stub/stl.h \
+	stub/msgpuck.h \
 	stub/defaults.h \
 	stub/memstreams.h \
 	stub/singleton.h \
