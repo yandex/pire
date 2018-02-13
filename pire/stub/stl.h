@@ -43,6 +43,8 @@
 #include <stdexcept>
 #include <iterator>
 #include <functional>
+#include <tuple>
+#include <initializer_list>
 #include <assert.h>
 
 #ifdef PIRE_CHECKED
@@ -61,6 +63,8 @@ namespace Pire {
 	class yvector: public std::vector<T, A> {
 	public:
 		yvector(): std::vector<T, A>() {}
+
+		yvector(std::initializer_list<T> il): std::vector<T, A>(il) {}
 
 		template<class Arg1>
 		yvector(Arg1 arg1): std::vector<T, A>(arg1) {}
@@ -121,6 +125,8 @@ namespace Pire {
 	class yset: public std::set<T, C, A> {
 	public:
 		yset(): std::set<T, C, A>() {}
+
+		yset(std::initializer_list<T> il): std::set<T, C, A>(il) {}
 
 		template<class Arg1>
 		yset(Arg1 arg1): std::set<T, C, A>(arg1) {}
