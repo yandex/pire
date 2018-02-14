@@ -26,6 +26,7 @@
 #include "../determine.h"
 #include "../glue.h"
 #include "../stub/lexical_cast.h"
+#include <tuple>
 
 namespace Pire {
 
@@ -47,21 +48,20 @@ public:
 		Separated = 1 << 2,
 	};
 
-	CountingFsm(const Fsm& re, const Fsm& sep)
-		: mFsm(re)
+	explicit CountingFsm(Fsm re, Fsm sep)
+		: mFsm(std::move(re))
 	{
 		mFsm.Canonize();
 		const auto reMatchedStates = mFsm.Finals();
 
-		auto sepOnly = sep;
-		sepOnly.Canonize();
-		for (size_t state = 0; state < sepOnly.Size(); ++state) {
-			sepOnly.SetTag(state, Separated);
+		sep.Canonize();
+		for (size_t state = 0; state < sep.Size(); ++state) {
+			sep.SetTag(state, Separated);
 		}
-		mFsm += sepOnly;
+		mFsm += sep;
 
 		mReInitial = mFsm.Initial();
-		const auto allowEmptySeparator = sepOnly.IsFinal(sepOnly.Initial());
+		const auto allowEmptySeparator = sep.IsFinal(sep.Initial());
 		for (auto reMatchedState : reMatchedStates) {
 			mFsm.SetTag(reMatchedState, Matched);
 			if (allowEmptySeparator) {
@@ -153,7 +153,7 @@ public:
 	using CountingFsmTask::LettersTbl;
 	typedef Partition<size_t, MinimizeEquality<CountingFsmMinimizeTask>> StateClasses;
 
-	CountingFsmMinimizeTask(const CountingFsm& fsm)
+	explicit CountingFsmMinimizeTask(const CountingFsm& fsm)
 		: mFsm(fsm)
 	{}
 
@@ -252,7 +252,7 @@ public:
 	typedef DeterminedState State;
 	typedef ymap<State, size_t> InvStates;
 
-	BasicCountingFsmDetermineTask(const Fsm& fsm, RawState reInitial)
+	explicit BasicCountingFsmDetermineTask(const Fsm& fsm, RawState reInitial)
 		: mFsm(fsm)
 		, mReInitial{reInitial}
 	{
@@ -523,7 +523,7 @@ public:
 	using BasicCountingFsmDetermineTask::LettersTbl;
 	using BasicCountingFsmDetermineTask::InvStates;
 
-	CountingFsmDetermineTask(const Fsm& fsm, RawState reInitial)
+	explicit CountingFsmDetermineTask(const Fsm& fsm, RawState reInitial)
 		: BasicCountingFsmDetermineTask{fsm, reInitial}
 	{}
 

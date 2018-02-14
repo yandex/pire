@@ -192,11 +192,7 @@ public:
 
 	bool Dead(const State&) const { return false; }
 
-	BaseCountingScanner() {}
-	BaseCountingScanner(const BaseCountingScanner& s): LoadedScanner(s) {}
-
-	void Swap(BaseCountingScanner& s) { LoadedScanner::Swap(s); }
-	BaseCountingScanner& operator = (const BaseCountingScanner& s) { BaseCountingScanner(s).Swap(*this); return *this; }
+	using LoadedScanner::Swap;
 
 	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
 

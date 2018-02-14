@@ -1039,7 +1039,7 @@ public:
 	typedef Fsm::LettersTbl LettersTbl;
 	typedef Partition<size_t, MinimizeEquality<FsmMinimizeTask>> StateClasses;
 
-	FsmMinimizeTask(const Fsm& fsm)
+	explicit FsmMinimizeTask(const Fsm& fsm)
 		: mFsm(fsm)
 	{}
 
