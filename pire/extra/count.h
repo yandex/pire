@@ -31,10 +31,11 @@ namespace Pire {
 class Fsm;
 
 namespace Impl {
-    template<class T>
-    class ScannerGlueCommon;
+	template<class T>
+	class ScannerGlueCommon;
 
-    class CountingScannerGlueTask;
+	template<class T>
+	class CountingScannerGlueTask;
 };
 
 template<size_t I>
@@ -107,7 +108,8 @@ public:
  * given regexp separated by another regexp
  * in input text.
  */
-class CountingScanner: public LoadedScanner {
+template<class DerivedScanner>
+class BaseCountingScanner: public LoadedScanner {
 public:
 	enum {
 		IncrementAction = 1,
@@ -115,7 +117,6 @@ public:
 
 		FinalFlag = 0,
 		DeadFlag = 1,
-		Matched = 2
 	};
 
 	static const size_t OPTIMAL_RE_COUNT = 4;
@@ -129,7 +130,7 @@ public:
 		ui32 m_total[MAX_RE_COUNT];
 		size_t m_updatedMask;
 
-		friend class CountingScanner;
+		friend class BaseCountingScanner;
 
 		template<size_t I>
 		friend class IncrementPerformer;
@@ -148,8 +149,6 @@ public:
 #endif
 	};
 
-	static CountingScanner Glue(const CountingScanner& a, const CountingScanner& b, size_t maxSize = 0);
-
 	void Initialize(State& state) const
 	{
 		state.m_state = m.initial;
@@ -158,20 +157,10 @@ public:
 		state.m_updatedMask = 0;
 	}
 
-	template<size_t ActualReCount>
-	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-	void TakeActionImpl(State& s, Action a) const
-	{
-		if (a & IncrementMask)
-			PerformIncrement<ActualReCount>(s, a);
-		if (a & ResetMask)
-			PerformReset<ActualReCount>(s, a);
-	}
-
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 	void TakeAction(State& s, Action a) const
 	{
-		TakeActionImpl<OPTIMAL_RE_COUNT>(s, a);
+		static_cast<const DerivedScanner*>(this)->template TakeActionImpl<OPTIMAL_RE_COUNT>(s, a);
 	}
 
 	bool CanStop(const State&) const { return false; }
@@ -203,17 +192,13 @@ public:
 
 	bool Dead(const State&) const { return false; }
 
-	CountingScanner() {}
-	CountingScanner(const CountingScanner& s): LoadedScanner(s) {}
-	CountingScanner(const Fsm& re, const Fsm& sep);
-
-	void Swap(CountingScanner& s) { LoadedScanner::Swap(s); }
-	CountingScanner& operator = (const CountingScanner& s) { CountingScanner(s).Swap(*this); return *this; }
+	using LoadedScanner::Swap;
 
 	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
 
-private:
+protected:
 	using LoadedScanner::Init;
+	using LoadedScanner::InternalState;
 
 	template<size_t ActualReCount>
 	void PerformIncrement(State& s, Action mask) const
@@ -239,7 +224,30 @@ private:
 		Transition x = reinterpret_cast<const Transition*>(s)[Translate(c)];
 		s += SignExtend(x.shift);
 	}
+};
 
+class CountingScanner : public BaseCountingScanner<CountingScanner> {
+public:
+	enum {
+		Matched = 2,
+	};
+	
+	CountingScanner() {}
+	CountingScanner(const Fsm& re, const Fsm& sep);
+
+	static CountingScanner Glue(const CountingScanner& a, const CountingScanner& b, size_t maxSize = 0);
+
+	template<size_t ActualReCount>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void TakeActionImpl(State& s, Action a) const
+	{
+		if (a & IncrementMask)
+			PerformIncrement<ActualReCount>(s, a);
+		if (a & ResetMask)
+			PerformReset<ActualReCount>(s, a);
+	}
+
+private:
 	Action RemapAction(Action action)
 	{
 		if (action == (Matched | DeadFlag))
@@ -250,10 +258,45 @@ private:
 			return 0;
 	}
 
-	typedef LoadedScanner::InternalState InternalState;
 	friend void BuildScanner<CountingScanner>(const Fsm&, CountingScanner&);
 	friend class Impl::ScannerGlueCommon<CountingScanner>;
-	friend class Impl::CountingScannerGlueTask;
+	friend class Impl::CountingScannerGlueTask<CountingScanner>;
+};
+
+class AdvancedCountingScanner : public BaseCountingScanner<AdvancedCountingScanner> {
+public:
+	AdvancedCountingScanner() {}
+	AdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple = nullptr);
+
+	static AdvancedCountingScanner Glue(const AdvancedCountingScanner& a, const AdvancedCountingScanner& b, size_t maxSize = 0);
+
+	template<size_t ActualReCount>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void TakeActionImpl(State& s, Action a) const
+	{
+		if (a & ResetMask) {
+			PerformReset<ActualReCount>(s, a);
+		}
+		if (a & IncrementMask) {
+			PerformIncrement<ActualReCount>(s, a);
+		}
+	}
+
+private:
+	Action RemapAction(Action action)
+	{
+		Action result = 0;
+		if (action & ResetAction) {
+			result = 1 << MAX_RE_COUNT;
+		}
+		if (action & IncrementAction) {
+			result |= 1;
+		}
+		return result;
+	}
+
+	friend class Impl::ScannerGlueCommon<AdvancedCountingScanner>;
+	friend class Impl::CountingScannerGlueTask<AdvancedCountingScanner>;
 };
 
 }

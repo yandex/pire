@@ -33,9 +33,6 @@
 
 SIMPLE_UNIT_TEST_SUITE(TestCount) {
 
-	using Pire::CountingScanner;
-	typedef Pire::CountingScanner::State State;
-
 	Pire::Fsm MkFsm(const char* regexp, const Pire::Encoding& encoding)
 	{
 		Pire::Lexer lex;
@@ -45,21 +42,42 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		lex.Assign(ucs4.begin(), ucs4.end());
 		return lex.Parse();
 	}
-	
-	Pire::CountingScanner::State Run(const Pire::CountingScanner& scanner, const char* text, size_t len =-1)
+
+	template<class Scanner>
+	typename Scanner::State InitializedState(const Scanner& scanner)
+	{
+		typename Scanner::State state;
+		scanner.Initialize(state);
+		return state;
+	}
+
+	template<class Scanner>
+	typename Scanner::State Run(const Scanner& scanner, const char* text, size_t len =-1)
 	{
 		if (len == (size_t)-1) len = strlen(text);
-		Pire::CountingScanner::State state;
-		scanner.Initialize(state);
+		auto state = InitializedState(scanner);
 		Pire::Step(scanner, state, Pire::BeginMark);
 		Pire::Run(scanner, state, text, text + len);
 		Pire::Step(scanner, state, Pire::EndMark);
 		return state;
 	}
 
+	template<class Scanner>
+	size_t CountOne(const char* regexp, const char* separator, const char* text, size_t len = -1, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
+	{
+		const auto regexpFsm = MkFsm(regexp, encoding);
+		const auto separatorFsm = MkFsm(separator, encoding);
+		return Run(Scanner{regexpFsm, separatorFsm}, text, len).Result(0);
+	}
+
 	size_t Count(const char* regexp, const char* separator, const char* text, size_t len = -1, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
 	{
-		return Run(Pire::CountingScanner(MkFsm(regexp, encoding), MkFsm(separator, encoding)), text, len).Result(0);
+		const auto regexpFsm = MkFsm(regexp, encoding);
+		const auto separatorFsm = MkFsm(separator, encoding);
+		auto countingResult = Run(Pire::CountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
+		auto newResult = Run(Pire::AdvancedCountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
+		UNIT_ASSERT_EQUAL(countingResult, newResult);
+		return newResult;
 	}
 
 	SIMPLE_UNIT_TEST(Count)
@@ -70,6 +88,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		UNIT_ASSERT_EQUAL(Count("[a-z]+", ".*", aaa, sizeof(aaa)), size_t(6));
 		UNIT_ASSERT_EQUAL(Count("\\w", "", "abc abcdef abcd abcdefgh ac"), size_t(8));
 		UNIT_ASSERT_EQUAL(Count("http", ".*", "http://aaa, http://bbb, something in the middle, http://ccc, end"), size_t(3));
+		UNIT_ASSERT_EQUAL(Count("abc", ".*", "abcabcabcabc"), size_t(4));
 		UNIT_ASSERT_EQUAL(Count("[\320\220-\320\257\320\260-\321\217]+", "\\s+", " \320\257\320\275\320\264\320\265\320\272\321\201      "
 			"\320\237\320\276\320\262\320\265\321\200\320\275\321\203\321\202\321\214  \320\222\320\276\320\271\321\202\320\270\302\240"
 			"\320\262\302\240\320\277\320\276\321\207\321\202\321\203                       \302\251\302\240" "1997\342\200\224" "2008 "
@@ -131,50 +150,98 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 			"\320\273\320\276\320\263\320\270\321\207\320\265\321\201\320\272\320\270\320\271 \320\260\320\275\320\260\320\273\320\270\320"
 			"\267 \320\274\320\276\320\264\320\265\320\273\320\265\320\271 \321\201\320\265\320\272\321\201\321\203\320\260\320\273\321\214"
 			"\320\275\320\276\320\263\320\276 \320\277\320\276\320\262\320\265\320\264\320\265\320\275\320\270\321\217</a>\321\217"), size_t(7));
-		UNIT_ASSERT(Count("a", "b", "aaa") != size_t(3));
+		UNIT_ASSERT(CountOne<Pire::CountingScanner>("a", "b", "aaa") != size_t(3));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("a", "b", "aaa"), size_t(1));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("[a-z\320\260-\321\217]+", " +",
+			" \320\260\320\260\320\220 abc def \320\260  cd"),
+			size_t(4)); // Pire::CountingScanner returns 1 here, since it enters a dead state
+	}
+
+	SIMPLE_UNIT_TEST(CountWithoutSeparator)
+	{
+		UNIT_ASSERT_EQUAL(Count("a", "",  "aa aaa"), size_t(3));
+	}
+
+	SIMPLE_UNIT_TEST(CountGreedy)
+	{
+		const auto& enc = Pire::Encodings::Latin1();
+		char text[] = "wwwsswwwsssswwws";
+		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
+	}
+
+	SIMPLE_UNIT_TEST(CountRepeating)
+	{
+		char text[] = "abbabbabbabbat";
+		UNIT_ASSERT_EQUAL(Count("abba", ".*", text, sizeof(text), Pire::Encodings::Latin1()), size_t(2));
+	}
+
+	template<class Scanner>
+	void CountGlueOne()
+	{
+		const auto& enc = Pire::Encodings::Utf8();
+		auto sc1 = Scanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		auto sc2 = Scanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
+		auto sc  = Scanner::Glue(sc1, sc2);
+		auto st = Run(sc, "abc defg 123 jklmn 4567 opqrst");
+		UNIT_ASSERT_EQUAL(st.Result(0), size_t(4));
+		UNIT_ASSERT_EQUAL(st.Result(1), size_t(2));
 	}
 
 	SIMPLE_UNIT_TEST(CountGlue)
 	{
-		const Pire::Encoding& enc = Pire::Encodings::Utf8();
-		Pire::CountingScanner sc1 = Pire::CountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc2 = Pire::CountingScanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc  = Pire::CountingScanner::Glue(sc1, sc2);
-		Pire::CountingScanner::State st = Run(sc, "abc defg 123 jklmn 4567 opqrst");
-		UNIT_ASSERT_EQUAL(st.Result(0), size_t(4));
-		UNIT_ASSERT_EQUAL(st.Result(1), size_t(2));
+		CountGlueOne<Pire::CountingScanner>();
+		CountGlueOne<Pire::AdvancedCountingScanner>();
 	}
-	
-	SIMPLE_UNIT_TEST(CountBoundaries)
+
+	template<class Scanner>
+	void CountBoundariesOne()
 	{
-		const Pire::Encoding& enc = Pire::Encodings::Utf8();
-		Pire::CountingScanner sc(MkFsm("^[a-z]+$", enc), MkFsm("(.|^|$)*", enc));
-		const char* strings[] = { "abcdef", "abc def", "defcba", "xyz abc", "a", "123" };
-		Pire::CountingScanner::State st;
-		sc.Initialize(st);
+		const char* strings[] = { "abcdef", "abc def", "defcba", "wxyz abc", "a", "123" };
+
+		const auto& enc = Pire::Encodings::Utf8();
+		Scanner sc(MkFsm("^[a-z]+$", enc), MkFsm("(.|^|$)*", enc));
+		auto st = InitializedState(sc);
 		for (size_t i = 0; i < sizeof(strings) / sizeof(*strings); ++i) {
 			Pire::Step(sc, st, Pire::BeginMark);
 			Pire::Run(sc, st, strings[i], strings[i] + strlen(strings[i]));
 			Pire::Step(sc, st, Pire::EndMark);
 		}
 		UNIT_ASSERT_EQUAL(st.Result(0), size_t(3));
+
+		const auto& enc2 = Pire::Encodings::Latin1();
+		Scanner sc2(MkFsm("[a-z]", enc2), MkFsm(".*", enc2));
+		auto st2 = InitializedState(sc2);
+		for (size_t i = 0; i < sizeof(strings) / sizeof(*strings); ++i) {
+			Pire::Step(sc2, st2, Pire::BeginMark);
+			Pire::Run(sc2, st2, strings[i], strings[i] + strlen(strings[i]));
+			Pire::Step(sc2, st2, Pire::EndMark);
+		}
+		UNIT_ASSERT_EQUAL(st2.Result(0), size_t(7));
 	}
 
-	SIMPLE_UNIT_TEST(Serialization)
+	SIMPLE_UNIT_TEST(CountBoundaries)
 	{
-		const Pire::Encoding& enc = Pire::Encodings::Latin1();
-		Pire::CountingScanner sc1 = Pire::CountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc2 = Pire::CountingScanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc  = Pire::CountingScanner::Glue(sc1, sc2);
+		CountBoundariesOne<Pire::CountingScanner>();
+		CountBoundariesOne<Pire::AdvancedCountingScanner>();
+	}
+
+	template<class Scanner>
+	void SerializationOne()
+	{
+		const auto& enc = Pire::Encodings::Latin1();
+		auto sc1 = Scanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		auto sc2 = Scanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
+		auto sc  = Scanner::Glue(sc1, sc2);
 
 		BufferOutput wbuf;
 		::Save(&wbuf, sc);
 
 		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
-		Pire::CountingScanner sc3;
+		Scanner sc3;
 		::Load(&rbuf, sc3);
 
-		Pire::CountingScanner::State st = Run(sc3, "abc defg 123 jklmn 4567 opqrst");
+		auto st = Run(sc3, "abc defg 123 jklmn 4567 opqrst");
 		UNIT_ASSERT_EQUAL(st.Result(0), size_t(4));
 		UNIT_ASSERT_EQUAL(st.Result(1), size_t(2));
 
@@ -186,7 +253,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 			const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
 			memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 			try {
-				Pire::CountingScanner sc4;
+				Scanner sc4;
 				const void* tail = sc4.Mmap(ptr, wbuf.Buffer().Size());
 
 				if (offset % sizeof(size_t) != 0) {
@@ -203,12 +270,19 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		}
 	}
 
-	SIMPLE_UNIT_TEST(Serialization_v6_compatibility)
+	SIMPLE_UNIT_TEST(Serialization)
 	{
-		const Pire::Encoding& enc = Pire::Encodings::Latin1();
-		Pire::CountingScanner sc1 = Pire::CountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc2 = Pire::CountingScanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc  = Pire::CountingScanner::Glue(sc1, sc2);
+		SerializationOne<Pire::CountingScanner>();
+		SerializationOne<Pire::AdvancedCountingScanner>();
+	}
+
+	template<class Scanner>
+	void Serialization_v6_compatibilityOne()
+	{
+		const auto& enc = Pire::Encodings::Latin1();
+		auto sc1 = Scanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		auto sc2 = Scanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
+		auto sc  = Scanner::Glue(sc1, sc2);
 
 		BufferOutput wbuf;
 		::Save(&wbuf, sc);
@@ -221,9 +295,9 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		size_t actions_size =
 			sc.Size() *
 			sc.LettersCount() *
-			sizeof(Pire::CountingScanner::Action);
+			sizeof(typename Scanner::Action);
 		UNIT_ASSERT_EQUAL(actions_size % ALIGNMENT, 0);
-		size_t tags_size = sc.Size() * sizeof(Pire::CountingScanner::Tag);
+		size_t tags_size = sc.Size() * sizeof(typename Scanner::Tag);
 		const char* src = wbuf.Buffer().Data();
 		size_t src_size = wbuf.Buffer().Size();
 		size_t patched_size = src_size + actions_size;
@@ -255,14 +329,14 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		// test loading from stream
 		{
 			MemoryInput rbuf(dst, dst_size);
-			Pire::CountingScanner sc_patched, sc_normal;
+			Scanner sc_patched, sc_normal;
 			::Load(&rbuf, sc_patched);
 			::Load(&rbuf, sc_normal);
-			Pire::CountingScanner::State st_patched = Run(sc_patched,
+			auto st_patched = Run(sc_patched,
 					"abc defg 123 jklmn 4567 opqrst");
 			UNIT_ASSERT_EQUAL(st_patched.Result(0), size_t(4));
 			UNIT_ASSERT_EQUAL(st_patched.Result(1), size_t(2));
-			Pire::CountingScanner::State st_normal = Run(sc_normal,
+			auto st_normal = Run(sc_normal,
 					"abc defg 123 jklmn 4567 opqrst");
 			UNIT_ASSERT_EQUAL(st_normal.Result(0), size_t(4));
 			UNIT_ASSERT_EQUAL(st_normal.Result(1), size_t(2));
@@ -270,34 +344,41 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 
 		// test loading using Mmap
 		{
-			Pire::CountingScanner sc_patched, sc_normal;
+			Scanner sc_patched, sc_normal;
 			const void* tail = sc_patched.Mmap(patched, patched_size);
 			UNIT_ASSERT_EQUAL(tail, normal);
 			const void* tail2 = sc_normal.Mmap(tail, src_size);
 			UNIT_ASSERT_EQUAL(tail2, dst_end);
-			Pire::CountingScanner::State st_patched = Run(sc_patched,
+			auto st_patched = Run(sc_patched,
 					"abc defg 123 jklmn 4567 opqrst");
 			UNIT_ASSERT_EQUAL(st_patched.Result(0), size_t(4));
 			UNIT_ASSERT_EQUAL(st_patched.Result(1), size_t(2));
-			Pire::CountingScanner::State st_normal = Run(sc_normal,
+			auto st_normal = Run(sc_normal,
 					"abc defg 123 jklmn 4567 opqrst");
 			UNIT_ASSERT_EQUAL(st_normal.Result(0), size_t(4));
 			UNIT_ASSERT_EQUAL(st_normal.Result(1), size_t(2));
 		}
 	}
 
-	SIMPLE_UNIT_TEST(Empty)
+	SIMPLE_UNIT_TEST(Serialization_v6_compatibility)
 	{
-		Pire::CountingScanner sc;
+		Serialization_v6_compatibilityOne<Pire::CountingScanner>();
+		Serialization_v6_compatibilityOne<Pire::AdvancedCountingScanner>();
+	}
+
+	template<class Scanner>
+	void EmptyOne()
+	{
+		Scanner sc;
 		UNIT_ASSERT(sc.Empty());
 
 		UNIT_CHECKPOINT(); Run(sc, "a string"); // Just should not crash
 
 		// Test glueing empty
-		const Pire::Encoding& enc = Pire::Encodings::Latin1();
-		Pire::CountingScanner sc1 = Pire::CountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
-		Pire::CountingScanner sc2  = Pire::CountingScanner::Glue(sc, Pire::CountingScanner::Glue(sc, sc1));
-		Pire::CountingScanner::State st = Run(sc2, "abc defg 123 jklmn 4567 opqrst");
+		const auto& enc = Pire::Encodings::Latin1();
+		auto sc1 = Scanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		auto sc2 = Scanner::Glue(sc, Scanner::Glue(sc, sc1));
+		auto st = Run(sc2, "abc defg 123 jklmn 4567 opqrst");
 		UNIT_ASSERT_EQUAL(st.Result(0), size_t(4));
 
 		// Test Save/Load/Mmap
@@ -314,10 +395,16 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 
-		Pire::CountingScanner sc4;
+		Scanner sc4;
 		const void* tail = sc4.Mmap(ptr, wbuf.Buffer().Size());
 		UNIT_ASSERT_EQUAL(tail, (const void*) ((size_t)ptr + wbuf.Buffer().Size()));
 		UNIT_CHECKPOINT(); Run(sc4, "a string");
+	}
+
+	SIMPLE_UNIT_TEST(Empty)
+	{
+		EmptyOne<Pire::CountingScanner>();
+		EmptyOne<Pire::AdvancedCountingScanner>();
 	}
 
 }

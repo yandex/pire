@@ -1033,63 +1033,96 @@ bool Fsm::Determine(size_t maxsize /* = 0 */)
 		return false;
 }
 
-
-// Faster transition table representation for determined FSM
-typedef yvector<size_t> DeterminedTransitions;
-
-// Mapping of states into partitions in minimization algorithm.
-typedef yvector<size_t> StateClassMap;
-
-struct MinimizeEquality: public ybinary_function<size_t, size_t, bool> {
+namespace Impl {
+class FsmMinimizeTask {
 public:
+	typedef Fsm::LettersTbl LettersTbl;
+	typedef Partition<size_t, MinimizeEquality<FsmMinimizeTask>> StateClasses;
 
-	MinimizeEquality(const DeterminedTransitions& tbl, const yvector<Char>& letters, const StateClassMap* clMap):
-		m_tbl(&tbl), m_letters(&letters), m_prev(clMap), m_final(0) {}
+	explicit FsmMinimizeTask(const Fsm& fsm)
+		: mFsm(fsm)
+	{}
 
-	MinimizeEquality(const DeterminedTransitions& tbl, const yvector<Char>& letters, const Fsm::FinalTable& final):
-		m_tbl(&tbl), m_letters(&letters), m_prev(0), m_final(&final) {}
+	const LettersTbl& Letters() const {
+		return mFsm.Letters();
+	}
 
-	inline bool operator()(size_t a, size_t b) const
-	{
-		if (m_final && (m_final->find(a) != m_final->end()) != (m_final->find(b) != m_final->end()))
-			return false;
-		if (m_prev) {
-			if ((*m_prev)[a] != (*m_prev)[b])
-				return false;
-			for (yvector<Char>::const_iterator it = m_letters->begin(), ie = m_letters->end(); it != ie; ++it)
-				if ((*m_prev)[Next(a, *it)] != (*m_prev)[Next(b, *it)])
-					return false;
+	bool IsDetermined() const {
+		return mFsm.IsDetermined();
+	}
+
+	size_t Size() const {
+		return mFsm.Size();
+	}
+
+	size_t Next(size_t state, Char letter) const {
+		const Fsm::StatesSet& tos = mFsm.Destinations(state, letter);
+		YASSERT(tos.size() == 1);
+		return *tos.begin();
+	}
+
+	void AcceptPartition(const StateClasses& partition) {
+		mNewFsm.Resize(partition.Size());
+		mNewFsm.letters = mFsm.letters;
+		mNewFsm.determined = mFsm.determined;
+		mNewFsm.m_sparsed = mFsm.m_sparsed;
+		mNewFsm.SetFinal(0, false);
+
+		// Unite equality classes into new states
+		size_t fromIdx = 0;
+		for (Fsm::TransitionTable::const_iterator from = mFsm.m_transitions.begin(), fromEnd = mFsm.m_transitions.end(); from != fromEnd; ++from, ++fromIdx) {
+			size_t dest = partition.Index(fromIdx);
+			PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
+			for (Fsm::TransitionRow::const_iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
+				YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
+				mNewFsm.Connect(dest, partition.Index(*letter->second.begin()), letter->first);
+			}
+			if (mFsm.IsFinal(fromIdx)) {
+				mNewFsm.SetFinal(dest, true);
+				PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " becomes final because of old state " << fromIdx << Endl);
+			}
+
+			// Append tags
+			Fsm::Tags::const_iterator ti = mFsm.tags.find(fromIdx);
+			if (ti != mFsm.tags.end()) {
+				mNewFsm.tags[dest] |= ti->second;
+				PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " carries tag " << ti->second << " because of old state " << fromIdx << Endl);
+			}
 		}
+		mNewFsm.initial = partition.Representative(mFsm.initial);
+
+		// Restore outputs
+		for (auto oit = mFsm.outputs.cbegin(), oie = mFsm.outputs.cend(); oit != oie; ++oit)
+			for (auto oit2 = oit->second.cbegin(), oie2 = oit->second.cend(); oit2 != oie2; ++oit2)
+				mNewFsm.outputs[partition.Index(oit->first)].insert(ymake_pair(partition.Index(oit2->first), oit2->second));
+	}
+
+	void Connect(size_t from, size_t to, Char letter) {
+		mNewFsm.Connect(from, to, letter);
+	}
+
+	bool SameClasses(size_t first, size_t second) const {
+		return mFsm.IsFinal(first) == mFsm.IsFinal(second);
+	}
+
+	typedef bool Result;
+
+	Result Success() {
 		return true;
-	};
+	}
+
+	Result Failure() {
+		return false;
+	}
+
+	Fsm& Output() {
+		return mNewFsm;
+	}
 
 private:
-	const DeterminedTransitions* m_tbl;
-	const yvector<Char>* m_letters;
-	const StateClassMap* m_prev;
-	const Fsm::FinalTable* m_final;
-
-	size_t Next(size_t state, Char letter) const
-	{
-		return (*m_tbl)[state * MaxChar + letter];
-	}
+	const Fsm& mFsm;
+	Fsm mNewFsm;
 };
-
-// Updates the mapping of states to partitions.
-// Returns true if the mapping has changed.
-// TODO: Think how to update only changed states
-bool UpdateStateClassMap(StateClassMap& clMap, const Partition<size_t, MinimizeEquality>& stPartition)
-{
-	YASSERT(clMap.size() != 0);
-	bool changed = false;
-	for (size_t st = 0; st < clMap.size(); st++) {
-		size_t cl = stPartition.Representative(st);
-		if (clMap[st] != cl) {
-			clMap[st] = cl;
-			changed = true;
-		}
-	}
-	return changed;
 }
 
 void Fsm::Minimize()
@@ -1097,85 +1130,10 @@ void Fsm::Minimize()
 	// Minimization algorithm is only applicable to a determined FSM.
 	YASSERT(determined);
 
-	PIRE_IFDEBUG(Cdbg << "=== Minimizing ===" << Endl << *this << Endl);
-
-	DeterminedTransitions detTran(Size() * MaxChar);
-	for (TransitionTable::const_iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j) {
-		for (TransitionRow::const_iterator k = j->begin(), ke = j->end(); k != ke; ++k) {
-			YASSERT(k->second.size() == 1);
-			detTran[(j - m_transitions.begin()) * MaxChar + k->first] = *(k->second.begin());
-		}
+	Impl::FsmMinimizeTask task{*this};
+	if (Pire::Impl::Minimize(task)) {
+		task.Output().Swap(*this);
 	}
-
-	// Precompute letter classes
-	yvector<Char> distinctLetters;
-	distinctLetters.reserve(letters.Size());
-	for (LettersTbl::ConstIterator lit = letters.Begin(); lit != letters.End(); ++lit) {
-		distinctLetters.push_back(lit->first);
-	}
-
-	typedef Partition<size_t, MinimizeEquality> StateClasses;
-
-	StateClasses last(MinimizeEquality(detTran, distinctLetters, m_final));
-
-	PIRE_IFDEBUG(Cdbg << "Initial finals: { " << Join(m_final.begin(), m_final.end(), ", ") << " }" << Endl);
-	// Make an initial states partition
-	for (size_t state = 0; state < Size(); ++state)
-		last.Append(state);
-
-	StateClassMap stateClassMap(Size());
-
-	PIRE_IFDEBUG(unsigned cnt = 0);
-	// Iteratively split states into equality classes
-	while (UpdateStateClassMap(stateClassMap, last)) {
-		PIRE_IFDEBUG(Cdbg << "Stage " << cnt++ << ": state classes = " << last << Endl);
-		last.Split(MinimizeEquality(detTran, distinctLetters, &stateClassMap));
-	}
-
-	// Resize FSM
-	TransitionTable oldTransitions;
-	FinalTable oldFinal;
-	Outputs oldOutputs;
-	Tags oldTags;
-	m_transitions.swap(oldTransitions);
-	m_final.swap(oldFinal);
-	outputs.swap(oldOutputs);
-	tags.swap(oldTags);
-	Resize(last.Size());
-	PIRE_IFDEBUG(Cdbg << "[min] Resizing FSM to " << last.Size() << " states" << Endl);
-
-	// Union equality classes into new states
-	size_t fromIdx = 0;
-	for (TransitionTable::iterator from = oldTransitions.begin(), fromEnd = oldTransitions.end(); from != fromEnd; ++from, ++fromIdx) {
-		size_t dest = last.Index(fromIdx);
-		PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
-		for (TransitionRow::iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
-			YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
-			PIRE_IFDEBUG(Cdbg << "[min] connecting " << dest << " --" << CharDump(letter->first) << "--> "
-				<< last.Index(*letter->second.begin()) << Endl);
-			Connect(dest, last.Index(*letter->second.begin()), letter->first);
-		}
-		if (oldFinal.find(fromIdx) != oldFinal.end()) {
-			SetFinal(dest, true);
-			PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " becomes final because of old state " << fromIdx << Endl);
-		}
-
-		// Append tags
-		Tags::iterator ti = oldTags.find(fromIdx);
-		if (ti != oldTags.end()) {
-			tags[dest] |= ti->second;
-			PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " carries tag " << ti->second << " because of old state " << fromIdx << Endl);
-		}
-	}
-	initial = last.Representative(initial);
-
-	// Restore outputs
-	for (Outputs::iterator oit = oldOutputs.begin(), oie = oldOutputs.end(); oit != oie; ++oit)
-		for (Outputs::value_type::second_type::iterator oit2 = oit->second.begin(), oie2 = oit->second.end(); oit2 != oie2; ++oit2)
-			outputs[last.Index(oit->first)].insert(ymake_pair(last.Index(oit2->first), oit2->second));
-
-	ClearHints();
-	PIRE_IFDEBUG(Cdbg << "=== Minimized (" << Size() << " states) ===" << Endl << *this << Endl);
 }
 
 Fsm& Fsm::Canonize(size_t maxSize /* = 0 */)

@@ -33,6 +33,7 @@ namespace Pire {
 
 	namespace Impl {
 		class FsmDetermineTask;
+		class FsmMinimizeTask;
 	}
 
 	/// A Flying Spaghetti Monster... no, just a Finite State Machine.
@@ -242,6 +243,7 @@ namespace Pire {
 		void ClearHints() { isAlternative = false; }
 		
 		friend class Impl::FsmDetermineTask;
+		friend class Impl::FsmMinimizeTask;
 	};
 
 	template<class Scanner>
