@@ -135,22 +135,34 @@ void DbgRun(const Scanner& scanner, typename Scanner::State& state, const char* 
 #endif
 
 template<class Scanner>
-typename Scanner::State RunRegexp(const Scanner& scanner, const char* str)
+typename Scanner::State RunRegexp(const Scanner& scanner, const char* begin, const size_t length)
 {
-	PIRE_IFDEBUG(std::clog << "--- checking against " << str << "\n");
+	PIRE_IFDEBUG(std::clog << "--- checking against " << ystring(begin, length) << "\n");
 
 	typename Scanner::State state;
 	scanner.Initialize(state);
 	scanner.Next(state, BeginMark);
-	Run(scanner, state, str, str + strlen(str));
+	Run(scanner, state, begin, begin + length);
 	scanner.Next(state, EndMark);
 	return state;
+}
+
+template<class Scanner>
+typename Scanner::State RunRegexp(const Scanner& scanner, const char* str)
+{
+	return RunRegexp(scanner, str, strlen(str));
 }
 
 template<class Scanner>
 bool Matches(const Scanner& scanner, const char* str)
 {
 	return scanner.Final(RunRegexp(scanner, str));
+}
+
+template<class Scanner>
+bool Matches(const Scanner& scanner, const ystring& str)
+{
+	return scanner.Final(RunRegexp(scanner, str.c_str(), str.length()));
 }
 
 #define SCANNER(fsm) for (Scanners m_scanners(fsm), *m_flag = &m_scanners; m_flag; m_flag = 0)
