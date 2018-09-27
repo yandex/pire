@@ -836,11 +836,11 @@ bool Fsm::LettersEquality::operator()(Char a, Char b) const
 	return true;
 }
 
-void Fsm::Sparse()
+void Fsm::Sparse(bool needEps /* = false */)
 {
 	letters = LettersTbl(LettersEquality(m_transitions));
 	for (unsigned letter = 0; letter < MaxChar; ++letter)
-		if (letter != Epsilon)
+		if (letter != Epsilon || needEps)
 			letters.Append(letter);
 
 	m_sparsed = true;
