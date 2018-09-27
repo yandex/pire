@@ -238,8 +238,8 @@ public:
 	class State {
 	public:
 		State()
-				: m_strpos(0)
-				, m_matched(false) {}
+			: m_strpos(0)
+			, m_matched(false) {}
 
 		size_t GetPos() const
 		{
@@ -556,12 +556,12 @@ public:
 
 public:
 	SlowCapturingScanner()
-			: SlowScanner(true)
+		: SlowScanner(true)
 	{
 	}
 
 	SlowCapturingScanner(Fsm& fsm)
-			: SlowScanner(fsm, true, false)
+		: SlowScanner(fsm, true, false)
 	{
 	}
 };
