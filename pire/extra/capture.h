@@ -559,6 +559,7 @@ public:
 			: SlowScanner(true)
 	{
 	}
+
 	SlowCapturingScanner(Fsm& fsm)
 			: SlowScanner(fsm, true, false)
 	{

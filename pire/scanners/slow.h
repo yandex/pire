@@ -247,7 +247,7 @@ public:
 	}
 
 	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
-			: need_actions(needActions)
+		: need_actions(needActions)
 	{
 		if (removeEpsilons)
 			fsm.RemoveEpsilons();

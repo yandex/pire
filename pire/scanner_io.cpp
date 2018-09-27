@@ -96,14 +96,13 @@ void SlowScanner::Save(yostream* s) const
 				size += sizeof(unsigned) * i->size();
 			}
 		Impl::AlignSave(s, size);
-		if (need_actions)
-		{
+		if (need_actions) {
 			size_t pos = 0;
 			for (yvector< yvector< Action > >::const_iterator i = m_actionsvec.begin(), ie = m_actionsvec.end(); i != ie; ++i)
-			if (!i->empty()) {
-				SavePodArray(s, &(*i)[0], i->size());
-				pos += sizeof(Action) * i->size();
-			}
+				if (!i->empty()) {
+					SavePodArray(s, &(*i)[0], i->size());
+					pos += sizeof(Action) * i->size();
+				}
 			Impl::AlignSave(s, pos);
 		}
 	}
