@@ -42,7 +42,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 
 		lexer.Assign(regexp, regexp + strlen(regexp));
 		lexer.AddFeature(Pire::Features::CaseInsensitive());
-		lexer.AddFeature(Pire::Features::Capture((size_t) index));
+		lexer.AddFeature(Pire::Features::Capture(static_cast<size_t>(index)));
 
 		Pire::Fsm fsm = lexer.Parse();
 
