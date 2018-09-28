@@ -275,24 +275,38 @@ void Run(const Scanner& sc, typename Scanner::State& st, const char* begin, cons
 }
 
 template<class Scanner>
-const char* LongestPrefix(const Scanner& sc, const char* begin, const char* end)
+const char* LongestPrefix(const Scanner& sc, const char* begin, const char* end, bool throughBeginMark = false, bool throughEndMark = false)
 {
 	typename Scanner::State st;
 	sc.Initialize(st);
+	if (throughBeginMark)
+		Pire::Step(sc, st, BeginMark);
 	const char* pos = (sc.Final(st) ? begin : 0);
 	Impl::DoRun(sc, st, begin, end, Impl::LongestPrefixPred<Scanner>(pos));
+	if (throughEndMark) {
+		Pire::Step(sc, st, EndMark);
+		if (sc.Final(st))
+			pos = end;
+	}
 	return pos;
 }
 
 template<class Scanner>
-const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end)
+const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end, bool throughBeginMark = false, bool throughEndMark = false)
 {
 	typename Scanner::State st;
 	sc.Initialize(st);
+	if (throughBeginMark)
+		Pire::Step(sc, st, BeginMark);
 	if (sc.Final(st))
 		return begin;
 	const char* pos = 0;
 	Impl::DoRun(sc, st, begin, end, Impl::ShortestPrefixPred<Scanner>(pos));
+	if (throughEndMark) {
+		Pire::Step(sc, st, EndMark);
+		if (sc.Final(st) && pos == 0)
+			pos = end;
+	}
 	return pos;
 }
 
@@ -300,11 +314,12 @@ const char* ShortestPrefix(const Scanner& sc, const char* begin, const char* end
 /// The same as above, but scans string in reverse direction
 /// (consider using Fsm::Reverse() for using in this function).
 template<class Scanner>
-inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, const char* rend)
+inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, const char* rend, bool throughEndMark = false, bool throughBeginMark = false)
 {
 	typename Scanner::State state;
 	scanner.Initialize(state);
-
+	if (throughEndMark)
+		Step(scanner, state, EndMark);
 	PIRE_IFDEBUG(Cdbg << "Running LongestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
 	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
@@ -318,16 +333,22 @@ inline const char* LongestSuffix(const Scanner& scanner, const char* rbegin, con
 	}
 	if (scanner.Final(state))
 		pos = rbegin;
+	if (throughBeginMark) {
+		Step(scanner, state, BeginMark);
+		if (scanner.Final(state))
+			pos = rbegin;
+	}
 	return pos;
 }
 
 /// The same as above, but scans string in reverse direction
 template<class Scanner>
-inline const char* ShortestSuffix(const Scanner& scanner, const char* rbegin, const char* rend)
+inline const char* ShortestSuffix(const Scanner& scanner, const char* rbegin, const char* rend, bool throughEndMark = false, bool throughBeginMark = false)
 {
 	typename Scanner::State state;
 	scanner.Initialize(state);
-
+	if (throughEndMark)
+		Step(scanner, state, EndMark);
 	PIRE_IFDEBUG(Cdbg << "Running ShortestSuffix on string " << ystring(rbegin - ymin(rbegin - rend, static_cast<ptrdiff_t>(100u)) + 1, rbegin + 1) << Endl);
 	PIRE_IFDEBUG(Cdbg << "Initial state " << StDump(scanner, state) << Endl);
 
@@ -335,6 +356,8 @@ inline const char* ShortestSuffix(const Scanner& scanner, const char* rbegin, co
 		scanner.Next(state, (unsigned char)*rbegin);
 		PIRE_IFDEBUG(Cdbg << *rbegin << " => state " << StDump(scanner, state) << Endl);
 	}
+	if (throughBeginMark)
+		Step(scanner, state, BeginMark);
 	return scanner.Final(state) ? rbegin : 0;
 }
 

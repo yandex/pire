@@ -141,6 +141,7 @@ iteration
 					cur += (orig | Fsm()) * (repc.second - repc.first);
 				}
 			}
+			rlex.Parenthesized($$->As<Fsm>());
 			delete $1;
 			delete $2;
 		}
