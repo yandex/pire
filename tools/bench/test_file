@@ -4,7 +4,7 @@
 
 (Cdbg << "State " << ns << " carries tag " << ti->second << " because of old state " << *j << Endl);
 	letters = LettersTbl(LettersEquality(m_transitions));
-	for (yset<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
+	for (TSet<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
 				s << " ";
 		PIRE_IFDEBUG(Cdbg << "New terminals = [" << Join(mNewTerminals.begin(), mNewTerminals.end(), ",") << "]" << Endl);
 
@@ -58,8 +58,8 @@ Fsm& Fsm::Append(char c)
 	}
 
 	return true;
-	yset<size_t> mNewTerminals;
-	yset<size_t> res;
+	TSet<size_t> mNewTerminals;
+	TSet<size_t> res;
 	// Minimization algorithm is only applicable to a determined FSM.
 		}
 	for (size_t i = 0; i < Size(); ++i)
@@ -158,7 +158,7 @@ Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 {
 
 	
-	yset<size_t> mTerminals;
+	TSet<size_t> mTerminals;
 				if (!newState) {
 				Outputs::value_type::second_type::const_iterator oit2 = oit->second.find(std::distance(row.begin(), rit));
 	else
@@ -236,7 +236,7 @@ void Fsm::Minimize()
 		}
 	if (ti != tags.end())
 	m_final.insert(0);
-	yset<Transition> usedTransitions;
+	TSet<Transition> usedTransitions;
 
 		
 	// a that transition already points somewhere (either to end
@@ -440,7 +440,7 @@ void Fsm::ConnectFinal(size_t to, Char c /* = Epsilon */)
 	// Valid for all letters in given strings except final ones,
 			std::transform(inner->second.begin(), inner->second.end(), std::inserter(targets, targets.begin()),
 	}
-			for (yset<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
+			for (TSet<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
  * it under the terms of the GNU Lesser Public License as published by
 	ClearHints();
 			s << " => " << std::distance(row.begin(), rit);
@@ -568,7 +568,7 @@ const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 		if (IsFinal(i)) {
 			// Compute the set of states that are reachable from 'to' state
 	};
-	yset<char> usedFirsts;
+	TSet<char> usedFirsts;
 			PIRE_IFDEBUG(Cdbg << "State " << ns << " = [" << Join(states[ns].begin(), states[ns].end(), ", ") << "]" << Endl);
 #include <queue>
 	// Merge all 'to' into 'from' outputs:
@@ -613,7 +613,7 @@ const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 			dest->insert(ymake_pair(inner->first, targets));
 	
 
-			yset<size_t> targets;
+			TSet<size_t> targets;
 				s << CharDump(begin) << ".." << (CharDump(end-1));
 	
 	Resize(Size() + 1);

@@ -219,7 +219,7 @@ private:
 
 typedef size_t RawState;
 typedef ypair<RawState, unsigned long> TaggedState;
-typedef yset<TaggedState> StateGroup;
+typedef TSet<TaggedState> StateGroup;
 
 struct DeterminedState {
 public:
@@ -512,7 +512,7 @@ private:
 	const Fsm& mFsm;
 	RawState mReInitial;
 	Fsm::StatesSet mDeadStates;
-	yset<Char> mInvalidLetters;
+	TSet<Char> mInvalidLetters;
 
 	mutable ymap<State, TransitionTagRow> mActionByState;
 };
@@ -720,7 +720,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 	// Make a full Cartesian product of two sep_res
 	sep_re.Determine();
 	sep_re.Unsparse();
-	yset<size_t> dead = sep_re.DeadStates();
+	TSet<size_t> dead = sep_re.DeadStates();
 
 	PIRE_IFDEBUG(Cdbg << "=== Original FSM ===" << Endl << sep_re << ">>> " << sep_re.Size() << " states, dead: [" << Join(dead.begin(), dead.end(), ", ") << "]" << Endl);
 

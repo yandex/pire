@@ -234,9 +234,9 @@ const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 	return (i != m_transitions[from].end()) ? i->second : DefaultValue<StatesSet>();
 }
 
-yset<Char> Fsm::OutgoingLetters(size_t state) const
+TSet<Char> Fsm::OutgoingLetters(size_t state) const
 {
-	yset<Char> ret;
+	TSet<Char> ret;
 	for (TransitionRow::const_iterator i = m_transitions[state].begin(), ie = m_transitions[state].end(); i != ie; ++i)
 		ret.insert(i->first);
 	return ret;
@@ -331,8 +331,8 @@ Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 	// a that transition already points somewhere (either to end
 	// or somewhere else). Another attempt to create such transition
 	// will clear `determined flag.
-	yset<Transition> usedTransitions;
-	yset<char> usedFirsts;
+	TSet<Transition> usedTransitions;
+	TSet<char> usedFirsts;
 
 	for (TVector<ystring>::const_iterator sit = strings.begin(), sie = strings.end(); sit != sie; ++sit) {
 		const ystring& str = *sit;
@@ -398,7 +398,7 @@ void Fsm::Import(const Fsm& rhs)
 	TransitionTable::iterator dest = m_transitions.begin() + oldsize;
 	for (TransitionTable::const_iterator outer = rhs.m_transitions.begin(), outerEnd = rhs.m_transitions.end(); outer != outerEnd; ++outer, ++dest) {
 		for (TransitionRow::const_iterator inner = outer->begin(), innerEnd = outer->end(); inner != innerEnd; ++inner) {
-			yset<size_t> targets;
+			TSet<size_t> targets;
 			std::transform(inner->second.begin(), inner->second.end(), std::inserter(targets, targets.begin()),
 				std::bind2nd(std::plus<size_t>(), oldsize));
 			dest->insert(ymake_pair(inner->first, targets));
@@ -630,9 +630,9 @@ Fsm& Fsm::Reverse()
 	return *this;
 }
 
-yset<size_t> Fsm::DeadStates() const
+TSet<size_t> Fsm::DeadStates() const
 {
-	yset<size_t> res;
+	TSet<size_t> res;
 
 	for (int invert = 0; invert <= 1; ++invert) {
 		Fsm digraph;
@@ -696,9 +696,9 @@ void Fsm::RemoveDeadEnds()
 {
 	PIRE_IFDEBUG(Cdbg << "Removing dead ends on:" << Endl << *this << Endl);
 
-	yset<size_t> dead = DeadStates();
+	TSet<size_t> dead = DeadStates();
 	// Erase all useless states
-	for (yset<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
+	for (TSet<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
 		PIRE_IFDEBUG(Cdbg << "Removing useless state " << *i << Endl);
 		m_transitions[*i].clear();
 		for (TransitionTable::iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j)
@@ -725,7 +725,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 
 	// Merge transitions from 'to' state into transitions from 'from' state
 	for (TransitionRow::const_iterator it = m_transitions[to].begin(), ie = m_transitions[to].end(); it != ie; ++it) {
-		yset<size_t> connStates;
+		TSet<size_t> connStates;
 		std::copy(it->second.begin(), it->second.end(),
 			std::inserter(m_transitions[from][it->first], m_transitions[from][it->first].end()));
 
@@ -736,7 +736,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 			std::copy(it->second.begin(), it->second.end(), std::inserter(connStates, connStates.end()));
 
 			// For each of these states add an output equal to the Epsilon-connection output
-			for (yset<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
+			for (TSet<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
 				outputs[from][*newConnSt] |= frEpsOutput;
 			}
 		}
@@ -765,7 +765,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 // finds all states which are Epsilon-reachable from 'thru' and connects
 // them directly to 'from' with Epsilon transition having proper output.
 // Updates inverse map of epsilon transitions as well.
-void Fsm::ShortCutEpsilon(size_t from, size_t thru, TVector< yset<size_t> >& inveps)
+void Fsm::ShortCutEpsilon(size_t from, size_t thru, TVector< TSet<size_t> >& inveps)
 {
 	PIRE_IFDEBUG(Cdbg << "In Fsm::ShortCutEpsilon(" << from << ", " << thru << ")\n");
 	const StatesSet& to = Destinations(thru, Epsilon);
@@ -787,7 +787,7 @@ void Fsm::RemoveEpsilons()
 	Unsparse();
 	
 	// Build inverse map of epsilon transitions
-	TVector< yset<size_t> > inveps(Size()); // We have to use yset<> here since we want it sorted
+	TVector< TSet<size_t> > inveps(Size()); // We have to use TSet<> here since we want it sorted
 	for (size_t from = 0; from != Size(); ++from) {
 		const StatesSet& tos = Destinations(from, Epsilon);
 		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to)
@@ -858,9 +858,9 @@ void Fsm::Unsparse()
 
 // Returns a set of 'terminal states', which are those of the final states,
 // from which a transition to themselves on any letter is possible.
-yset<size_t> Fsm::TerminalStates() const
+TSet<size_t> Fsm::TerminalStates() const
 {
-	yset<size_t> terminals;
+	TSet<size_t> terminals;
 	for (FinalTable::const_iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit) {
 		bool ok = true;
 		for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
@@ -1008,8 +1008,8 @@ public:
 private:
 	const Fsm& mFsm;
 	Fsm mNewFsm;
-	yset<size_t> mTerminals;
-	yset<size_t> mNewTerminals;
+	TSet<size_t> mTerminals;
+	TSet<size_t> mNewTerminals;
 };
 }
 

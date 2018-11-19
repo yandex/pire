@@ -121,20 +121,20 @@ namespace Pire {
 	};
 
 	template< class T, class C = std::less<T>, class A = std::allocator<T> >
-	class yset: public std::set<T, C, A> {
+	class TSet: public std::set<T, C, A> {
 	public:
-		yset(): std::set<T, C, A>() {}
+		TSet(): std::set<T, C, A>() {}
 
-		yset(std::initializer_list<T> il): std::set<T, C, A>(il) {}
+		TSet(std::initializer_list<T> il): std::set<T, C, A>(il) {}
 
 		template<class Arg1>
-		yset(Arg1 arg1): std::set<T, C, A>(arg1) {}
+		TSet(Arg1 arg1): std::set<T, C, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		yset(Arg1 arg1, Arg2 arg2): std::set<T, C, A>(arg1, arg2) {}
+		TSet(Arg1 arg1, Arg2 arg2): std::set<T, C, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		yset(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::set<T, C, A>(arg1, arg2, arg3) {}
+		TSet(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::set<T, C, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T >

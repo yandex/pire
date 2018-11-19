@@ -52,9 +52,9 @@ namespace {
 				return r;
 			}
 
-			yset<wchar32> ToSet() const
+			TSet<wchar32> ToSet() const
 			{
-				yset<wchar32> ret;
+				TSet<wchar32> ret;
 				for (TVector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
 					for (wchar32 c = it->first; c <= it->second; ++c)
 						ret.insert(c);
@@ -71,7 +71,7 @@ namespace {
 			return (m_classes.find(to_lower(wc & ~ControlMask)) != m_classes.end());
 		}
 
-		yset<wchar32> Get(wchar32 wc) const
+		TSet<wchar32> Get(wchar32 wc) const
 		{
 			ymap<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
 			if (it == m_classes.end())
@@ -125,8 +125,8 @@ namespace {
 						else
 							pos = true;
 
-						yset<wchar32> klass = m_table->Get((*i)[0]);
-						for (yset<wchar32>::iterator j = klass.begin(), je = klass.end(); j != je; ++j)
+						TSet<wchar32> klass = m_table->Get((*i)[0]);
+						for (TSet<wchar32>::iterator j = klass.begin(), je = klass.end(); j != je; ++j)
 							altered.insert(Term::String(1, *j));
 					} else
 						altered.insert(*i);

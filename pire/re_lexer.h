@@ -74,7 +74,7 @@ enum {
 class Term {
 public:
 	typedef TVector<wchar32> String;
-	typedef yset<String> Strings;
+	typedef TSet<String> Strings;
 
 	typedef ypair<int, int> RepetitionCount;
 	typedef ypair<Strings, bool> CharacterRange;

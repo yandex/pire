@@ -236,7 +236,7 @@ private:
 				}
 			}
 			
-			yset<Char> lets = fsm.OutgoingLetters(queue.front());
+			TSet<Char> lets = fsm.OutgoingLetters(queue.front());
 			lets.erase(SpecialChar::Epsilon);
 			lets.erase(SpecialChar::BeginMark);
 			if (!lets.empty())
