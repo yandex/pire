@@ -235,7 +235,7 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm)
 			const Fsm::StatesSet& tos = fsm.Destinations(from, i->first);
 			if (tos.empty())
 				continue;
-			for (yvector<Char>::const_iterator l = i->second.second.begin(), le = i->second.second.end(); l != le; ++l)
+			for (TVector<Char>::const_iterator l = i->second.second.begin(), le = i->second.second.end(); l != le; ++l)
 				for (Fsm::StatesSet::const_iterator to = tos.begin(), toEnd = tos.end(); to != toEnd; ++to)
 					SetJump(from, *l, *to);
 		}

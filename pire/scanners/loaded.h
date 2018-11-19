@@ -153,7 +153,7 @@ public:
 		// Build letter translation table
 		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
 		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
+			for (TVector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
 				m_letters[*it2] = it->second.first;
 	}
 

@@ -58,7 +58,7 @@ namespace Pire {
 		/// and case-insensitive comparison of multibyte characters,
 		/// when one string represents a lowercase variant of a character,
 		/// while another string represents its uppercase variant.
-		Fsm& AppendStrings(const yvector<ystring>& strings);
+		Fsm& AppendStrings(const TVector<ystring>& strings);
 
 		/// Appends a part matching a single byte (any).
 		Fsm& AppendDot();
@@ -122,7 +122,7 @@ namespace Pire {
 
 		typedef yset<size_t> StatesSet;
 		typedef ymap<size_t, StatesSet> TransitionRow;
-		typedef yvector<TransitionRow> TransitionTable;
+		typedef TVector<TransitionRow> TransitionTable;
 
 		struct LettersEquality {
 			LettersEquality(const Fsm::TransitionTable& tbl): m_tbl(&tbl) {}
@@ -233,7 +233,7 @@ namespace Pire {
 		/// Heuristics hit: true iff this FSM is a union of two other FSMs
 		bool isAlternative;
 		
-		void ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps); ///< internal
+		void ShortCutEpsilon(size_t from, size_t thru, TVector< yset<size_t> >& inveps); ///< internal
 		void MergeEpsilonConnection(size_t from, size_t to); ///< internal
 
 		yset<size_t> TerminalStates() const;

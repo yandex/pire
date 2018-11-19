@@ -81,7 +81,7 @@ public:
 	void Apply(Lexer& lexer)
 	{
 		lexer.SetEncoding(*m_encoding);
-		for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
+		for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
 			lexer.AddFeature(*i);
 			*i = 0;
 		}
@@ -95,11 +95,11 @@ public:
 
 private:
 	const Pire::Encoding* m_encoding;
-	yvector<Feature*> m_features;
+	TVector<Feature*> m_features;
 	
 	void Clear()
 	{
-		for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
+		for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
 			if (*i)
 				(*i)->Destroy();
 		}
@@ -201,7 +201,7 @@ private:
 	
 	void Init(ypair<const char*, const char*> rawPattern, Options options)
 	{
-		yvector<wchar32> pattern;
+		TVector<wchar32> pattern;
 		options.Encoding().FromLocal(rawPattern.first, rawPattern.second, std::back_inserter(pattern));
 		
 		Lexer lexer(pattern);

@@ -32,10 +32,10 @@ void TestSuite::doRun(TestRunner* runner, const Pire::ystring& filter)
 {
 	mRunner = runner;
 
-	for (Pire::yvector<TestSuite*>::iterator sit = mSubSuites.begin(); sit != mSubSuites.end(); ++sit)
+	for (Pire::TVector<TestSuite*>::iterator sit = mSubSuites.begin(); sit != mSubSuites.end(); ++sit)
 		mRunner->runSuite(*sit, filter);
 	
-	for (Pire::yvector<TestCase*>::iterator sit = mTestCases.begin(); sit != mTestCases.end(); ++sit)
+	for (Pire::TVector<TestCase*>::iterator sit = mTestCases.begin(); sit != mTestCases.end(); ++sit)
 		mRunner->runCase(*sit, filter);
 
 	mRunner = 0;
@@ -60,7 +60,7 @@ void TestRunner::setCheckpoint(const Pire::ystring& file, int line)
 
 bool TestRunner::run(const Pire::ystring& filter, bool, bool, bool)
 {
-	for (Pire::yvector<TestSuite*>::iterator sit = mSuites.begin(); sit != mSuites.end(); ++sit)
+	for (Pire::TVector<TestSuite*>::iterator sit = mSuites.begin(); sit != mSuites.end(); ++sit)
 		runSuite(*sit, filter);
 
 	if (!filter.empty() && mSuccessCount + mFailCount == 0) {
@@ -104,7 +104,7 @@ struct AssertionFailed {
 Pire::ystring TestRunner::testFullName()
 {
 	Pire::ystring name;
-	for (Pire::yvector<Pire::ystring>::iterator sit = mRunningSuites.begin(); sit != mRunningSuites.end(); ++sit)
+	for (Pire::TVector<Pire::ystring>::iterator sit = mRunningSuites.begin(); sit != mRunningSuites.end(); ++sit)
 		name = name + *sit + "::";
 	name = name + mRunningTest;
 	return name;

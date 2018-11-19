@@ -44,12 +44,12 @@ namespace {
 	*/
 	class GlyphTable {
 	private:
-		ylist< yvector<wchar32> > m_classes;
-		ymap<wchar32, yvector<wchar32>*> m_map;
+		ylist< TVector<wchar32> > m_classes;
+		ymap<wchar32, TVector<wchar32>*> m_map;
 
 		struct GlyphClass {
-			yvector<wchar32>* m_class;
-			ymap<wchar32, yvector<wchar32>*> *m_map;
+			TVector<wchar32>* m_class;
+			ymap<wchar32, TVector<wchar32>*> *m_map;
 
 			GlyphClass& operator << (wchar32 c)
 			{
@@ -62,7 +62,7 @@ namespace {
 		GlyphClass Class()
 		{
 			GlyphClass cl;
-			m_classes.push_back(yvector<wchar32>());
+			m_classes.push_back(TVector<wchar32>());
 			cl.m_class = &m_classes.back();
 			cl.m_map = &m_map;
 			return cl;
@@ -70,13 +70,13 @@ namespace {
 
 	public:
 
-		const yvector<wchar32>& Klass(wchar32 x) const
+		const TVector<wchar32>& Klass(wchar32 x) const
 		{
-			ymap<wchar32, yvector<wchar32>*>::const_iterator i = m_map.find(x);
+			ymap<wchar32, TVector<wchar32>*>::const_iterator i = m_map.find(x);
 			if (i != m_map.end())
 				return *i->second;
 			else
-				return DefaultValue< yvector<wchar32> >();
+				return DefaultValue< TVector<wchar32> >();
 		}
 
 		GlyphTable()
@@ -118,9 +118,9 @@ namespace {
 				const CharSet& old = range.first;
 				CharSet altered;
 				for (CharSet::const_iterator i = old.begin(), ie = old.end(); i != ie; ++i) {
-					const yvector<wchar32>* klass = 0;
+					const TVector<wchar32>* klass = 0;
 					if (i->size() == 1 && !(klass = &m_table->Klass((*i)[0]))->empty())
-						for (yvector<wchar32>::const_iterator j = klass->begin(), je = klass->end(); j != je; ++j)
+						for (TVector<wchar32>::const_iterator j = klass->begin(), je = klass->end(); j != je; ++j)
 							altered.insert(Term::String(1, *j));
 					else
 						altered.insert(*i);

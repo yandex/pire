@@ -55,14 +55,14 @@ namespace {
 			yset<wchar32> ToSet() const
 			{
 				yset<wchar32> ret;
-				for (yvector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
+				for (TVector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
 					for (wchar32 c = it->first; c <= it->second; ++c)
 						ret.insert(c);
 				return ret;
 			}
 
 		private:
-			yvector<ypair<wchar32, wchar32> > m_bounds;
+			TVector<ypair<wchar32, wchar32> > m_bounds;
 		};
 
 	public:

@@ -37,7 +37,7 @@ namespace Pire {
 template<class T, class Eq>
 class Partition {
 private:
-	typedef ymap< T, ypair< size_t, yvector<T> > > Set;
+	typedef ymap< T, ypair< size_t, TVector<T> > > Set;
 
 public:
 	Partition(const Eq& eq)
@@ -97,7 +97,7 @@ public:
 	}
 	/// Returns the whole equivalence class of @p t (i.e. item @p i
 	/// is returned iff representative(i) == representative(t)).
-	const yvector<T>& Klass(const T& t) const
+	const TVector<T>& Klass(const T& t) const
 	{
 		typename ymap<T, T>::const_iterator it = m_inv.find(t);
 		if (it == m_inv.end())
@@ -120,13 +120,13 @@ public:
 
 		for (typename Set::iterator sit = m_set.begin(), sie = m_set.end(); sit != sie; ++sit)
 			if (sit->second.second.size() > 1) {
-				yvector<T>& v = sit->second.second;
-				typename yvector<T>::iterator bound = std::partition(v.begin(), v.end(), std::bind2nd(m_eq, v[0]));
+				TVector<T>& v = sit->second.second;
+				typename TVector<T>::iterator bound = std::partition(v.begin(), v.end(), std::bind2nd(m_eq, v[0]));
 				if (bound == v.end())
 					continue;
 
 				Set delta;
-				for (typename yvector<T>::iterator it = bound, ie = v.end(); it != ie; ++it)
+				for (typename TVector<T>::iterator it = bound, ie = v.end(); it != ie; ++it)
 					DoAppend(delta, *it);
 
 				v.erase(bound, v.end());
@@ -153,7 +153,7 @@ private:
 
 		if (it == end) {
 			// Begin new set
-			yvector<T> v(1, t);
+			TVector<T> v(1, t);
 			set.insert(ymake_pair(t, ymake_pair(m_maxidx++, v)));
 			m_inv[t] = t;
 		}
@@ -168,7 +168,7 @@ yostream& operator << (yostream& stream, const Partition<T, Eq>& partition)
 	for (typename Partition<T, Eq>::ConstIterator it = partition.Begin(), ie = partition.End(); it != ie; ++it) {
 		stream << "    Class " << it->second.first << " \"" << it->first << "\" { ";
 		bool first = false;
-		for (typename yvector<T>::const_iterator iit = it->second.second.begin(), iie = it->second.second.end(); iit != iie; ++iit) {
+		for (typename TVector<T>::const_iterator iit = it->second.second.begin(), iie = it->second.second.end(); iit != iie; ++iit) {
 			if (first)
 				stream << ", ";
 			else

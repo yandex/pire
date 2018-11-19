@@ -40,7 +40,7 @@ using namespace Pire;
 inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pire::Encoding** enc = 0)
 {
 	Pire::Lexer lexer;
-	yvector<wchar32> ucs4;
+	TVector<wchar32> ucs4;
 
 	bool surround = true;
 	for (; *options; ++options) {

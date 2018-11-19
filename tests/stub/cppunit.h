@@ -54,8 +54,8 @@ public:
 	const Pire::ystring& name() const { return mName; }
 private:
 	Pire::ystring mName;
-	Pire::yvector<TestSuite*> mSubSuites;
-	Pire::yvector<TestCase*> mTestCases;
+	Pire::TVector<TestSuite*> mSubSuites;
+	Pire::TVector<TestCase*> mTestCases;
 	TestRunner* mRunner;
 };
 
@@ -72,8 +72,8 @@ private:
 	Pire::ystring testFullName();
 	static void onSignal(int signame);
 private:
-	Pire::yvector<TestSuite*> mSuites;
-	Pire::yvector<Pire::ystring> mRunningSuites;
+	Pire::TVector<TestSuite*> mSuites;
+	Pire::TVector<Pire::ystring> mRunningSuites;
 	Pire::ystring mRunningTest;
 	Pire::ystring mChkptFile;
 	int mChkptLine;

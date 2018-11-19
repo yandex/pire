@@ -37,7 +37,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		Pire::Lexer lex;
 		lex.SetEncoding(encoding);
-		yvector<wchar32> ucs4;
+		TVector<wchar32> ucs4;
 		encoding.FromLocal(regexp, regexp + strlen(regexp), std::back_inserter(ucs4));
 		lex.Assign(ucs4.begin(), ucs4.end());
 		return lex.Parse();
@@ -246,7 +246,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		UNIT_ASSERT_EQUAL(st.Result(1), size_t(2));
 
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 
 		// Test mmap-ing at various alignments
 		for (size_t offset = 0; offset < MaxTestOffset; ++offset) {
@@ -304,7 +304,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		size_t bytes_before_actions = src_size - tags_size;
 		const int fill_char = 0x42;
 
-		yvector<char> buf2(patched_size + src_size + 2 * ALIGNMENT);
+		TVector<char> buf2(patched_size + src_size + 2 * ALIGNMENT);
 		char* dst = reinterpret_cast<char*>(Pire::Impl::AlignUp(&buf2[0], ALIGNMENT));
 		char* patched = dst;
 
@@ -391,7 +391,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		UNIT_CHECKPOINT(); Run(sc3, "a string");
 
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 

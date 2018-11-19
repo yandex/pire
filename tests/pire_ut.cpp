@@ -488,7 +488,7 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::Scanner fast3;
 	Pire::ScannerNoMask fastNoMask3;
 	const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-	yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+	TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 	const char* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 	const char* end = ptr + wbuf.Buffer().Size();
 	memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());

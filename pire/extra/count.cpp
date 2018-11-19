@@ -34,7 +34,7 @@ namespace Impl {
 
 typedef LoadedScanner::Action Action;
 typedef ymap<Char, Action> TransitionTagRow;
-typedef yvector<TransitionTagRow> TransitionTagTable;
+typedef TVector<TransitionTagRow> TransitionTagTable;
 
 class CountingFsmTask;
 
@@ -237,7 +237,7 @@ bool operator < (const DeterminedState& left, const DeterminedState& right) {
 	return asTuple(left) < asTuple(right);
 }
 
-bool InvalidCharRange(const yvector<Char>& range) {
+bool InvalidCharRange(const TVector<Char>& range) {
 	for (const auto letter : range) {
 		if (letter < MaxCharUnaligned && letter != 256) {
 			return false;
@@ -290,7 +290,7 @@ public:
 		return next;
 	}
 
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		ResizeOutput(states.size());
 		auto& newFsm = Output();
@@ -484,7 +484,7 @@ private:
 		return false;
 	}
 
-	Fsm::StatesSet GetRawStates(const yvector<std::reference_wrapper<const StateGroup>> groups, unsigned long excludedTags) const {
+	Fsm::StatesSet GetRawStates(const TVector<std::reference_wrapper<const StateGroup>> groups, unsigned long excludedTags) const {
 		Fsm::StatesSet result;
 		for (const auto& group : groups) {
 			for (const auto& taggedState : group.get()) {
@@ -727,7 +727,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 	Fsm sq;
 
 	typedef ypair<size_t, size_t> NewState;
-	yvector<NewState> states;
+	TVector<NewState> states;
 	ymap<NewState, size_t> invstates;
 
 	states.push_back(NewState(sep_re.Initial(), sep_re.Initial()));
@@ -777,7 +777,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 				sq.Resize(states.size());
 			}
 
-			for (yvector<Char>::const_iterator li = lit->second.second.begin(), le = lit->second.second.end(); li != le; ++li)
+			for (TVector<Char>::const_iterator li = lit->second.second.begin(), le = lit->second.second.end(); li != le; ++li)
 			sq.Connect(curstate, nsi->second, *li);
 			if (outputs)
 				sq.SetOutput(curstate, nsi->second, outputs);
@@ -832,7 +832,7 @@ public:
 	{
 	}
 	
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		States = states;
 		
@@ -849,7 +849,7 @@ public:
 	}
 			
 private:
-	yvector<State> States;
+	TVector<State> States;
 	TAction Action(const Scanner& sc, InternalState state, Char letter) const
 	{
 		size_t state_index = sc.StateIdx(state);

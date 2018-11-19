@@ -366,7 +366,7 @@ private:
 
 		// Build letter translation table
 		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
+			for (TVector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
 				m_letters[*it2] = it->second.first + HEADER_SIZE;
 	}
 
@@ -474,7 +474,7 @@ private:
 		YASSERT(m_buffer);
 
 		// Build the mapping from letter classes to characters
-		yvector< yvector<char> > letters(RowSize());
+		TVector< TVector<char> > letters(RowSize());
 		for (unsigned ch = 0; ch != 1 << (sizeof(char)*8); ++ch)
 			letters[m_letters[ch]].push_back(ch);
 
@@ -492,7 +492,7 @@ private:
 					if (ind + letters[let].size() > Shortcutting::ExitMaskCount)
 						break;
 					// For each character setup a mask
-					for (yvector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit) {
+					for (TVector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit) {
 						Shortcutting::SetMask(header, ind, *chit);
 						++ind;
 					}
@@ -1013,12 +1013,12 @@ public:
 	{
 	}
 	
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		// Make up a new scanner and fill in the final table
 		
 		size_t finalTableSize = 0;
-		for (typename yvector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
+		for (typename TVector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
 			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i->first)) + RangeLen(Rhs().AcceptedRegexps(i->second));
 		this->SetSc(new Scanner);
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());

@@ -56,7 +56,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		Pire::Lexer lexer;
 		lexer.AddFeature(Pire::Features::Capture((size_t) index));
 		lexer.SetEncoding(encoding);
-		yvector<wchar32> ucs4;
+		TVector<wchar32> ucs4;
 		encoding.FromLocal(regexp, regexp + strlen(regexp), std::back_inserter(ucs4));
 		lexer.Assign(ucs4.begin(), ucs4.end());
 		Pire::Fsm fsm = lexer.Parse();
@@ -190,7 +190,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 
 		CapturingScanner scanner3;
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		const void* tail = scanner3.Mmap(ptr, wbuf.Buffer().Size());
@@ -246,7 +246,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		UNIT_CHECKPOINT(); RunRegexp(sc3, "a string");
 
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 

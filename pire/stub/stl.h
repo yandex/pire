@@ -59,20 +59,20 @@
 
 namespace Pire {
 	template< class T, class A = std::allocator<T> >
-	class yvector: public std::vector<T, A> {
+	class TVector: public std::vector<T, A> {
 	public:
-		yvector(): std::vector<T, A>() {}
+		TVector(): std::vector<T, A>() {}
 
-		yvector(std::initializer_list<T> il): std::vector<T, A>(il) {}
+		TVector(std::initializer_list<T> il): std::vector<T, A>(il) {}
 
 		template<class Arg1>
-		yvector(Arg1 arg1): std::vector<T, A>(arg1) {}
+		TVector(Arg1 arg1): std::vector<T, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		yvector(Arg1 arg1, Arg2 arg2): std::vector<T, A>(arg1, arg2) {}
+		TVector(Arg1 arg1, Arg2 arg2): std::vector<T, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		yvector(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::vector<T, A>(arg1, arg2, arg3) {}
+		TVector(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::vector<T, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T, class A = std::allocator<T> >

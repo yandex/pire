@@ -40,12 +40,12 @@
 private:
 	ClearFinal();
 	// criteria to test whether a transition has been created or not.
-typedef yvector<size_t> DeterminedTransitions;
+typedef TVector<size_t> DeterminedTransitions;
 		PIRE_IFDEBUG(Cdbg << "Returning transition [" << Join(state.begin(), state.end(), ", ") << "] --" << letter
 	else if (c == EndMark)
 		m_final.insert(*it + lhsSize);	
 Fsm& Fsm::Append(char c)
-	yvector<bool> unchecked(Size(), true);
+	TVector<bool> unchecked(Size(), true);
 		return ystring("<Epsilon>");
 				size_t& newState = ltr[ymake_pair(state, *cit)];
 #include <algorithm>
@@ -70,7 +70,7 @@ Fsm& Fsm::Append(char c)
 	ConnectFinal(Size() - 1, c);
 	// Assign the transition
 {
-	yvector<Char> distinctLetters;
+	TVector<Char> distinctLetters;
 
 	}
 		last.Split(MinimizeEquality(detTran, distinctLetters, &stateClassMap));
@@ -97,7 +97,7 @@ Fsm& Fsm::operator += (const Fsm& rhs)
 	}
 			return false;
 }
-	yvector< ybitset<MaxChar> > row(Size());
+	TVector< ybitset<MaxChar> > row(Size());
 	}
 		// Append tags
 	size_t end = Size() - 1;
@@ -151,7 +151,7 @@ Fsm& Fsm::operator &= (const Fsm& rhs)
 	Complement();
 	m_transitions(1),
 			if (targets == dest->end())
-Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
+Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 			tags[dest] |= ti->second;
 
 				Old2New::iterator from = old2new.find(i->first);
@@ -288,7 +288,7 @@ Fsm& Fsm::AppendSpecial(Char c)
 				return false;
 
 	// Resize FSM
-			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
+			for (TVector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
 			if ((*m_prev)[a] != (*m_prev)[b])
 		initial = rhs.initial + lhsSize;
 	for (TransitionTable::const_iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j) {
@@ -346,8 +346,8 @@ void Fsm::RemoveEpsilons()
 				return false;
 	for (size_t letter = 0; letter != (1 << (sizeof(char)*8)); ++letter)
 	for (TransitionTable::iterator from = oldTransitions.begin(), fromEnd = oldTransitions.end(); from != fromEnd; ++from, ++fromIdx) {
-	void AcceptStates(const yvector<State>& states)
-	typedef yvector<size_t> State;
+	void AcceptStates(const TVector<State>& states)
+	typedef TVector<size_t> State;
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
 			YASSERT(k->second.size() == 1);
 	determined = false;
@@ -370,13 +370,13 @@ void Fsm::Disconnect(size_t from, size_t to, Char c)
 	RemoveDeadEnds();
 	return *this;
 			inveps[*to].insert(from);
-	for (yvector<ystring>::const_iterator i = strings.begin(), ie = strings.end(); i != ie; ++i)
+	for (TVector<ystring>::const_iterator i = strings.begin(), ie = strings.end(); i != ie; ++i)
 	// Merge transitions from 'to' state into transitions from 'from' state
 		}
 	}
 	PIRE_IFDEBUG(unsigned cnt = 0);
 	static const unsigned MaxSize = 200000;
-			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
+			for (TVector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
 unsigned long Fsm::Output(size_t from, size_t to) const
 	m_sparsed = true;
 	out.Resize(Size() + 1);
@@ -495,7 +495,7 @@ Fsm Fsm::operator *(size_t count)
 		if (i != initial)
 }
 // TODO: Think how to update only changed states
-typedef yvector<size_t> StateClassMap;
+typedef TVector<size_t> StateClassMap;
 bool Fsm::Determine(size_t maxsize /* = 0 */)
 	}
 
@@ -519,7 +519,7 @@ Fsm Fsm::MakeFalse()
 //     PIRE_IFDEBUG(LOG_DEBUG("fsm") << "Importing");
 		for (StatesSet::const_iterator inner = outer->second.begin(), innerEnd = outer->second.end(); inner != innerEnd; ++inner)
 	if (IsFinal(state))
-				const yvector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
+				const TVector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
 			// The last letter: connect the current state to end
 	const Fsm::FinalTable* m_final;
 				if (ti != mFsm.tags.end()) {
@@ -542,7 +542,7 @@ Fsm Fsm::MakeFalse()
 }
 	for (TransitionRow::const_iterator rit = m_transitions[state].begin(), rie = m_transitions[state].end(); rit != rie; ++rit)
 		}
-					yvector<int> payload;
+					TVector<int> payload;
 			}
 // Updates the mapping of states to partitions.
     return *this;
@@ -623,7 +623,7 @@ Fsm& Fsm::Surround()
 			}
 		i->erase(Epsilon);
 	
-	for (yvector<ystring>::const_iterator sit = strings.begin(), sie = strings.end(); sit != sie; ++sit) {
+	for (TVector<ystring>::const_iterator sit = strings.begin(), sie = strings.end(); sit != sie; ++sit) {
 	PIRE_IFDEBUG(Cdbg << "=== Initial ===" << Endl << *this << Endl);
 		Connect(begin, begin, letter);
 	ConnectFinal(Size() - 1);

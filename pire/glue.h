@@ -108,7 +108,7 @@ private:
 	}
 
 	value_type*   mMap;        // not using vector here to avoid initialization
-	yvector<bool> mFilled;
+	TVector<bool> mFilled;
 
 	// Noncopyable
 	GluedStateLookupTable(const GluedStateLookupTable&);

@@ -34,7 +34,7 @@
 #include <pire.h>
 ystring filename = "";
 int line = 1;
-yvector<ystring> args;
+TVector<ystring> args;
 
 #ifdef _WIN32
 static int isatty(int) { return 0; }
@@ -128,7 +128,7 @@ void eatComment(void (*action)(char));
 	bool first = true;
 	Pire::Scanner sc;
 	ystring pattern;
-	for (yvector<ystring>::iterator i = args.begin(), ie = args.end(); i != ie; i += 2) {
+	for (TVector<ystring>::iterator i = args.begin(), ie = args.end(); i != ie; i += 2) {
 		
 		Pire::Lexer lexer(i->c_str(), i->c_str() + i->size());
 		bool surround = false;
