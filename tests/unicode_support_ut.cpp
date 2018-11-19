@@ -37,7 +37,7 @@ SIMPLE_UNIT_TEST_SUITE(UnicodeSupport) {
 
     ystring CreateStringWithZeroSymbol(const char* str, size_t pos) {
         ystring result = str;
-        YASSERT(pos < result.size());
+        Y_ASSERT(pos < result.size());
         result[pos] = '\0';
         return result;
     }

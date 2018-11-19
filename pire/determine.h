@@ -184,7 +184,7 @@ namespace Pire {
 		template<class Task>
 		bool UpdateStateClassMap(StateClassMap& clMap, const Partition<size_t, MinimizeEquality<Task>>& stPartition)
 		{
-			YASSERT(!clMap.empty());
+			Y_ASSERT(!clMap.empty());
 			bool changed = false;
 			for (size_t st = 0; st < clMap.size(); st++) {
 				size_t cl = stPartition.Representative(st);

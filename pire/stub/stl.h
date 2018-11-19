@@ -47,9 +47,9 @@
 #include <assert.h>
 
 #ifdef PIRE_CHECKED
-#define YASSERT(e) assert(e)
+#define Y_ASSERT(e) assert(e)
 #else
-#define YASSERT(e) do {} while (0)
+#define Y_ASSERT(e) do {} while (0)
 #endif
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)

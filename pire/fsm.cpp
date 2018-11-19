@@ -78,7 +78,7 @@ void Fsm::DumpState(yostream& s, size_t state) const
 		for (StatesSet::const_iterator sit = rit->second.begin(), sie = rit->second.end(); sit != sie; ++sit) {
 			if (*sit >= Size()) {
 				std::cerr << "WTF?! Transition from " << state << " on letter " << rit->first << " leads to non-existing state " << *sit << "\n";
-				YASSERT(false);
+				Y_ASSERT(false);
 			}
 			if (Letters().Contains(rit->first)) {
 				const TVector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
@@ -976,7 +976,7 @@ public:
 	void Connect(size_t from, size_t to, Char letter)
 	{
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
-		YASSERT(mNewTerminals.find(from) == mNewTerminals.end());
+		Y_ASSERT(mNewTerminals.find(from) == mNewTerminals.end());
 		mNewFsm.Connect(from, to, letter);
 	}
 	typedef bool Result;
@@ -1057,7 +1057,7 @@ public:
 
 	size_t Next(size_t state, Char letter) const {
 		const Fsm::StatesSet& tos = mFsm.Destinations(state, letter);
-		YASSERT(tos.size() == 1);
+		Y_ASSERT(tos.size() == 1);
 		return *tos.begin();
 	}
 
@@ -1074,7 +1074,7 @@ public:
 			size_t dest = partition.Index(fromIdx);
 			PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
 			for (Fsm::TransitionRow::const_iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
-				YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
+				Y_ASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
 				mNewFsm.Connect(dest, partition.Index(*letter->second.begin()), letter->first);
 			}
 			if (mFsm.IsFinal(fromIdx)) {
@@ -1128,7 +1128,7 @@ private:
 void Fsm::Minimize()
 {
 	// Minimization algorithm is only applicable to a determined FSM.
-	YASSERT(determined);
+	Y_ASSERT(determined);
 
 	Impl::FsmMinimizeTask task{*this};
 	if (Pire::Impl::Minimize(task)) {

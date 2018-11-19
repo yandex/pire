@@ -171,7 +171,7 @@ public:
 
 	size_t Next(size_t state, Char letter) const {
 		const auto& tos = mFsm.Determined().Destinations(state, letter);
-		YASSERT(tos.size() == 1);
+		Y_ASSERT(tos.size() == 1);
 		return *tos.begin();
 	}
 
@@ -414,7 +414,7 @@ protected:
 
 	void NormalizeState(State& state) const {
 		if (!state.matched.empty()) {
-			YASSERT(state.unmatched.empty());
+			Y_ASSERT(state.unmatched.empty());
 			state.unmatched.swap(state.matched);
 		}
 
@@ -564,7 +564,7 @@ private:
 		if (fromIsEmpty) {
 			from.unmatched.insert(mStartState);
 		}
-		YASSERT(IsValidState(from));
+		Y_ASSERT(IsValidState(from));
 
 		SplitDestinations(next.matched, next.unmatched, next.separated, from.unmatched, letter);
 		if (next.matched.empty() && !next.separated.empty()) {
@@ -627,7 +627,7 @@ private:
 	}
 
 	void SplitSeparatedByFsmTag(State& state) const {
-		YASSERT(state.unmatched.empty());
+		Y_ASSERT(state.unmatched.empty());
 		StateGroup separated;
 		separated.swap(state.separated);
 		SplitGroupByTag(state.matched, state.unmatched, state.separated, separated, true);
@@ -750,9 +750,9 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 			const Fsm::StatesSet& br = sep_re.Destinations(states[curstate].second, letter);
 
 			if (mr.size() != 1)
-				YASSERT(!"Wrong transition size for main");
+				Y_ASSERT(!"Wrong transition size for main");
 			if (br.size() != 1)
-				YASSERT(!"Wrong transition size for backup");
+				Y_ASSERT(!"Wrong transition size for backup");
 
 			NewState ns(*mr.begin(), *br.begin());
 			PIRE_IFDEBUG(NewState savedNs = ns);
@@ -811,7 +811,7 @@ AdvancedCountingScanner::AdvancedCountingScanner(const Fsm& re, const Fsm& sep, 
 		for (auto lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
 			const auto letter = lit->first;
 			const auto& tos = determined.Destinations(from, letter);
-			YASSERT(tos.size() == 1);
+			Y_ASSERT(tos.size() == 1);
 			SetJump(from, letter, *tos.begin(), RemapAction(countingFsm.Output(from, letter)));
 		}
 	}

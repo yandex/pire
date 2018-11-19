@@ -92,7 +92,7 @@ public:
 		if (it == m_inv.end())
 			throw Error("Partition::index(): attempted to obtain an index of nonexistent item");
 		typename Set::const_iterator it2 = m_set.find(it->second);
-		YASSERT(it2 != m_set.end());
+		Y_ASSERT(it2 != m_set.end());
 		return it2->second.first;
 	}
 	/// Returns the whole equivalence class of @p t (i.e. item @p i
@@ -103,7 +103,7 @@ public:
 		if (it == m_inv.end())
 			throw Error("Partition::index(): attempted to obtain an index of nonexistent item");
 		ConstIterator it2 = m_set.find(it->second);
-		YASSERT(it2 != m_set.end());
+		Y_ASSERT(it2 != m_set.end());
 		return it2->second.second;
 	}
 

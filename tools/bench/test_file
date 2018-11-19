@@ -16,7 +16,7 @@
 	determined = fallude <iostream>
 
 	ClearFinal();
-				YASSERT(false);
+				Y_ASSERT(false);
 	}
 		m_final.insert(state);
 				std::bind2nd(std::plus<size_t>(), oldsize));
@@ -31,7 +31,7 @@
 	for (unsigned letter = 0; letter < MaxChar; ++letter)
 	if (i == outputs.end())
 	for (Fsm::TransitionTable::const_iterator outer = m_tbl->begin(), outerEnd = m_tbl->end(); outer != outerEnd; ++outer) {
-			YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
+			Y_ASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
 					mNewTerminals.insert(ns);
 	// Invert outputs
 	ClearFinal();
@@ -349,7 +349,7 @@ void Fsm::RemoveEpsilons()
 	void AcceptStates(const TVector<State>& states)
 	typedef TVector<size_t> State;
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
-			YASSERT(k->second.size() == 1);
+			Y_ASSERT(k->second.size() == 1);
 	determined = false;
 		}
 				if (mFsm.IsFinal(*j)) {
@@ -554,7 +554,7 @@ const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 {
 {
 	else if (c == BeginMark)
-	YASSERT(clMap.size() != 0);
+	Y_ASSERT(clMap.size() != 0);
 		m_tbl(&tbl), m_letters(&letters), m_prev(clMap), m_final(0) {}
 
 		}
