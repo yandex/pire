@@ -324,8 +324,8 @@ Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 	// state #0 cannot appear in LTRs. Thus we can use this
 	// criteria to test whether a transition has been created or not.
 	typedef ypair<size_t, char> Transition;
-	ymap<char, size_t> startLtr;
-	ymap<Transition, size_t> ltr;
+	TMap<char, size_t> startLtr;
+	TMap<Transition, size_t> ltr;
 
 	// A presense of a transition in this set indicates that
 	// a that transition already points somewhere (either to end
@@ -878,7 +878,7 @@ class FsmDetermineTask {
 public:
 	typedef TVector<size_t> State;
 	typedef Fsm::LettersTbl LettersTbl;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 	
 	FsmDetermineTask(const Fsm& fsm)
 		: mFsm(fsm)
@@ -952,7 +952,7 @@ public:
 			}
 		}
 		// For each old state, prepare a list of new state it is contained in
-		typedef ymap< size_t, TVector<size_t> > Old2New;
+		typedef TMap< size_t, TVector<size_t> > Old2New;
 		Old2New old2new;
 		for (size_t ns = 0; ns < states.size(); ++ns)
 			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j)

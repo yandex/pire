@@ -47,7 +47,7 @@ namespace Pire {
 			typedef Partition<char, ImplementationSpecific2> LettersTbl;
 
 			/// A container used for storing map of states to thier indices.
-			typedef ymap<State, size_t> InvStates;
+			typedef TMap<State, size_t> InvStates;
 
 			/// Should return used letters' partition.
 			const LettersTbl& Letters() const;

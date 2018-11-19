@@ -106,18 +106,18 @@ namespace Pire {
 	};
 
 	template< class K, class V, class C = std::less<K>, class A = std::allocator< std::pair<const K, V> > >
-	class ymap: public std::map<K, V, C, A> {
+	class TMap: public std::map<K, V, C, A> {
 	public:
-		ymap(): std::map<K, V, C, A>() {}
+		TMap(): std::map<K, V, C, A>() {}
 
 		template<class Arg1>
-		ymap(Arg1 arg1): std::map<K, V, C, A>(arg1) {}
+		TMap(Arg1 arg1): std::map<K, V, C, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		ymap(Arg1 arg1, Arg2 arg2): std::map<K, V, C, A>(arg1, arg2) {}
+		TMap(Arg1 arg1, Arg2 arg2): std::map<K, V, C, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		ymap(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::map<K, V, C, A>(arg1, arg2, arg3) {}
+		TMap(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::map<K, V, C, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T, class C = std::less<T>, class A = std::allocator<T> >

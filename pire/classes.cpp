@@ -73,7 +73,7 @@ namespace {
 
 		TSet<wchar32> Get(wchar32 wc) const
 		{
-			ymap<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
+			TMap<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
 			if (it == m_classes.end())
 				throw Error("Unknown character class");
 			return it->second.ToSet();
@@ -101,7 +101,7 @@ namespace {
 			m_classes['t'] = CharClass('\t');
 		}
 
-		ymap<wchar32, CharClass> m_classes;
+		TMap<wchar32, CharClass> m_classes;
 	};
 
 	class CharClassesImpl: public Feature {

@@ -121,7 +121,7 @@ namespace Pire {
 		void DumpTo(yostream& s, const ystring& name = "") const;
 
 		typedef TSet<size_t> StatesSet;
-		typedef ymap<size_t, StatesSet> TransitionRow;
+		typedef TMap<size_t, StatesSet> TransitionRow;
 		typedef TVector<TransitionRow> TransitionTable;
 
 		struct LettersEquality {
@@ -224,10 +224,10 @@ namespace Pire {
 		bool determined;
 
 		/// Output
-		typedef ymap< size_t, ymap<size_t, unsigned long> > Outputs;
+		typedef TMap< size_t, TMap<size_t, unsigned long> > Outputs;
 		Outputs outputs;
 		
-		typedef ymap<size_t, unsigned long> Tags;
+		typedef TMap<size_t, unsigned long> Tags;
 		Tags tags;
 
 		/// Heuristics hit: true iff this FSM is a union of two other FSMs

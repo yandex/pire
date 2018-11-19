@@ -45,11 +45,11 @@ namespace {
 	class GlyphTable {
 	private:
 		ylist< TVector<wchar32> > m_classes;
-		ymap<wchar32, TVector<wchar32>*> m_map;
+		TMap<wchar32, TVector<wchar32>*> m_map;
 
 		struct GlyphClass {
 			TVector<wchar32>* m_class;
-			ymap<wchar32, TVector<wchar32>*> *m_map;
+			TMap<wchar32, TVector<wchar32>*> *m_map;
 
 			GlyphClass& operator << (wchar32 c)
 			{
@@ -72,7 +72,7 @@ namespace {
 
 		const TVector<wchar32>& Klass(wchar32 x) const
 		{
-			ymap<wchar32, TVector<wchar32>*>::const_iterator i = m_map.find(x);
+			TMap<wchar32, TVector<wchar32>*>::const_iterator i = m_map.find(x);
 			if (i != m_map.end())
 				return *i->second;
 			else

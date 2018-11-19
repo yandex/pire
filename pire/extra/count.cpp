@@ -33,7 +33,7 @@ namespace Pire {
 namespace Impl {
 
 typedef LoadedScanner::Action Action;
-typedef ymap<Char, Action> TransitionTagRow;
+typedef TMap<Char, Action> TransitionTagRow;
 typedef TVector<TransitionTagRow> TransitionTagTable;
 
 class CountingFsmTask;
@@ -250,7 +250,7 @@ class BasicCountingFsmDetermineTask : public CountingFsmTask {
 public:
 	using CountingFsmTask::LettersTbl;
 	typedef DeterminedState State;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 
 	explicit BasicCountingFsmDetermineTask(const Fsm& fsm, RawState reInitial)
 		: mFsm(fsm)
@@ -514,7 +514,7 @@ private:
 	Fsm::StatesSet mDeadStates;
 	TSet<Char> mInvalidLetters;
 
-	mutable ymap<State, TransitionTagRow> mActionByState;
+	mutable TMap<State, TransitionTagRow> mActionByState;
 };
 
 class CountingFsmDetermineTask : public BasicCountingFsmDetermineTask {
@@ -728,7 +728,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 
 	typedef ypair<size_t, size_t> NewState;
 	TVector<NewState> states;
-	ymap<NewState, size_t> invstates;
+	TMap<NewState, size_t> invstates;
 
 	states.push_back(NewState(sep_re.Initial(), sep_re.Initial()));
 	invstates.insert(ymake_pair(states.back(), states.size() - 1));
@@ -769,7 +769,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 
 			PIRE_IFDEBUG(if (ns != savedNs) Cdbg << "Diverted transition to (" << savedNs.first << ", " << savedNs.second << ") on " << (char) letter << " to (" << ns.first << ", " << ns.second << ")" << dbgout << Endl);
 
-			ymap<NewState, size_t>::iterator nsi = invstates.find(ns);
+			TMap<NewState, size_t>::iterator nsi = invstates.find(ns);
 			if (nsi == invstates.end()) {
 				PIRE_IFDEBUG(Cdbg << "New state " << states.size() << " = (" << ns.first << ", " << ns.second << ")" << Endl);
 				states.push_back(ns);
@@ -825,7 +825,7 @@ public:
 	using typename ScannerGlueCommon<Scanner>::State;
 	using TAction = typename Scanner::Action;
 	using InternalState = typename Scanner::InternalState;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 	
 	CountingScannerGlueTask(const Scanner& lhs, const Scanner& rhs)
 		: ScannerGlueCommon<Scanner>(lhs, rhs, LettersEquality<Scanner>(lhs.m_letters, rhs.m_letters))

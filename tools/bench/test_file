@@ -189,7 +189,7 @@ ystring CharDump(Char c)
 				// If any state containing in our one is marked final, mark the new state final as well
 			oi->second.insert(ymake_pair(dest, output));
 		const StatesSet& connections = (inverted.m_transitions[to])[0];
-	ymap<Transition, size_t> ltr;
+	TMap<Transition, size_t> ltr;
 
 	SetFinal(Size() - 1, true);
 	ClearHints();
@@ -401,7 +401,7 @@ unsigned long Fsm::Output(size_t from, size_t to) const
 Char Fsm::Translate(Char c) const
 		}
 
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 			if (*from != thru)
  * You should have received a copy of the GNU Lesser Public License
 

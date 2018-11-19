@@ -37,7 +37,7 @@ namespace Pire {
 template<class T, class Eq>
 class Partition {
 private:
-	typedef ymap< T, ypair< size_t, TVector<T> > > Set;
+	typedef TMap< T, ypair< size_t, TVector<T> > > Set;
 
 public:
 	Partition(const Eq& eq)
@@ -71,7 +71,7 @@ public:
 	/// - representative(a) is equivalent to a.
 	const T& Representative(const T& t) const
 	{
-		typename ymap<T, T>::const_iterator it = m_inv.find(t);
+		typename TMap<T, T>::const_iterator it = m_inv.find(t);
 		if (it != m_inv.end())
 			return it->second;
 		else
@@ -88,7 +88,7 @@ public:
 	/// - 0 <= index(a) < size().
 	size_t Index(const T& t) const
 	{
-		typename ymap<T, T>::const_iterator it = m_inv.find(t);
+		typename TMap<T, T>::const_iterator it = m_inv.find(t);
 		if (it == m_inv.end())
 			throw Error("Partition::index(): attempted to obtain an index of nonexistent item");
 		typename Set::const_iterator it2 = m_set.find(it->second);
@@ -99,7 +99,7 @@ public:
 	/// is returned iff representative(i) == representative(t)).
 	const TVector<T>& Klass(const T& t) const
 	{
-		typename ymap<T, T>::const_iterator it = m_inv.find(t);
+		typename TMap<T, T>::const_iterator it = m_inv.find(t);
 		if (it == m_inv.end())
 			throw Error("Partition::index(): attempted to obtain an index of nonexistent item");
 		ConstIterator it2 = m_set.find(it->second);
@@ -137,7 +137,7 @@ public:
 private:
 	Eq m_eq;
 	Set m_set;
-	ymap<T, T> m_inv;
+	TMap<T, T> m_inv;
 	size_t m_maxidx;
 
 	void DoAppend(Set& set, const T& t)
