@@ -653,7 +653,7 @@ yset<size_t> Fsm::DeadStates() const
 
 		TVector<bool> unchecked(Size(), true);
 		TVector<bool> useless(Size(), true);
-		ydeque<size_t> queue;
+		TDeque<size_t> queue;
 
 		// Put all final (or initial) states into queue, marking them useful
 		for (size_t i = 0; i < Size(); ++i)

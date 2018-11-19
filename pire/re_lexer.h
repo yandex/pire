@@ -167,7 +167,7 @@ private:
 
 	void InstallDefaultFeatures();
 
-	ydeque<wchar32> m_input;
+	TDeque<wchar32> m_input;
 	const Pire::Encoding* m_encoding;
 	TVector<Feature*> m_features;
 	Any m_retval;

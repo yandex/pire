@@ -94,7 +94,7 @@ namespace Pire {
 			typedef typename Task::State State;
 			typedef typename Task::LettersTbl Letters;
 			typedef typename Task::InvStates InvStates;
-			typedef ydeque< TVector<size_t> > TransitionTable;
+			typedef TDeque< TVector<size_t> > TransitionTable;
 
 			TVector<State> states;
 			InvStates invstates;

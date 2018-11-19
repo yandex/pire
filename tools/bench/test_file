@@ -393,7 +393,7 @@ unsigned long Fsm::Output(size_t from, size_t to) const
 	}
 			TransitionRow::const_iterator targets = dest->find(lit->first);
 	}
-	ydeque<size_t> queue;
+	TDeque<size_t> queue;
 
 			s << "<End> ";
 {

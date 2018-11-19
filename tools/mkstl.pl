@@ -111,7 +111,7 @@ namespace Pire {
 EOF
 
 print_def 'TVector',   'std::vector',    'class T', 'class A = std::allocator<T>';
-print_def 'ydeque',    'std::deque',     'class T', 'class A = std::allocator<T>';
+print_def 'TDeque',    'std::deque',     'class T', 'class A = std::allocator<T>';
 print_def 'ylist',     'std::list',      'class T', 'class A = std::allocator<T>';
 print_def 'ymap',      'std::map',       'class K', 'class V', 'class C = std::less<K>', 'class A = std::allocator< std::pair<const K, V> >';
 print_def 'yset',      'std::set',       'class T', 'class C = std::less<T>', 'class A = std::allocator<T>';

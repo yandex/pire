@@ -76,18 +76,18 @@ namespace Pire {
 	};
 
 	template< class T, class A = std::allocator<T> >
-	class ydeque: public std::deque<T, A> {
+	class TDeque: public std::deque<T, A> {
 	public:
-		ydeque(): std::deque<T, A>() {}
+		TDeque(): std::deque<T, A>() {}
 
 		template<class Arg1>
-		ydeque(Arg1 arg1): std::deque<T, A>(arg1) {}
+		TDeque(Arg1 arg1): std::deque<T, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		ydeque(Arg1 arg1, Arg2 arg2): std::deque<T, A>(arg1, arg2) {}
+		TDeque(Arg1 arg1, Arg2 arg2): std::deque<T, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		ydeque(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::deque<T, A>(arg1, arg2, arg3) {}
+		TDeque(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::deque<T, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T, class A = std::allocator<T> >

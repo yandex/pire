@@ -221,7 +221,7 @@ private:
 	static bool BeginsWithCircumflex(const Fsm& fsm)
 	{
 		typedef Fsm::StatesSet Set;
-		ydeque<size_t> queue;
+		TDeque<size_t> queue;
 		BitSet handled(fsm.Size());
 		
 		queue.push_back(fsm.Initial());
