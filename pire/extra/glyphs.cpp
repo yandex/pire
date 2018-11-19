@@ -44,7 +44,7 @@ namespace {
 	*/
 	class GlyphTable {
 	private:
-		ylist< TVector<wchar32> > m_classes;
+		TList< TVector<wchar32> > m_classes;
 		TMap<wchar32, TVector<wchar32>*> m_map;
 
 		struct GlyphClass {

@@ -91,18 +91,18 @@ namespace Pire {
 	};
 
 	template< class T, class A = std::allocator<T> >
-	class ylist: public std::list<T, A> {
+	class TList: public std::list<T, A> {
 	public:
-		ylist(): std::list<T, A>() {}
+		TList(): std::list<T, A>() {}
 
 		template<class Arg1>
-		ylist(Arg1 arg1): std::list<T, A>(arg1) {}
+		TList(Arg1 arg1): std::list<T, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		ylist(Arg1 arg1, Arg2 arg2): std::list<T, A>(arg1, arg2) {}
+		TList(Arg1 arg1, Arg2 arg2): std::list<T, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		ylist(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::list<T, A>(arg1, arg2, arg3) {}
+		TList(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::list<T, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class K, class V, class C = std::less<K>, class A = std::allocator< std::pair<const K, V> > >
