@@ -88,7 +88,7 @@ public:
 			throw Pire::Error("type mismatch");
 	}
 
-	void Swap(Any& a) throw () {
+	void Swap(Any& a) noexcept {
 		DoSwap(h, a.h);
 	}
 
