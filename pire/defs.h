@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -29,6 +29,14 @@
 #endif
 #include <stdlib.h>
 
+#if defined(_MSC_VER)
+#define PIRE_HAVE_DECLSPEC_ALIGN
+#else
+#define PIRE_HAVE_ALIGNAS
+#endif
+
+#define PIRE_HAVE_LAMBDAS
+
 namespace Pire {
 
 #ifdef PIRE_DEBUG
@@ -36,7 +44,7 @@ namespace Pire {
 #else
 #	define PIRE_IFDEBUG(x)
 #endif
-	
+
 #ifdef PIRE_CHECKED
 #	define PIRE_IF_CHECKED(e) e
 #else
@@ -45,7 +53,7 @@ namespace Pire {
 
 
 	typedef unsigned short Char;
-	
+
 	namespace SpecialChar {
 	enum {
 		Epsilon = 257,
@@ -59,7 +67,7 @@ namespace Pire {
 		MaxChar = (MaxCharUnaligned + (sizeof(void*)-1)) & ~(sizeof(void*)-1)
 	};
 	}
-	
+
 	using namespace SpecialChar;
 
 	namespace Impl {
@@ -88,6 +96,8 @@ namespace Pire {
 #		define PIRE_ALIGNED_DECL(x) alignas(::Pire::Impl::Struct) static const char x[]
 #	elif defined(PIRE_HAVE_ATTR_ALIGNED)
 #		define PIRE_ALIGNED_DECL(x) static const char x[] __attribute__((aligned(sizeof(void*))))
+#	elif defined(PIRE_HAVE_DECLSPEC_ALIGN)
+#		define PIRE_ALIGNED_DECL(x) __declspec(align(8)) static const char x[]
 #	endif
 #endif
 
