@@ -271,7 +271,7 @@ public:
 			return m_states.size();
 		}
 
-		const yvector<SingleState>& GetStates() const
+		const TVector<SingleState>& GetStates() const
 		{
 			return m_states;
 		}
@@ -293,7 +293,7 @@ public:
 		}
 
 	private:
-		yvector<SingleState> m_states;
+		TVector<SingleState> m_states;
 		size_t m_strpos;
 		bool m_matched;
 		SingleState m_match;
@@ -324,9 +324,9 @@ public:
 
 	class PriorityStates {
 	private:
-		yvector<SingleState> m_nonGreedy;
-		yvector<SingleState> m_nothing;
-		yvector<SingleState> m_greedy;
+		TVector<SingleState> m_nonGreedy;
+		TVector<SingleState> m_nothing;
+		TVector<SingleState> m_greedy;
 
 	public:
 		void Push(const SingleState& st, RepetitionTypes repetition)
@@ -334,7 +334,7 @@ public:
 			Get(repetition).push_back(st);
 		}
 
-		yvector<SingleState>& Get(RepetitionTypes repetition)
+		TVector<SingleState>& Get(RepetitionTypes repetition)
 		{
 			switch (repetition) {
 				case NonGreedyRepetition:
@@ -346,7 +346,7 @@ public:
 			}
 		}
 
-		const yvector<SingleState>& Get(RepetitionTypes repetition) const
+		const TVector<SingleState>& Get(RepetitionTypes repetition) const
 		{
 			switch (repetition) {
 				case NonGreedyRepetition:
@@ -373,7 +373,7 @@ public:
 		return state.GetNum() * GetLettersCount() + letter;
 	}
 
-	void NextStates(const SingleState& state, Char letter, yvector<Transition>& nextStates) const
+	void NextStates(const SingleState& state, Char letter, TVector<Transition>& nextStates) const
 	{
 		if (IsMmaped()) {
 			const size_t* pos = GetJumpPos() + GetPosition(state, letter);
@@ -390,7 +390,7 @@ public:
 		}
 	}
 
-	void InsertStates(const PriorityStates& states, yvector<SingleState>& nonGreedy, yvector<SingleState>& nothing, yvector<SingleState>& greedy) const
+	void InsertStates(const PriorityStates& states, TVector<SingleState>& nonGreedy, TVector<SingleState>& nothing, TVector<SingleState>& greedy) const
 	{
 		for (auto& greed : {ymake_pair(&nonGreedy, NonGreedyRepetition), ymake_pair(&nothing, NoRepetition), ymake_pair(&greedy, GreedyRepetition)}) {
 			auto& vec = greed.first;
@@ -400,9 +400,9 @@ public:
 	}
 
 	void NextAndGetToGroups(PriorityStates& states, const SingleState& cur,
-							Char letter, size_t pos, yvector<bool>& used) const
+							Char letter, size_t pos, TVector<bool>& used) const
 	{
-		yvector<Transition> nextStates;
+		TVector<Transition> nextStates;
 		NextStates(cur, letter, nextStates);
 		for (const auto& trans : nextStates) {
 			size_t st = trans.GetState();
@@ -443,7 +443,7 @@ public:
 			if (st.HasBegin())
 				return true;
 		}
-		yvector<Transition> nextStates;
+		TVector<Transition> nextStates;
 		NextStates(st, Translate(EndMark), nextStates);
 		for (const auto& trans : nextStates)
 		{
@@ -453,7 +453,7 @@ public:
 				if (st.HasBegin() || (trans.GetAction() & ActionsCapture))
 					return true;
 			} else { // After EndMark there can be Epsilon-transitions to the Final State
-				yvector<Transition> epsilonTrans;
+				TVector<Transition> epsilonTrans;
 				SingleState newSt(state);
 				NextStates(newSt, Translate(Epsilon), epsilonTrans);
 				for (auto new_trans : epsilonTrans) {
@@ -522,7 +522,7 @@ public:
 	{
 		PriorityStates states;
 		SingleState init(GetStart());
-		yvector<bool> used(GetSize());
+		TVector<bool> used(GetSize());
 		NextAndGetToGroups(states, init, Translate(BeginMark), 0, used);
 		NextAndGetToGroups(states, 0, Translate(BeginMark), 0, used);
 		UpdateNList(nlist, states);
@@ -535,7 +535,7 @@ public:
 			nlist.AddMatch(clist.GetMatched());
 		nlist.SetPos(clist.GetPos() + 1);
 		size_t strpos = nlist.GetPos();
-		yvector<bool> used(GetSize());
+		TVector<bool> used(GetSize());
 		size_t pos = 0;
 		while (pos < clist.GetSize()) {
 			PriorityStates states;

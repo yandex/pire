@@ -153,7 +153,7 @@ public:
 		// Build letter translation table
 		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
 		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
+			for (TVector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
 				m_letters[*it2] = it->second.first;
 	}
 
@@ -169,9 +169,9 @@ public:
 
 	void SetJump(size_t oldState, Char c, size_t newState, Action action)
 	{
-		YASSERT(m_buffer);
-		YASSERT(oldState < m.statesCount);
-		YASSERT(newState < m.statesCount);
+		Y_ASSERT(m_buffer);
+		Y_ASSERT(oldState < m.statesCount);
+		Y_ASSERT(newState < m.statesCount);
 
 		size_t shift = (newState - oldState) * StateSize();
 		Transition tr;
@@ -182,8 +182,8 @@ public:
 
 	Action RemapAction(Action action) { return action; }
 
-	void SetInitial(size_t state) { YASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
-	void SetTag(size_t state, Tag tag) { YASSERT(m_buffer); m_tags[state] = tag; }
+	void SetInitial(size_t state) { Y_ASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
+	void SetTag(size_t state, Tag tag) { Y_ASSERT(m_buffer); m_tags[state] = tag; }
 	void FinishBuild() {}
 
 	size_t StateIdx(InternalState s) const

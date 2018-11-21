@@ -60,7 +60,7 @@ public:
 	};
 
 	struct State {
-		yvector<unsigned> states;
+		TVector<unsigned> states;
 		BitSet flags;
 
 		State() {}
@@ -101,7 +101,7 @@ public:
 	{
 		next.flags.Clear();
 		next.states.clear();
-		for (yvector<unsigned>::const_iterator sit = current.states.begin(), sie = current.states.end(); sit != sie; ++sit) {
+		for (TVector<unsigned>::const_iterator sit = current.states.begin(), sie = current.states.end(); sit != sie; ++sit) {
 			const unsigned* begin = 0;
 			const unsigned* end = 0;
 			if (!m_vecptr) {
@@ -109,7 +109,7 @@ public:
 				begin = m_jumps + pos[0];
 				end = m_jumps + pos[1];
 			} else {
-				const yvector<unsigned>& v = (*m_vecptr)[*sit * m.lettersCount + l];
+				const TVector<unsigned>& v = (*m_vecptr)[*sit * m.lettersCount + l];
 				if (!v.empty()) {
 					begin = &v[0];
 					end = &v[0] + v.size();
@@ -148,7 +148,7 @@ public:
 
 	bool Final(const State& s) const
 	{
-		for (yvector<unsigned>::const_iterator it = s.states.begin(), ie = s.states.end(); it != ie; ++it)
+		for (TVector<unsigned>::const_iterator it = s.states.begin(), ie = s.states.end(); it != ie; ++it)
 			if (m_finals[*it])
 				return true;
 		return false;
@@ -269,7 +269,7 @@ public:
 		// Build letter translation table
 		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
 		for (Fsm::LettersTbl::ConstIterator it = fsm.Letters().Begin(), ie = fsm.Letters().End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
+			for (TVector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
 				m_letters[*it2] = it->second.first;
 
 		m.start = fsm.Initial();
@@ -281,7 +281,7 @@ public:
 
 	~SlowScanner()
 	{
-		for (yvector<void*>::const_iterator i = m_pool.begin(), ie = m_pool.end(); i != ie; ++i)
+		for (TVector<void*>::const_iterator i = m_pool.begin(), ie = m_pool.end(); i != ie; ++i)
 			free(*i);
 	}
 
@@ -311,12 +311,12 @@ protected:
 		return m_actions[pos];
 	}
 
-	const yvector<Action>& GetActionsVec(size_t from) const
+	const TVector<Action>& GetActionsVec(size_t from) const
 	{
 		return m_actionsvec[from];
 	}
 
-	const yvector<unsigned int>& GetJumpsVec(size_t from) const
+	const TVector<unsigned int>& GetJumpsVec(size_t from) const
 	{
 		return m_vec[from];
 	}
@@ -350,8 +350,8 @@ private:
 	size_t* m_jumpPos;
 	size_t* m_letters;
 
-	yvector<void*> m_pool;
-	yvector< yvector<unsigned> > m_vec, *m_vecptr;
+	TVector<void*> m_pool;
+	TVector< TVector<unsigned> > m_vec, *m_vecptr;
 
 	// Only used to force Null() call during static initialization, when Null()::n can be
 	// initialized safely by compilers that don't support thread safe static local vars
@@ -359,7 +359,7 @@ private:
 	static const SlowScanner* m_null;
 
 	bool need_actions;
-	yvector<yvector<Action>> m_actionsvec;
+	TVector<TVector<Action>> m_actionsvec;
 	inline static const SlowScanner& Null()
 	{
 		static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
@@ -390,9 +390,9 @@ private:
 	
 	void SetJump(size_t oldState, Char c, size_t newState, unsigned long action)
 	{
-		YASSERT(!m_vec.empty());
-		YASSERT(oldState < m.statesCount);
-		YASSERT(newState < m.statesCount);
+		Y_ASSERT(!m_vec.empty());
+		Y_ASSERT(oldState < m.statesCount);
+		Y_ASSERT(newState < m.statesCount);
 
 		size_t idx = oldState * m.lettersCount + m_letters[c];
 		m_vec[idx].push_back(newState);

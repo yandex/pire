@@ -73,16 +73,16 @@ ystring CharDump(Char c)
 void Fsm::DumpState(yostream& s, size_t state) const
 {
 	// Fill in a 'row': Q -> exp(V) (for current state)
-	yvector< ybitset<MaxChar> > row(Size());
+	TVector< ybitset<MaxChar> > row(Size());
 	for (TransitionRow::const_iterator rit = m_transitions[state].begin(), rie = m_transitions[state].end(); rit != rie; ++rit)
 		for (StatesSet::const_iterator sit = rit->second.begin(), sie = rit->second.end(); sit != sie; ++sit) {
 			if (*sit >= Size()) {
 				std::cerr << "WTF?! Transition from " << state << " on letter " << rit->first << " leads to non-existing state " << *sit << "\n";
-				YASSERT(false);
+				Y_ASSERT(false);
 			}
 			if (Letters().Contains(rit->first)) {
-				const yvector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
-				for (yvector<Char>::const_iterator lit = letters.begin(), lie = letters.end(); lit != lie; ++lit)
+				const TVector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
+				for (TVector<Char>::const_iterator lit = letters.begin(), lie = letters.end(); lit != lie; ++lit)
 					row[*sit].set(*lit);
 			} else
 				row[*sit].set(rit->first);
@@ -90,7 +90,7 @@ void Fsm::DumpState(yostream& s, size_t state) const
 
 	bool statePrinted = false;
 	// Display each destination state
-	for (yvector< ybitset<MaxChar> >::iterator rit = row.begin(), rie = row.end(); rit != rie; ++rit) {
+	for (TVector< ybitset<MaxChar> >::iterator rit = row.begin(), rie = row.end(); rit != rie; ++rit) {
 		unsigned begin = 0, end = 0;
 
 		ystring delimiter;
@@ -155,7 +155,7 @@ void Fsm::DumpState(yostream& s, size_t state) const
 				if (oit2 == oit->second.end())
 					;
 				else {
-					yvector<int> payload;
+					TVector<int> payload;
 					for (unsigned i = 0; i < sizeof(oit2->second) * 8; ++i)
 						if (oit2->second & (1ul << i))
 							payload.push_back(i);
@@ -234,9 +234,9 @@ const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 	return (i != m_transitions[from].end()) ? i->second : DefaultValue<StatesSet>();
 }
 
-yset<Char> Fsm::OutgoingLetters(size_t state) const
+TSet<Char> Fsm::OutgoingLetters(size_t state) const
 {
-	yset<Char> ret;
+	TSet<Char> ret;
 	for (TransitionRow::const_iterator i = m_transitions[state].begin(), ie = m_transitions[state].end(); i != ie; ++i)
 		ret.insert(i->first);
 	return ret;
@@ -307,9 +307,9 @@ Fsm& Fsm::AppendSpecial(Char c)
     return *this;
 }
 
-Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
+Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 {
-	for (yvector<ystring>::const_iterator i = strings.begin(), ie = strings.end(); i != ie; ++i)
+	for (TVector<ystring>::const_iterator i = strings.begin(), ie = strings.end(); i != ie; ++i)
 		if (i->empty())
 			throw Error("None of strings passed to appendStrings() can be empty");
 
@@ -324,17 +324,17 @@ Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
 	// state #0 cannot appear in LTRs. Thus we can use this
 	// criteria to test whether a transition has been created or not.
 	typedef ypair<size_t, char> Transition;
-	ymap<char, size_t> startLtr;
-	ymap<Transition, size_t> ltr;
+	TMap<char, size_t> startLtr;
+	TMap<Transition, size_t> ltr;
 
 	// A presense of a transition in this set indicates that
 	// a that transition already points somewhere (either to end
 	// or somewhere else). Another attempt to create such transition
 	// will clear `determined flag.
-	yset<Transition> usedTransitions;
-	yset<char> usedFirsts;
+	TSet<Transition> usedTransitions;
+	TSet<char> usedFirsts;
 
-	for (yvector<ystring>::const_iterator sit = strings.begin(), sie = strings.end(); sit != sie; ++sit) {
+	for (TVector<ystring>::const_iterator sit = strings.begin(), sie = strings.end(); sit != sie; ++sit) {
 		const ystring& str = *sit;
 
 		if (str.size() > 1) {
@@ -389,7 +389,7 @@ void Fsm::Import(const Fsm& rhs)
 			TransitionRow::const_iterator targets = outer->find(lit->first);
 			if (targets == outer->end())
 				continue;
-			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
+			for (TVector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
 				if (*cit != lit->first)
 					outer->insert(ymake_pair(*cit, targets->second));
 		}
@@ -398,7 +398,7 @@ void Fsm::Import(const Fsm& rhs)
 	TransitionTable::iterator dest = m_transitions.begin() + oldsize;
 	for (TransitionTable::const_iterator outer = rhs.m_transitions.begin(), outerEnd = rhs.m_transitions.end(); outer != outerEnd; ++outer, ++dest) {
 		for (TransitionRow::const_iterator inner = outer->begin(), innerEnd = outer->end(); inner != innerEnd; ++inner) {
-			yset<size_t> targets;
+			TSet<size_t> targets;
 			std::transform(inner->second.begin(), inner->second.end(), std::inserter(targets, targets.begin()),
 				std::bind2nd(std::plus<size_t>(), oldsize));
 			dest->insert(ymake_pair(inner->first, targets));
@@ -408,7 +408,7 @@ void Fsm::Import(const Fsm& rhs)
 			TransitionRow::const_iterator targets = dest->find(lit->first);
 			if (targets == dest->end())
 				continue;
-			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
+			for (TVector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
 				if (*cit != lit->first)
 					dest->insert(ymake_pair(*cit, targets->second));
 		}
@@ -630,9 +630,9 @@ Fsm& Fsm::Reverse()
 	return *this;
 }
 
-yset<size_t> Fsm::DeadStates() const
+TSet<size_t> Fsm::DeadStates() const
 {
-	yset<size_t> res;
+	TSet<size_t> res;
 
 	for (int invert = 0; invert <= 1; ++invert) {
 		Fsm digraph;
@@ -651,9 +651,9 @@ yset<size_t> Fsm::DeadStates() const
 			}
 		}
 
-		yvector<bool> unchecked(Size(), true);
-		yvector<bool> useless(Size(), true);
-		ydeque<size_t> queue;
+		TVector<bool> unchecked(Size(), true);
+		TVector<bool> useless(Size(), true);
+		TDeque<size_t> queue;
 
 		// Put all final (or initial) states into queue, marking them useful
 		for (size_t i = 0; i < Size(); ++i)
@@ -696,9 +696,9 @@ void Fsm::RemoveDeadEnds()
 {
 	PIRE_IFDEBUG(Cdbg << "Removing dead ends on:" << Endl << *this << Endl);
 
-	yset<size_t> dead = DeadStates();
+	TSet<size_t> dead = DeadStates();
 	// Erase all useless states
-	for (yset<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
+	for (TSet<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
 		PIRE_IFDEBUG(Cdbg << "Removing useless state " << *i << Endl);
 		m_transitions[*i].clear();
 		for (TransitionTable::iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j)
@@ -725,7 +725,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 
 	// Merge transitions from 'to' state into transitions from 'from' state
 	for (TransitionRow::const_iterator it = m_transitions[to].begin(), ie = m_transitions[to].end(); it != ie; ++it) {
-		yset<size_t> connStates;
+		TSet<size_t> connStates;
 		std::copy(it->second.begin(), it->second.end(),
 			std::inserter(m_transitions[from][it->first], m_transitions[from][it->first].end()));
 
@@ -736,7 +736,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 			std::copy(it->second.begin(), it->second.end(), std::inserter(connStates, connStates.end()));
 
 			// For each of these states add an output equal to the Epsilon-connection output
-			for (yset<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
+			for (TSet<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
 				outputs[from][*newConnSt] |= frEpsOutput;
 			}
 		}
@@ -765,7 +765,7 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 // finds all states which are Epsilon-reachable from 'thru' and connects
 // them directly to 'from' with Epsilon transition having proper output.
 // Updates inverse map of epsilon transitions as well.
-void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps)
+void Fsm::ShortCutEpsilon(size_t from, size_t thru, TVector< TSet<size_t> >& inveps)
 {
 	PIRE_IFDEBUG(Cdbg << "In Fsm::ShortCutEpsilon(" << from << ", " << thru << ")\n");
 	const StatesSet& to = Destinations(thru, Epsilon);
@@ -787,7 +787,7 @@ void Fsm::RemoveEpsilons()
 	Unsparse();
 	
 	// Build inverse map of epsilon transitions
-	yvector< yset<size_t> > inveps(Size()); // We have to use yset<> here since we want it sorted
+	TVector< TSet<size_t> > inveps(Size()); // We have to use TSet<> here since we want it sorted
 	for (size_t from = 0; from != Size(); ++from) {
 		const StatesSet& tos = Destinations(from, Epsilon);
 		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to)
@@ -851,16 +851,16 @@ void Fsm::Unsparse()
 {
 	for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit)
 		for (TransitionTable::iterator i = m_transitions.begin(), ie = m_transitions.end(); i != ie; ++i)
-			for (yvector<Char>::const_iterator j = lit->second.second.begin(), je = lit->second.second.end(); j != je; ++j)
+			for (TVector<Char>::const_iterator j = lit->second.second.begin(), je = lit->second.second.end(); j != je; ++j)
 				(*i)[*j] = (*i)[lit->first];
 	m_sparsed = false;
 }
 
 // Returns a set of 'terminal states', which are those of the final states,
 // from which a transition to themselves on any letter is possible.
-yset<size_t> Fsm::TerminalStates() const
+TSet<size_t> Fsm::TerminalStates() const
 {
-	yset<size_t> terminals;
+	TSet<size_t> terminals;
 	for (FinalTable::const_iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit) {
 		bool ok = true;
 		for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
@@ -876,9 +876,9 @@ yset<size_t> Fsm::TerminalStates() const
 namespace Impl {
 class FsmDetermineTask {
 public:
-	typedef yvector<size_t> State;
+	typedef TVector<size_t> State;
 	typedef Fsm::LettersTbl LettersTbl;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 	
 	FsmDetermineTask(const Fsm& fsm)
 		: mFsm(fsm)
@@ -913,7 +913,7 @@ public:
 		return next;
 	}
 	
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		mNewFsm.Resize(states.size());
 		mNewFsm.initial = 0;
@@ -952,7 +952,7 @@ public:
 			}
 		}
 		// For each old state, prepare a list of new state it is contained in
-		typedef ymap< size_t, yvector<size_t> > Old2New;
+		typedef TMap< size_t, TVector<size_t> > Old2New;
 		Old2New old2new;
 		for (size_t ns = 0; ns < states.size(); ++ns)
 			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j)
@@ -964,8 +964,8 @@ public:
 				Old2New::iterator from = old2new.find(i->first);
 				Old2New::iterator to   = old2new.find(j->first);
 				if (from != old2new.end() && to != old2new.end()) {
-					for (yvector<size_t>::iterator k = from->second.begin(), ke = from->second.end(); k != ke; ++k)
-						for (yvector<size_t>::iterator l = to->second.begin(), le = to->second.end(); l != le; ++l)
+					for (TVector<size_t>::iterator k = from->second.begin(), ke = from->second.end(); k != ke; ++k)
+						for (TVector<size_t>::iterator l = to->second.begin(), le = to->second.end(); l != le; ++l)
 							mNewFsm.outputs[*k][*l] |= j->second;
 				}
 			}
@@ -976,7 +976,7 @@ public:
 	void Connect(size_t from, size_t to, Char letter)
 	{
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
-		YASSERT(mNewTerminals.find(from) == mNewTerminals.end());
+		Y_ASSERT(mNewTerminals.find(from) == mNewTerminals.end());
 		mNewFsm.Connect(from, to, letter);
 	}
 	typedef bool Result;
@@ -1008,8 +1008,8 @@ public:
 private:
 	const Fsm& mFsm;
 	Fsm mNewFsm;
-	yset<size_t> mTerminals;
-	yset<size_t> mNewTerminals;
+	TSet<size_t> mTerminals;
+	TSet<size_t> mNewTerminals;
 };
 }
 
@@ -1057,7 +1057,7 @@ public:
 
 	size_t Next(size_t state, Char letter) const {
 		const Fsm::StatesSet& tos = mFsm.Destinations(state, letter);
-		YASSERT(tos.size() == 1);
+		Y_ASSERT(tos.size() == 1);
 		return *tos.begin();
 	}
 
@@ -1074,7 +1074,7 @@ public:
 			size_t dest = partition.Index(fromIdx);
 			PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
 			for (Fsm::TransitionRow::const_iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
-				YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
+				Y_ASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
 				mNewFsm.Connect(dest, partition.Index(*letter->second.begin()), letter->first);
 			}
 			if (mFsm.IsFinal(fromIdx)) {
@@ -1128,7 +1128,7 @@ private:
 void Fsm::Minimize()
 {
 	// Minimization algorithm is only applicable to a determined FSM.
-	YASSERT(determined);
+	Y_ASSERT(determined);
 
 	Impl::FsmMinimizeTask task{*this};
 	if (Pire::Impl::Minimize(task)) {

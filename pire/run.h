@@ -51,7 +51,7 @@ template<class Scanner>
 PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 void Step(const Scanner& scanner, typename Scanner::State& state, Char ch)
 {
-	YASSERT(ch < MaxCharUnaligned);
+	Y_ASSERT(ch < MaxCharUnaligned);
 	typename Scanner::Action a = scanner.Next(state, ch);
 	scanner.TakeAction(state, a);
 }
@@ -109,9 +109,9 @@ namespace Impl {
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 	Action SafeRunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
 	{
-		YASSERT(pos <= sizeof(size_t));
-		YASSERT(size <= sizeof(size_t));
-		YASSERT(pos + size <= sizeof(size_t));
+		Y_ASSERT(pos <= sizeof(size_t));
+		Y_ASSERT(size <= sizeof(size_t));
+		Y_ASSERT(pos + size <= sizeof(size_t));
 
         if (PIRE_UNLIKELY(size == 0))
             return Continue;
@@ -130,9 +130,9 @@ namespace Impl {
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 	Action RunChunk(const Scanner& scanner, typename Scanner::State& state, const size_t* p, size_t pos, size_t size, Pred pred)
 	{
-		YASSERT(pos <= sizeof(size_t));
-		YASSERT(size <= sizeof(size_t));
-		YASSERT(pos + size <= sizeof(size_t));
+		Y_ASSERT(pos <= sizeof(size_t));
+		Y_ASSERT(size <= sizeof(size_t));
+		Y_ASSERT(pos + size <= sizeof(size_t));
 
 		if (PIRE_UNLIKELY(size == 0))
 			return Continue;
@@ -193,8 +193,8 @@ namespace Impl {
 		size_t headSize = ((const char*) head + sizeof(size_t) - begin); // The distance from @p begin to the end of the word containing @p begin
 		size_t tailSize = end - (const char*) tail; // The distance from the beginning of the word containing @p end to the @p end
 
-		YASSERT(headSize >= 1 && headSize <= sizeof(size_t));
-		YASSERT(tailSize < sizeof(size_t));
+		Y_ASSERT(headSize >= 1 && headSize <= sizeof(size_t));
+		Y_ASSERT(tailSize < sizeof(size_t));
 
 		if (head == tail) {
 			Impl::SafeRunChunk(scanner, st, head, sizeof(size_t) - headSize, end - begin, pred);

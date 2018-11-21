@@ -58,7 +58,7 @@ namespace Pire {
 		/// and case-insensitive comparison of multibyte characters,
 		/// when one string represents a lowercase variant of a character,
 		/// while another string represents its uppercase variant.
-		Fsm& AppendStrings(const yvector<ystring>& strings);
+		Fsm& AppendStrings(const TVector<ystring>& strings);
 
 		/// Appends a part matching a single byte (any).
 		Fsm& AppendDot();
@@ -106,7 +106,7 @@ namespace Pire {
 		Fsm& Reverse();
 
 		/// Returns a set of states from which no final states are reachable or that are not reachable from the start state.
-		yset<size_t> DeadStates() const;
+		TSet<size_t> DeadStates() const;
 
 		/// Removes all dead end paths from FSM
 		void RemoveDeadEnds();
@@ -120,9 +120,9 @@ namespace Pire {
 		void DumpState(yostream& s, size_t state) const;
 		void DumpTo(yostream& s, const ystring& name = "") const;
 
-		typedef yset<size_t> StatesSet;
-		typedef ymap<size_t, StatesSet> TransitionRow;
-		typedef yvector<TransitionRow> TransitionTable;
+		typedef TSet<size_t> StatesSet;
+		typedef TMap<size_t, StatesSet> TransitionRow;
+		typedef TVector<TransitionRow> TransitionTable;
 
 		struct LettersEquality {
 			LettersEquality(const Fsm::TransitionTable& tbl): m_tbl(&tbl) {}
@@ -131,7 +131,7 @@ namespace Pire {
 			const Fsm::TransitionTable* m_tbl;
 		};
 
-		typedef yset<size_t> FinalTable;
+		typedef TSet<size_t> FinalTable;
 		typedef Partition<Char, LettersEquality> LettersTbl;
 
 
@@ -172,7 +172,7 @@ namespace Pire {
 		bool Connected(size_t from, size_t to, Char c) const;
 		
 		/// Returns a set of letters on which a transition from the specified state exists
-		yset<Char> OutgoingLetters(size_t state) const;
+		TSet<Char> OutgoingLetters(size_t state) const;
 		
 		/// Returns a set of states where a transition from the given state using the given letter is possible
 		const StatesSet& Destinations(size_t from, Char letter) const;
@@ -224,19 +224,19 @@ namespace Pire {
 		bool determined;
 
 		/// Output
-		typedef ymap< size_t, ymap<size_t, unsigned long> > Outputs;
+		typedef TMap< size_t, TMap<size_t, unsigned long> > Outputs;
 		Outputs outputs;
 		
-		typedef ymap<size_t, unsigned long> Tags;
+		typedef TMap<size_t, unsigned long> Tags;
 		Tags tags;
 
 		/// Heuristics hit: true iff this FSM is a union of two other FSMs
 		bool isAlternative;
 		
-		void ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps); ///< internal
+		void ShortCutEpsilon(size_t from, size_t thru, TVector< TSet<size_t> >& inveps); ///< internal
 		void MergeEpsilonConnection(size_t from, size_t to); ///< internal
 
-		yset<size_t> TerminalStates() const;
+		TSet<size_t> TerminalStates() const;
 		
 		Char Translate(Char c) const;
 		
@@ -249,7 +249,7 @@ namespace Pire {
 	template<class Scanner>
 	inline void BuildScanner(const Fsm& fsm, Scanner& r)
 	{
-		yset<size_t> dead;
+		TSet<size_t> dead;
 		if (Scanner::DeadFlag)
 			dead = fsm.DeadStates();
 

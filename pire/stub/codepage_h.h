@@ -71,7 +71,7 @@ namespace NCodepagePrivate {
 		TCodepagesMap();
 
 		const CodePage* Get(docCodes e) {
-			YASSERT(CODES_UNKNOWN < e && e < CODES_MAX);
+			Y_ASSERT(CODES_UNKNOWN < e && e < CODES_MAX);
 			return Data[e];
 		}
 	};
@@ -131,7 +131,7 @@ struct Encoder {
 		char code = Code(ch);
 		if (code == 0 && ch != 0)
 			code =  DefaultChar[wc_type(ch)];
-		YASSERT(code != 0 || ch == 0);
+		Y_ASSERT(code != 0 || ch == 0);
 		return code;
 	}
 
@@ -229,7 +229,7 @@ const unsigned char yaACUTE  = 0x80;
 const unsigned char yaGradus = 0xB0;
 
 unsigned char utf8_leadbyte_mask(size_t len) {
-	// YASSERT (len <= 4);
+	// Y_ASSERT (len <= 4);
 	return "\0\0\037\017\007"[len];
 }
 

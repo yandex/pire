@@ -30,14 +30,14 @@ SIMPLE_UNIT_TEST_SUITE(UnicodeSupport) {
 
     Pire::Fsm ParseFsm(const char* regexp)
     {
-        yvector<wchar32> ucs4;
+        TVector<wchar32> ucs4;
         Pire::Encodings::Utf8().FromLocal(regexp, regexp + strlen(regexp), std::back_inserter(ucs4));
         return Pire::Lexer(ucs4).SetEncoding(Pire::Encodings::Utf8()).AddFeature(Pire::Features::EnableUnicodeSequences()).Parse().Surround();
     }
 
     ystring CreateStringWithZeroSymbol(const char* str, size_t pos) {
         ystring result = str;
-        YASSERT(pos < result.size());
+        Y_ASSERT(pos < result.size());
         result[pos] = '\0';
         return result;
     }

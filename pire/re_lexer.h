@@ -73,8 +73,8 @@ enum {
 */
 class Term {
 public:
-	typedef yvector<wchar32> String;
-	typedef yset<String> Strings;
+	typedef TVector<wchar32> String;
+	typedef TSet<String> Strings;
 
 	typedef ypair<int, int> RepetitionCount;
 	typedef ypair<Strings, bool> CharacterRange;
@@ -167,9 +167,9 @@ private:
 
 	void InstallDefaultFeatures();
 
-	ydeque<wchar32> m_input;
+	TDeque<wchar32> m_input;
 	const Pire::Encoding* m_encoding;
-	yvector<Feature*> m_features;
+	TVector<Feature*> m_features;
 	Any m_retval;
 	ystring m_errmsg;
 

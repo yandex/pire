@@ -44,7 +44,7 @@ Term Term::EndMark() { return Term(TokenTypes::EndMark, EndTag()); }
 
 Lexer::~Lexer()
 {
-	for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i)
+	for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i)
 		delete *i;
 }
 
@@ -105,7 +105,7 @@ Term Lexer::DoLex()
 		wchar32 ch = PeekChar();
 		if (ch == End)
 			return Term(TokenTypes::End);
-		for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
+		for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
 			if ((*i)->Accepts(ch)) {
 				Term ret = (*i)->Lex();
 				if (ret.Type())
@@ -143,7 +143,7 @@ Term Lexer::Lex()
 {
 	Term t = DoLex();
 
-	for (yvector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
+	for (TVector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
 		(*i)->Alter(t);
 
 	if (t.Value().IsA<Term::CharacterRange>()) {
@@ -183,7 +183,7 @@ Term Lexer::Lex()
 	
 void Lexer::Parenthesized(Fsm& fsm)
 {
-	for (yvector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
+	for (TVector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
 		(*i)->Parenthesized(fsm);
 }
 

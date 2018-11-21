@@ -42,7 +42,7 @@ void SimpleScanner::Save(yostream* s) const
 	SavePodType(s, Empty());
 	Impl::AlignSave(s, sizeof(Empty()));
 	if (!Empty()) {
-		YASSERT(m_buffer);
+		Y_ASSERT(m_buffer);
 		Impl::AlignedSaveArray(s, m_buffer, BufSize());
 	}
 }
@@ -76,13 +76,13 @@ void SlowScanner::Save(yostream* s) const
 	SavePodType(s, Empty());
 	Impl::AlignSave(s, sizeof(Empty()));
 	if (!Empty()) {
-		YASSERT(!m_vec.empty());
+		Y_ASSERT(!m_vec.empty());
 		Impl::AlignedSaveArray(s, m_letters, MaxChar);
 		Impl::AlignedSaveArray(s, m_finals, m.statesCount);
 
 		size_t c = 0;
 		SavePodType<size_t>(s, 0);
-		for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i) {
+		for (TVector< TVector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i) {
 			size_t n = c + i->size();
 			SavePodType(s, n);
 			c = n;
@@ -90,7 +90,7 @@ void SlowScanner::Save(yostream* s) const
 		Impl::AlignSave(s, (m_vec.size() + 1) * sizeof(size_t));
 
 		size_t size = 0;
-		for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
+		for (TVector< TVector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
 			if (!i->empty()) {
 				SavePodArray(s, &(*i)[0], i->size());
 				size += sizeof(unsigned) * i->size();
@@ -98,7 +98,7 @@ void SlowScanner::Save(yostream* s) const
 		Impl::AlignSave(s, size);
 		if (need_actions) {
 			size_t pos = 0;
-			for (yvector< yvector< Action > >::const_iterator i = m_actionsvec.begin(), ie = m_actionsvec.end(); i != ie; ++i)
+			for (TVector< TVector< Action > >::const_iterator i = m_actionsvec.begin(), ie = m_actionsvec.end(); i != ie; ++i)
 				if (!i->empty()) {
 					SavePodArray(s, &(*i)[0], i->size());
 					pos += sizeof(Action) * i->size();
@@ -134,8 +134,8 @@ void SlowScanner::Load(yistream* s)
 
 		size_t c;
 		LoadPodType(s, c);
-		yvector <yvector< Action> >::iterator act = sc.m_actionsvec.begin();
-		for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i) {
+		TVector <TVector< Action> >::iterator act = sc.m_actionsvec.begin();
+		for (TVector< TVector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i) {
 			size_t n;
 			LoadPodType(s, n);
 			i->resize(n - c);
@@ -148,7 +148,7 @@ void SlowScanner::Load(yistream* s)
 		Impl::AlignLoad(s, (m_vec.size() + 1) * sizeof(size_t));
 
 		size_t size = 0;
-		for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
+		for (TVector< TVector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
 			if (!i->empty()) { 
 				LoadPodArray(s, &(*i)[0], i->size());
 				size += sizeof(unsigned) * i->size();
@@ -156,7 +156,7 @@ void SlowScanner::Load(yistream* s)
 		Impl::AlignLoad(s, size);
 		size_t actSize = 0;
 		if (sc.need_actions) {
-			for (yvector< yvector< Action > >::iterator i = sc.m_actionsvec.begin(), ie = sc.m_actionsvec.end(); i != ie; ++i) {
+			for (TVector< TVector< Action > >::iterator i = sc.m_actionsvec.begin(), ie = sc.m_actionsvec.end(); i != ie; ++i) {
 				if (!i->empty()) {
 					LoadPodArray(s, &(*i)[0], i->size());
 					actSize += sizeof(Action) * i->size();
@@ -193,7 +193,7 @@ void LoadedScanner::Load(yistream* s)
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);
 	if (header.Version == Header::RE_VERSION_WITH_MACTIONS) {
-		yvector<Action> actions(sc.m.statesCount * sc.m.lettersCount);
+		TVector<Action> actions(sc.m.statesCount * sc.m.lettersCount);
 		Impl::AlignedLoadArray(s, actions.data(), actions.size());
 	}
 	Impl::AlignedLoadArray(s, sc.m_tags, sc.m.statesCount);
