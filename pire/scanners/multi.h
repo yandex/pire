@@ -365,9 +365,9 @@ private:
 		m.initial = reinterpret_cast<size_t>(m_transitions + startState * RowSize());
 
 		// Build letter translation table
-		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
-			for (TVector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first + HEADER_SIZE;
+		for (auto&& letter : letters)
+			for (auto&& character : letter.second.second)
+				m_letters[character] = letter.second.first + HEADER_SIZE;
 	}
 
 	/*
@@ -492,8 +492,8 @@ private:
 					if (ind + letters[let].size() > Shortcutting::ExitMaskCount)
 						break;
 					// For each character setup a mask
-					for (TVector<char>::const_iterator chit = letters[let].begin(), chie = letters[let].end(); chit != chie; ++chit) {
-						Shortcutting::SetMask(header, ind, *chit);
+					for (auto&& character : letters[let]) {
+						Shortcutting::SetMask(header, ind, character);
 						++ind;
 					}
 				}
@@ -1018,8 +1018,8 @@ public:
 		// Make up a new scanner and fill in the final table
 		
 		size_t finalTableSize = 0;
-		for (typename TVector<State>::const_iterator i = states.begin(), ie = states.end(); i != ie; ++i)
-			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i->first)) + RangeLen(Rhs().AcceptedRegexps(i->second));
+		for (auto&& i : states)
+			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i.first)) + RangeLen(Rhs().AcceptedRegexps(i.second));
 		this->SetSc(new Scanner);
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
 				

@@ -44,8 +44,8 @@ Term Term::EndMark() { return Term(TokenTypes::EndMark, EndTag()); }
 
 Lexer::~Lexer()
 {
-	for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i)
-		delete *i;
+	for (auto&& i : m_features)
+		delete i;
 }
 
 wchar32 Lexer::GetChar()
@@ -105,9 +105,9 @@ Term Lexer::DoLex()
 		wchar32 ch = PeekChar();
 		if (ch == End)
 			return Term(TokenTypes::End);
-		for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
-			if ((*i)->Accepts(ch)) {
-				Term ret = (*i)->Lex();
+		for (auto&& i : m_features) {
+			if (i->Accepts(ch)) {
+				Term ret = i->Lex();
 				if (ret.Type())
 					return ret;
 			}
@@ -143,15 +143,15 @@ Term Lexer::Lex()
 {
 	Term t = DoLex();
 
-	for (TVector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
+	for (auto i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
 		(*i)->Alter(t);
 
 	if (t.Value().IsA<Term::CharacterRange>()) {
-		const Term::CharacterRange& chars = t.Value().As<Term::CharacterRange>();
+		const auto& chars = t.Value().As<Term::CharacterRange>();
 		//std::cerr << "lex: type " << t.type() << "; chars = { " << join(chars.first.begin(), chars.first.end(), ", ") << " }" << std::endl;
-		for (Term::Strings::const_iterator i = chars.first.begin(), ie = chars.first.end(); i != ie; ++i)
-			for (Term::String::const_iterator j = i->begin(), je = i->end(); j != je; ++j)
-				if ((*j & ControlMask) == Control)
+		for (auto&& i : chars.first)
+			for (auto&& j : i)
+				if ((j & ControlMask) == Control)
 					Error("Control character in tokens sequence");
 	}
 	
@@ -180,10 +180,10 @@ Term Lexer::Lex()
 		type = 0;
 	return Term(type, t.Value());
 }
-	
+
 void Lexer::Parenthesized(Fsm& fsm)
 {
-	for (TVector<Feature*>::reverse_iterator i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
+	for (auto i = m_features.rbegin(), ie = m_features.rend(); i != ie; ++i)
 		(*i)->Parenthesized(fsm);
 }
 
@@ -285,12 +285,12 @@ namespace {
 				typedef Term::CharacterRange::first_type CharSet;
 				const CharSet& old = t.Value().As<Term::CharacterRange>().first;
 				CharSet altered;
-				for (CharSet::const_iterator i = old.begin(), ie = old.end(); i != ie; ++i) {
-					if (i->size() == 1) {
-						altered.insert(Term::String(1, to_upper((*i)[0])));
-						altered.insert(Term::String(1, to_lower((*i)[0])));
+				for (auto&& i : old) {
+					if (i.size() == 1) {
+						altered.insert(Term::String(1, to_upper(i[0])));
+						altered.insert(Term::String(1, to_lower(i[0])));
 					} else
-						altered.insert(*i);
+						altered.insert(i);
 				}
 				t = Term(t.Type(), Term::CharacterRange(altered, t.Value().As<Term::CharacterRange>().second));
 			}

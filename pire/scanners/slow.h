@@ -101,15 +101,15 @@ public:
 	{
 		next.flags.Clear();
 		next.states.clear();
-		for (TVector<unsigned>::const_iterator sit = current.states.begin(), sie = current.states.end(); sit != sie; ++sit) {
+		for (auto&& state : current.states) {
 			const unsigned* begin = 0;
 			const unsigned* end = 0;
 			if (!m_vecptr) {
-				const size_t* pos = m_jumpPos + *sit * m.lettersCount + l;
+				const size_t* pos = m_jumpPos + state * m.lettersCount + l;
 				begin = m_jumps + pos[0];
 				end = m_jumps + pos[1];
 			} else {
-				const TVector<unsigned>& v = (*m_vecptr)[*sit * m.lettersCount + l];
+				const auto& v = (*m_vecptr)[state * m.lettersCount + l];
 				if (!v.empty()) {
 					begin = &v[0];
 					end = &v[0] + v.size();
@@ -148,8 +148,8 @@ public:
 
 	bool Final(const State& s) const
 	{
-		for (TVector<unsigned>::const_iterator it = s.states.begin(), ie = s.states.end(); it != ie; ++it)
-			if (m_finals[*it])
+		for (auto&& state : s.states)
+			if (m_finals[state])
 				return true;
 		return false;
 	}
@@ -268,9 +268,9 @@ public:
 
 		// Build letter translation table
 		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
-		for (Fsm::LettersTbl::ConstIterator it = fsm.Letters().Begin(), ie = fsm.Letters().End(); it != ie; ++it)
-			for (TVector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first;
+		for (auto&& letter : fsm.Letters())
+			for (auto&& character : letter.second.second)
+				m_letters[character] = letter.second.first;
 
 		m.start = fsm.Initial();
 		BuildScanner(fsm, *this);
@@ -281,8 +281,8 @@ public:
 
 	~SlowScanner()
 	{
-		for (TVector<void*>::const_iterator i = m_pool.begin(), ie = m_pool.end(); i != ie; ++i)
-			free(*i);
+		for (auto&& i : m_pool)
+			free(i);
 	}
 
 	void Save(yostream*) const;

@@ -186,15 +186,15 @@ void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& c
 {
 	TVector<ystring> strings;
 
-	for (Term::Strings::const_iterator i = cr.first.begin(), ie = cr.first.end(); i != ie; ++i) {
+	for (auto&& i : cr.first) {
 		ystring s;
-		for (Term::String::const_iterator j = i->begin(), je = i->end(); j != je; ++j) {
-			ystring c = encoding.ToLocal(*j);
+		for (auto&& j : i) {
+			ystring c = encoding.ToLocal(j);
 			if (c.empty()) {
 				s.clear();
 				break;
 			} else
-				s += encoding.ToLocal(*j);
+				s += encoding.ToLocal(j);
 		}
 		if (!s.empty())
 			strings.push_back(s);

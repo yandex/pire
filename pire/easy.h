@@ -81,9 +81,9 @@ public:
 	void Apply(Lexer& lexer)
 	{
 		lexer.SetEncoding(*m_encoding);
-		for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
-			lexer.AddFeature(*i);
-			*i = 0;
+		for (auto&& i : m_features) {
+			lexer.AddFeature(i);
+			i = 0;
 		}
 		m_features.clear();
 	}
@@ -99,9 +99,9 @@ private:
 	
 	void Clear()
 	{
-		for (TVector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
-			if (*i)
-				(*i)->Destroy();
+		for (auto&& i : m_features) {
+			if (i)
+				i->Destroy();
 		}
 		m_features.clear();
 	}
@@ -229,10 +229,10 @@ private:
 		
 		while (!queue.empty()) {
 			Set s = fsm.Destinations(queue.front(), SpecialChar::Epsilon);
-			for (Set::iterator i = s.begin(), ie = s.end(); i != ie; ++i) {
-				if (!handled.Test(*i)) {
-					handled.Set(*i);
-					queue.push_back(*i);
+			for (auto&& i : s) {
+				if (!handled.Test(i)) {
+					handled.Set(i);
+					queue.push_back(i);
 				}
 			}
 			

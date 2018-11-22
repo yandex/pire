@@ -184,8 +184,8 @@ public:
 		// Unite equality classes into new states
 		for (size_t from = 0; from != Size(); ++from) {
 			const auto fromMinimized = partition.Index(from);
-			for (auto lit = Letters().Begin(), lie = Letters().End(); lit != lie; ++lit) {
-				const auto representative = lit->first;
+			for (auto&& letter : Letters()) {
+				const auto representative = letter.first;
 				const auto next = Next(from, representative);
 				const auto nextMinimized = partition.Index(next);
 				Connect(fromMinimized, nextMinimized, representative);
@@ -204,8 +204,8 @@ public:
 	}
 
 	bool SameClasses(size_t first, size_t second) const {
-		for (auto it = Letters().Begin(), ie = Letters().End(); it != ie; ++it) {
-			const auto letter = it->first;
+		for (auto&& lettersEl : Letters()) {
+			const auto letter = lettersEl.first;
 			if (mFsm.Output(first, letter) != mFsm.Output(second, letter)) {
 				return false;
 			}
@@ -257,9 +257,9 @@ public:
 		, mReInitial{reInitial}
 	{
 		mDeadStates = fsm.DeadStates();
-		for (auto lit = fsm.Letters().Begin(), lie = fsm.Letters().End(); lit != lie; ++lit) {
-			if (InvalidCharRange(lit->second.second)) {
-				mInvalidLetters.insert(lit->first);
+		for (auto&& letter : fsm.Letters()) {
+			if (InvalidCharRange(letter.second.second)) {
+				mInvalidLetters.insert(letter.first);
 			}
 		}
 	}
@@ -808,8 +808,8 @@ AdvancedCountingScanner::AdvancedCountingScanner(const Fsm& re, const Fsm& sep, 
 	Init(determined.Size(), letters, determined.Initial(), 1);
 
 	for (size_t from = 0; from != determined.Size(); ++from) {
-		for (auto lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
-			const auto letter = lit->first;
+		for (auto&& lettersEl : letters) {
+			const auto letter = lettersEl.first;
 			const auto& tos = determined.Destinations(from, letter);
 			Y_ASSERT(tos.size() == 1);
 			SetJump(from, letter, *tos.begin(), RemapAction(countingFsm.Output(from, letter)));
@@ -863,14 +863,14 @@ private:
 	
 CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const CountingScanner& rhs, size_t maxSize /* = 0 */)
 {
-	static const size_t DefMaxSize = 250000;
+	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<CountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 
 AdvancedCountingScanner AdvancedCountingScanner::Glue(const AdvancedCountingScanner& lhs, const AdvancedCountingScanner& rhs, size_t maxSize /* = 0 */)
 {
-	static const size_t DefMaxSize = 250000;
+	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<AdvancedCountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
