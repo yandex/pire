@@ -55,8 +55,8 @@ namespace {
 			TSet<wchar32> ToSet() const
 			{
 				TSet<wchar32> ret;
-				for (TVector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
-					for (wchar32 c = it->first; c <= it->second; ++c)
+				for (auto&& bound : m_bounds)
+					for (wchar32 c = bound.first; c <= bound.second; ++c)
 						ret.insert(c);
 				return ret;
 			}
@@ -73,7 +73,7 @@ namespace {
 
 		TSet<wchar32> Get(wchar32 wc) const
 		{
-			TMap<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
+			auto it = m_classes.find(to_lower(wc & ~ControlMask));
 			if (it == m_classes.end())
 				throw Error("Unknown character class");
 			return it->second.ToSet();
@@ -118,18 +118,18 @@ namespace {
 				CharSet altered;
 				bool pos = false;
 				bool neg = false;
-				for (CharSet::const_iterator i = old.begin(), ie = old.end(); i != ie; ++i)
-					if (i->size() == 1 && ((*i)[0] & ControlMask) == Control && m_table->Has((*i)[0])) {
-						if (is_upper((*i)[0] & ~ControlMask))
+				for (auto&& i : old)
+					if (i.size() == 1 && (i[0] & ControlMask) == Control && m_table->Has(i[0])) {
+						if (is_upper(i[0] & ~ControlMask))
 							neg = true;
 						else
 							pos = true;
 
-						TSet<wchar32> klass = m_table->Get((*i)[0]);
-						for (TSet<wchar32>::iterator j = klass.begin(), je = klass.end(); j != je; ++j)
-							altered.insert(Term::String(1, *j));
+						TSet<wchar32> klass = m_table->Get(i[0]);
+						for (auto&& j : klass)
+							altered.insert(Term::String(1, j));
 					} else
-						altered.insert(*i);
+						altered.insert(i);
 
 				if (neg && (pos || range.second))
 					Error("Positive and negative character ranges mixed");

@@ -231,13 +231,13 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm)
 		SetTag(state, fsm.Tag(state) | (fsm.IsFinal(state) ? 1 : 0));
 
 	for (size_t from = 0; from != fsm.Size(); ++from)
-		for (Fsm::LettersTbl::ConstIterator i = fsm.Letters().Begin(), ie = fsm.Letters().End(); i != ie; ++i) {
-			const Fsm::StatesSet& tos = fsm.Destinations(from, i->first);
+		for (auto&& i : fsm.Letters()) {
+			const auto& tos = fsm.Destinations(from, i.first);
 			if (tos.empty())
 				continue;
-			for (TVector<Char>::const_iterator l = i->second.second.begin(), le = i->second.second.end(); l != le; ++l)
-				for (Fsm::StatesSet::const_iterator to = tos.begin(), toEnd = tos.end(); to != toEnd; ++to)
-					SetJump(from, *l, *to);
+			for (auto&& l : i.second.second)
+				for (auto&& to : tos)
+					SetJump(from, l, to);
 		}
 }
 

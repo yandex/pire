@@ -92,7 +92,6 @@ namespace Pire {
 		typename Task::Result Determine(Task& task, size_t maxSize)
 		{
 			typedef typename Task::State State;
-			typedef typename Task::LettersTbl Letters;
 			typedef typename Task::InvStates InvStates;
 			typedef TDeque< TVector<size_t> > TransitionTable;
 
@@ -108,24 +107,24 @@ namespace Pire {
 				if (!task.IsRequired(states[stateIdx]))
 					continue;
 				TransitionTable::value_type row(task.Letters().Size());
-				for (typename Letters::ConstIterator lit = task.Letters().Begin(), lie = task.Letters().End(); lit != lie; ++lit) {
-					State newState = task.Next(states[stateIdx], lit->first);
-					typename InvStates::const_iterator i = invstates.find(newState);
+				for (auto&& letter : task.Letters()) {
+					State newState = task.Next(states[stateIdx], letter.first);
+					auto i = invstates.find(newState);
 					if (i == invstates.end()) {
 						if (!maxSize--)
 							return task.Failure();
 						i = invstates.insert(typename InvStates::value_type(newState, states.size())).first;
 						states.push_back(newState);
 					}
-					row[lit->second.first] = i->second;
+					row[letter.second.first] = i->second;
 				}
 				transitions.push_back(row);
 				stateIndices.push_back(stateIdx);
 			}
 
 			TVector<Char> invletters(task.Letters().Size());
-			for (typename Letters::ConstIterator lit = task.Letters().Begin(), lie = task.Letters().End(); lit != lie; ++lit)
-				invletters[lit->second.first] = lit->first;
+			for (auto&& letter : task.Letters())
+				invletters[letter.second.first] = letter.first;
 
 			task.AcceptStates(states);
 			size_t from = 0;
@@ -160,8 +159,8 @@ namespace Pire {
 				if (m_prev) {
 					if ((*m_prev)[a] != (*m_prev)[b])
 						return false;
-					for (TVector<Char>::const_iterator it = m_letters->begin(), ie = m_letters->end(); it != ie; ++it)
-						if ((*m_prev)[Next(a, *it)] != (*m_prev)[Next(b, *it)])
+					for (auto&& letter : *m_letters)
+						if ((*m_prev)[Next(a, letter)] != (*m_prev)[Next(b, letter)])
 							return false;
 				}
 				return true;
@@ -206,12 +205,12 @@ namespace Pire {
 
 			TVector<Char> distinctLetters;
 			DeterminedTransitions detTran(task.Size() * MaxChar);
-			for (auto lit = task.Letters().Begin(), lie = task.Letters().End(); lit != lie; ++lit) {
-				const auto representative = lit->first;
+			for (auto&& letters : task.Letters()) {
+				const auto representative = letters.first;
 				distinctLetters.push_back(representative);
 				for (size_t from = 0; from != task.Size(); ++from) {
 					const auto next = task.Next(from, representative);
-					for (auto letter : lit->second.second) {
+					for (auto letter : letters.second.second) {
 						detTran[from * MaxChar + letter] = next;
 					}
 				}

@@ -82,18 +82,18 @@ void SlowScanner::Save(yostream* s) const
 
 		size_t c = 0;
 		SavePodType<size_t>(s, 0);
-		for (TVector< TVector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i) {
-			size_t n = c + i->size();
+		for (auto&& i : m_vec) {
+			size_t n = c + i.size();
 			SavePodType(s, n);
 			c = n;
 		}
 		Impl::AlignSave(s, (m_vec.size() + 1) * sizeof(size_t));
 
 		size_t size = 0;
-		for (TVector< TVector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
-			if (!i->empty()) {
-				SavePodArray(s, &(*i)[0], i->size());
-				size += sizeof(unsigned) * i->size();
+		for (auto&& i : m_vec)
+			if (!i.empty()) {
+				SavePodArray(s, &(i)[0], i.size());
+				size += sizeof(unsigned) * i.size();
 			}
 		Impl::AlignSave(s, size);
 		if (need_actions) {
@@ -134,11 +134,11 @@ void SlowScanner::Load(yistream* s)
 
 		size_t c;
 		LoadPodType(s, c);
-		TVector <TVector< Action> >::iterator act = sc.m_actionsvec.begin();
-		for (TVector< TVector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i) {
+		auto act = sc.m_actionsvec.begin();
+		for (auto&& i : sc.m_vec) {
 			size_t n;
 			LoadPodType(s, n);
-			i->resize(n - c);
+			i.resize(n - c);
 			if (sc.need_actions) {
 				act->resize(n - c);
 				++act;
@@ -148,18 +148,18 @@ void SlowScanner::Load(yistream* s)
 		Impl::AlignLoad(s, (m_vec.size() + 1) * sizeof(size_t));
 
 		size_t size = 0;
-		for (TVector< TVector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
-			if (!i->empty()) { 
-				LoadPodArray(s, &(*i)[0], i->size());
-				size += sizeof(unsigned) * i->size();
+		for (auto&& i : sc.m_vec)
+			if (!i.empty()) {
+				LoadPodArray(s, &(i)[0], i.size());
+				size += sizeof(unsigned) * i.size();
 			}
 		Impl::AlignLoad(s, size);
 		size_t actSize = 0;
 		if (sc.need_actions) {
-			for (TVector< TVector< Action > >::iterator i = sc.m_actionsvec.begin(), ie = sc.m_actionsvec.end(); i != ie; ++i) {
-				if (!i->empty()) {
-					LoadPodArray(s, &(*i)[0], i->size());
-					actSize += sizeof(Action) * i->size();
+			for (auto&& i : sc.m_actionsvec) {
+				if (!i.empty()) {
+					LoadPodArray(s, &(i)[0], i.size());
+					actSize += sizeof(Action) * i.size();
 				}
 			}
 			Impl::AlignLoad(s, actSize);
