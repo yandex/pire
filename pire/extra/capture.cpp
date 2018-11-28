@@ -129,6 +129,6 @@ namespace {
 }
 	
 namespace Features {
-	Feature* Capture(size_t pos) { return new CaptureImpl(pos); }
+	Feature::Ptr Capture(size_t pos) { return Feature::Ptr(new CaptureImpl(pos)); }
 };
 }

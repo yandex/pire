@@ -43,7 +43,7 @@ void SimpleScanner::Save(yostream* s) const
 	Impl::AlignSave(s, sizeof(Empty()));
 	if (!Empty()) {
 		Y_ASSERT(m_buffer);
-		Impl::AlignedSaveArray(s, m_buffer, BufSize());
+		Impl::AlignedSaveArray(s, m_buffer.get(), BufSize());
 	}
 }
 
@@ -59,9 +59,9 @@ void SimpleScanner::Load(yistream* s)
 	if (empty) {
 		sc.Alias(Null());
 	} else {
-		sc.m_buffer = new char[sc.BufSize()];
-		Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-		sc.Markup(sc.m_buffer);
+		sc.m_buffer = BufferType(new char[sc.BufSize()]);
+		Impl::AlignedLoadArray(s, sc.m_buffer.get(), sc.BufSize());
+		sc.Markup(sc.m_buffer.get());
 		sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
 	}
 	Swap(sc);
@@ -188,8 +188,8 @@ void LoadedScanner::Load(yistream* s)
 	Header header = Impl::ValidateHeader(s, 4, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
-	sc.m_buffer = new char[sc.BufSize()];
-	sc.Markup(sc.m_buffer);
+	sc.m_buffer = BufferType(new char[sc.BufSize()]);
+	sc.Markup(sc.m_buffer.get());
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);
 	if (header.Version == Header::RE_VERSION_WITH_MACTIONS) {

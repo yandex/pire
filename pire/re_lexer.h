@@ -142,7 +142,9 @@ public:
 	/// The main lexer function. Extracts and returns the next term in input sequence.
 	Term Lex();
 	/// Installs an additional lexer feature.
-	Lexer& AddFeature(Feature* a);
+	/// We declare both lvalue and rvalue reference types to fix some linker errors.
+	Lexer& AddFeature(std::unique_ptr<Feature>& a);
+	Lexer& AddFeature(std::unique_ptr<Feature>&& a);
 
 	const Pire::Encoding& Encoding() const { return *m_encoding; }
 	Lexer& SetEncoding(const Pire::Encoding& encoding) { m_encoding = &encoding; return *this; }
@@ -169,7 +171,7 @@ private:
 
 	TDeque<wchar32> m_input;
 	const Pire::Encoding* m_encoding;
-	TVector<Feature*> m_features;
+	TVector<std::unique_ptr<Feature>> m_features;
 	Any m_retval;
 	ystring m_errmsg;
 
@@ -205,12 +207,11 @@ public:
 	/// those perl-style (?@#$%:..) clauses).
 	virtual void Parenthesized(Fsm&) {}
 
-	/// Used by Lexer to be able to control the lifetime of features added from
-	/// outside
-	virtual void Destroy() { delete this; }
+	using Ptr = std::unique_ptr<Feature>;
+
+	virtual ~Feature() = default;
 
 protected:
-	virtual ~Feature() = 0;
 
 	// These functions are exposed versions of the corresponding lexer functions.
 	const Pire::Encoding& Encoding() const { return m_lexer->Encoding(); }
@@ -225,18 +226,16 @@ private:
 	Lexer* m_lexer;
 };
 
-inline Feature::~Feature() {}
-
 namespace Features {
 	/// Disables case sensitivity
-	Feature* CaseInsensitive();
+	Feature::Ptr CaseInsensitive();
 
 	/**
 	* Adds two more operations:
 	*  (pattern1)&(pattern2) -- matches those strings which match both /pattern1/ and /pattern2/;
 	*  ~(pattern)            -- matches those strings which do not match /pattern/.
 	*/
-	Feature* AndNotSupport();
+	Feature::Ptr AndNotSupport();
 }
 
 }

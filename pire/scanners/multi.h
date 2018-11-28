@@ -1020,7 +1020,7 @@ public:
 		size_t finalTableSize = 0;
 		for (auto&& i : states)
 			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i.first)) + RangeLen(Rhs().AcceptedRegexps(i.second));
-		this->SetSc(new Scanner);
+		this->SetSc(std::unique_ptr<Scanner>(new Scanner));
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
 				
 		for (size_t state = 0; state != states.size(); ++state) {

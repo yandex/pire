@@ -42,11 +42,7 @@ Term Term::Dot() { return Term(TokenTypes::Dot, DotTag()); }
 Term Term::BeginMark() { return Term(TokenTypes::BeginMark, BeginTag()); }
 Term Term::EndMark() { return Term(TokenTypes::EndMark, EndTag()); }
 
-Lexer::~Lexer()
-{
-	for (auto&& i : m_features)
-		delete i;
-}
+Lexer::~Lexer() = default;
 
 wchar32 Lexer::GetChar()
 {
@@ -81,20 +77,27 @@ void Lexer::UngetChar(wchar32 c)
 }
 
 namespace {
-	class CompareFeaturesByPriority: public ybinary_function<Feature*, Feature*, bool> {
+	class CompareFeaturesByPriority: public ybinary_function<const Feature::Ptr&, const Feature::Ptr&, bool> {
 	public:
-		bool operator()(Feature* a, Feature* b) const
+		bool operator()(const Feature::Ptr& a, const Feature::Ptr& b) const
 		{
 			return a->Priority() < b->Priority();
 		}
 	};
 }
 
-Lexer& Lexer::AddFeature(Feature* feature)
+Lexer& Lexer::AddFeature(Feature::Ptr& feature)
 {
 	feature->m_lexer = this;
-	m_features.insert(LowerBound(m_features.begin(), m_features.end(), feature, CompareFeaturesByPriority()), feature);
+	m_features.insert(LowerBound(m_features.begin(), m_features.end(), feature, CompareFeaturesByPriority()), std::move(feature));
 	return *this;
+}
+
+Lexer& Lexer::AddFeature(Feature::Ptr&& feature)
+{
+    feature->m_lexer = this;
+    m_features.insert(LowerBound(m_features.begin(), m_features.end(), feature, CompareFeaturesByPriority()), std::move(feature));
+    return *this;
 }
 
 Term Lexer::DoLex()
@@ -321,15 +324,15 @@ namespace {
 }
 
 namespace Features {
-	Feature* CaseInsensitive() { return new CaseInsensitiveImpl; }
-	Feature* CharClasses();
-	Feature* AndNotSupport() { return new AndNotSupportImpl; }
+	Feature::Ptr CaseInsensitive() { return Feature::Ptr(new CaseInsensitiveImpl); }
+	Feature::Ptr CharClasses();
+	Feature::Ptr AndNotSupport() { return Feature::Ptr(new AndNotSupportImpl); }
 };
 
 void Lexer::InstallDefaultFeatures()
 {
-	AddFeature(new CharacterRangeReader);
-	AddFeature(new RepetitionCountReader);
+	AddFeature(Feature::Ptr(new CharacterRangeReader));
+	AddFeature(Feature::Ptr(new RepetitionCountReader));
 	AddFeature(Features::CharClasses());
 }
 

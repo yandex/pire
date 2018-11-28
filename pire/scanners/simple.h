@@ -83,9 +83,9 @@ public:
 			m_transitions = s.m_transitions;
 		} else {
 			// In-memory scanner, perform deep copy
-			m_buffer = new char[BufSize()];
-			memcpy(m_buffer, s.m_buffer, BufSize());
-			Markup(m_buffer);
+			m_buffer = BufferType(new char[BufSize()]);
+			memcpy(m_buffer.get(), s.m_buffer.get(), BufSize());
+			Markup(m_buffer.get());
 
 			m.initial += (m_transitions - s.m_transitions) * sizeof(Transition);
 		}
@@ -96,7 +96,7 @@ public:
 	void Alias(const SimpleScanner& s)
 	{
 		m = s.m;
-		m_buffer = 0;
+		m_buffer.reset();
 		m_transitions = s.m_transitions;
 	}
 
@@ -109,11 +109,6 @@ public:
 	}
 
 	SimpleScanner& operator = (const SimpleScanner& s) { SimpleScanner(s).Swap(*this); return *this; }
-
-	~SimpleScanner()
-	{
-		delete[] m_buffer;
-	}
 
 	/*
 	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
@@ -171,7 +166,8 @@ protected:
 		size_t initial;
 	} m;
 
-	char* m_buffer;
+	using BufferType = std::unique_ptr<char[]>;
+	BufferType m_buffer;
 
 	Transition* m_transitions;
 
@@ -223,9 +219,9 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm)
 	fsm.Canonize();
 	
 	m.statesCount = fsm.Size();
-	m_buffer = new char[BufSize()];
-	memset(m_buffer, 0, BufSize());
-	Markup(m_buffer);
+	m_buffer = BufferType(new char[BufSize()]);
+	memset(m_buffer.get(), 0, BufSize());
+	Markup(m_buffer.get());
 	m.initial = reinterpret_cast<size_t>(m_transitions + fsm.Initial() * STATE_ROW_SIZE + 1);
 	for (size_t state = 0; state < fsm.Size(); ++state)
 		SetTag(state, fsm.Tag(state) | (fsm.IsFinal(state) ? 1 : 0));

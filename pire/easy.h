@@ -64,7 +64,7 @@ public:
 	~Options() { Clear(); }
 	
 	void Add(const Pire::Encoding& encoding) { m_encoding = &encoding; }
-	void Add(Feature* feature) { m_features.push_back(feature); }
+	void Add(Feature::Ptr&& feature) { m_features.push_back(std::move(feature)); }
 	
 	struct Proxy {
 		Options* const o;
@@ -73,10 +73,10 @@ public:
 	operator Proxy() { return Proxy(this); }
 	
 	Options(Options& o): m_encoding(o.m_encoding) { m_features.swap(o.m_features); }
-	Options& operator = (Options& o) { m_encoding = o.m_encoding; m_features = o.m_features; o.Clear(); return *this; }
+	Options& operator = (Options& o) { m_encoding = o.m_encoding; m_features = std::move(o.m_features); o.Clear(); return *this; }
 	
 	Options(Proxy p): m_encoding(p.o->m_encoding) { m_features.swap(p.o->m_features); }
-	Options& operator = (Proxy p) { m_encoding = p.o->m_encoding; m_features = p.o->m_features; p.o->Clear(); return *this; }
+	Options& operator = (Proxy p) { m_encoding = p.o->m_encoding; m_features = std::move(p.o->m_features); p.o->Clear(); return *this; }
 	
 	void Apply(Lexer& lexer)
 	{
@@ -95,14 +95,10 @@ public:
 
 private:
 	const Pire::Encoding* m_encoding;
-	TVector<Feature*> m_features;
+	TVector<Feature::Ptr> m_features;
 	
 	void Clear()
 	{
-		for (auto&& i : m_features) {
-			if (i)
-				i->Destroy();
-		}
 		m_features.clear();
 	}
 };
@@ -135,8 +131,8 @@ private:
 extern const Option<const Encoding&> UTF8;
 extern const Option<const Encoding&> LATIN1;
 
-extern const Option<Feature*> I;
-extern const Option<Feature*> ANDNOT;
+extern const Option<Feature::Ptr> I;
+extern const Option<Feature::Ptr> ANDNOT;
 
 
 class Regexp {

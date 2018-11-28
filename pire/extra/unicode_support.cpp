@@ -91,6 +91,6 @@ namespace {
 }
 	
 namespace Features {
-    Feature* EnableUnicodeSequences() { return new EnableUnicodeSequencesImpl; }
+    Feature::Ptr EnableUnicodeSequences() { return Feature::Ptr(new EnableUnicodeSequencesImpl); }
 };
 }
