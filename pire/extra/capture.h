@@ -567,7 +567,7 @@ public:
 };
 
 namespace Features {
-	Feature* Capture(size_t pos);
+	Feature::Ptr Capture(size_t pos);
 }
 
 }

@@ -836,7 +836,7 @@ public:
 	{
 		States = states;
 		
-		this->SetSc(new Scanner);
+		this->SetSc(std::unique_ptr<Scanner>(new Scanner));
 		this->Sc().Init(states.size(), this->Letters(), 0, this->Lhs().RegexpsCount() + this->Rhs().RegexpsCount());
 		for (size_t i = 0; i < states.size(); ++i)
 			this->Sc().SetTag(i, this->Lhs().m_tags[this->Lhs().StateIdx(states[i].first)] | (this->Rhs().m_tags[this->Rhs().StateIdx(states[i].second)] << 3));

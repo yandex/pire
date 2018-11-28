@@ -78,9 +78,9 @@ protected:
 	LoadedScanner(const LoadedScanner& s): m(s.m)
 	{
 		if (s.m_buffer) {
-			m_buffer = new char [BufSize()];
-			memcpy(m_buffer, s.m_buffer, BufSize());
-			Markup(m_buffer);
+			m_buffer = BufferType(new char [BufSize()]);
+			memcpy(m_buffer.get(), s.m_buffer.get(), BufSize());
+			Markup(m_buffer.get());
 			m.initial = (InternalState)m_jumps + (s.m.initial - (InternalState)s.m_jumps);
 		} else {
 			Alias(s);
@@ -144,9 +144,9 @@ public:
 		m.statesCount = states;
 		m.lettersCount = letters.Size();
 		m.regexpsCount = regexpsCount;
-		m_buffer = new char[BufSize()];
-		memset(m_buffer, 0, BufSize());
-		Markup(m_buffer);
+		m_buffer = BufferType(new char[BufSize()]);
+		memset(m_buffer.get(), 0, BufSize());
+		Markup(m_buffer.get());
 
 		m.initial = reinterpret_cast<size_t>(m_jumps + startState * m.lettersCount);
 
@@ -216,7 +216,8 @@ protected:
 		size_t initial;
 	} m;
 
-	char* m_buffer;
+	using BufferType = std::unique_ptr<char[]>;
+	BufferType m_buffer;
 
 	Letter* m_letters;
 	Transition* m_jumps;
@@ -268,10 +269,7 @@ private:
 	friend class Fsm;
 };
 
-inline LoadedScanner::~LoadedScanner()
-{
-	delete [] m_buffer;
-}
+inline LoadedScanner::~LoadedScanner() = default;
 
 }
 

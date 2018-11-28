@@ -144,7 +144,7 @@ namespace {
 }
 
 namespace Features {
-	Feature* CharClasses() { return new CharClassesImpl; }
+	Feature::Ptr CharClasses() { return Feature::Ptr(new CharClassesImpl); }
 }
 
 }

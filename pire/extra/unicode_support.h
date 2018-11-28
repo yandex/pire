@@ -24,6 +24,8 @@
 #ifndef PIRE_EXTRA_SUPPORT_UNICODE_H
 #define PIRE_EXTRA_SUPPORT_UNICODE_H
 
+#include <memory>
+
 namespace Pire {
 class Feature;
 namespace Features {
@@ -33,7 +35,7 @@ namespace Features {
     * to accordingly UTF-32 symbols
     * e.g. \x00 == '\0', \x41 == A
     */
-    Feature* EnableUnicodeSequences();
+    std::unique_ptr<Feature> EnableUnicodeSequences();
 }
 }
 

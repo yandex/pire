@@ -136,7 +136,7 @@ namespace {
 }
 
 namespace Features {
-	Feature* GlueSimilarGlyphs() { return new GlueSimilarGlyphsImpl; }
+	Feature::Ptr GlueSimilarGlyphs() { return Feature::Ptr(new GlueSimilarGlyphsImpl); }
 }
 
 }
