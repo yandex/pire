@@ -333,7 +333,7 @@ void Lexer::InstallDefaultFeatures()
 {
 	AddFeature(Feature::Ptr(new CharacterRangeReader));
 	AddFeature(Feature::Ptr(new RepetitionCountReader));
-    AddFeature(Features::CharClasses());
+	AddFeature(Features::CharClasses());
 }
 
 Fsm Lexer::Parse()
