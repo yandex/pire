@@ -414,7 +414,7 @@ void Main(int argc, char** argv)
 	else 
 		throw usage;
 
-	std::auto_ptr<ITester> tester(CreateTester(types));
+	std::unique_ptr<ITester> tester(CreateTester(types));
 
 	tester->Prepare(alg, patterns);
 	FileMmap fmap(file.c_str());

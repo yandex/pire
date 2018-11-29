@@ -188,7 +188,7 @@ public:
 
 	void TakeAction(State&, Action) const {}
 
-	Scanner(const Scanner& s): m(s.m), m_buffer(0)
+	Scanner(const Scanner& s): m(s.m)
 	{
 		if (!s.m_buffer) {
 			// Empty or mmap()-ed scanner
@@ -200,7 +200,7 @@ public:
 	}
 
 	template<class AnotherRelocation>
-	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s) : m_buffer(0)
+	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
 		if (s.Empty())
 			Alias(Null());
@@ -226,11 +226,6 @@ public:
 	}
 
 	Scanner& operator = (const Scanner& s) { Scanner(s).Swap(*this); return *this; }
-
-	~Scanner()
-	{
-		delete[] m_buffer;
-	}
 
 	/*
 	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
@@ -317,7 +312,8 @@ private:
 		size_t shortcuttingSignature;
 	} m;
 
-	char* m_buffer;
+	using BufferType = std::unique_ptr<char[]>;
+	BufferType m_buffer;
 	Letter* m_letters;
 
 	size_t* m_final;
@@ -354,9 +350,9 @@ private:
 		m.regexpsCount = regexpsCount;
 		m.finalTableSize = finalStatesCount + states;
 
-		m_buffer = new char[BufSize() + sizeof(size_t)];
-		memset(m_buffer, 0, BufSize() + sizeof(size_t));
-		Markup(AlignUp(m_buffer, sizeof(size_t)));
+		m_buffer = BufferType(new char[BufSize() + sizeof(size_t)]);
+		memset(m_buffer.get(), 0, BufSize() + sizeof(size_t));
+		Markup(AlignUp(m_buffer.get(), sizeof(size_t)));
 		m_finalEnd = m_final;
 
 		for (size_t i = 0; i != Size(); ++i)
@@ -387,7 +383,7 @@ private:
 	void Alias(const Scanner<Relocation, Shortcutting>& s)
 	{
 		memcpy(&m, &s.m, sizeof(m));
-		m_buffer = 0;
+		m_buffer.reset();
 		m_letters = s.m_letters;
 		m_final = s.m_final;
 		m_finalIndex = s.m_finalIndex;
@@ -398,15 +394,15 @@ private:
 	void DeepCopy(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
 		// Don't want memory leaks, but we cannot free the buffer because there might be aliased instances
-		Y_ASSERT(m_buffer == 0);
+		Y_ASSERT(m_buffer == nullptr);
 
 		// Ensure that specializations of Scanner across different Relocations do not touch its Locals
 		PIRE_STATIC_ASSERT(sizeof(m) == sizeof(s.m));
 		memcpy(&m, &s.m, sizeof(s.m));
 		m.relocationSignature = Relocation::Signature;
 		m.shortcuttingSignature = Shortcutting::Signature;
-		m_buffer = new char[BufSize() + sizeof(size_t)];
-		Markup(AlignUp(m_buffer, sizeof(size_t)));
+		m_buffer = BufferType(new char[BufSize() + sizeof(size_t)]);
+		Markup(AlignUp(m_buffer.get(), sizeof(size_t)));
 
 		// Values in letter-to-leterclass table take into account row header size
 		for (size_t c = 0; c < MaxChar; ++c) {
@@ -563,7 +559,7 @@ struct ScannerSaver {
 		SavePodType(s, scanner.Empty());
 		Impl::AlignSave(s, sizeof(scanner.Empty()));
 		if (!scanner.Empty())
-			Impl::AlignedSaveArray(s, scanner.m_buffer, scanner.BufSize());
+			Impl::AlignedSaveArray(s, scanner.m_buffer.get(), scanner.BufSize());
 	}
 
 	template<class Shortcutting>
@@ -584,9 +580,9 @@ struct ScannerSaver {
 		if (empty) {
 			sc.Alias(ScannerType::Null());
 		} else {
-			sc.m_buffer = new char[sc.BufSize()];
-			Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-			sc.Markup(sc.m_buffer);
+			sc.m_buffer = std::unique_ptr<char[]>(new char[sc.BufSize()]);
+			Impl::AlignedLoadArray(s, sc.m_buffer.get(), sc.BufSize());
+			sc.Markup(sc.m_buffer.get());
 			sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
 		}
 		scanner.Swap(sc);
