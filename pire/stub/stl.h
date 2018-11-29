@@ -137,21 +137,6 @@ namespace Pire {
 		TSet(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::set<T, C, A>(arg1, arg2, arg3) {}
 	};
 
-	template< class T >
-	class yauto_ptr: public std::auto_ptr<T> {
-	public:
-		yauto_ptr(): std::auto_ptr<T>() {}
-
-		template<class Arg1>
-		yauto_ptr(Arg1 arg1): std::auto_ptr<T>(arg1) {}
-
-		template<class Arg1, class Arg2>
-		yauto_ptr(Arg1 arg1, Arg2 arg2): std::auto_ptr<T>(arg1, arg2) {}
-
-		template<class Arg1, class Arg2, class Arg3>
-		yauto_ptr(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::auto_ptr<T>(arg1, arg2, arg3) {}
-	};
-
 	template< size_t N >
 	class ybitset: public std::bitset<N> {
 	public:
