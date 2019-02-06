@@ -64,7 +64,7 @@ public:
 	~Options() { Clear(); }
 	
 	void Add(const Pire::Encoding& encoding) { m_encoding = &encoding; }
-	void Add(Feature* feature) { m_features.push_back(feature); }
+	void Add(Feature::Ptr&& feature) { m_features.push_back(std::move(feature)); }
 	
 	struct Proxy {
 		Options* const o;
@@ -73,17 +73,17 @@ public:
 	operator Proxy() { return Proxy(this); }
 	
 	Options(Options& o): m_encoding(o.m_encoding) { m_features.swap(o.m_features); }
-	Options& operator = (Options& o) { m_encoding = o.m_encoding; m_features = o.m_features; o.Clear(); return *this; }
+	Options& operator = (Options& o) { m_encoding = o.m_encoding; m_features = std::move(o.m_features); o.Clear(); return *this; }
 	
 	Options(Proxy p): m_encoding(p.o->m_encoding) { m_features.swap(p.o->m_features); }
-	Options& operator = (Proxy p) { m_encoding = p.o->m_encoding; m_features = p.o->m_features; p.o->Clear(); return *this; }
+	Options& operator = (Proxy p) { m_encoding = p.o->m_encoding; m_features = std::move(p.o->m_features); p.o->Clear(); return *this; }
 	
 	void Apply(Lexer& lexer)
 	{
 		lexer.SetEncoding(*m_encoding);
-		for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
-			lexer.AddFeature(*i);
-			*i = 0;
+		for (auto&& i : m_features) {
+			lexer.AddFeature(i);
+			i = 0;
 		}
 		m_features.clear();
 	}
@@ -95,14 +95,10 @@ public:
 
 private:
 	const Pire::Encoding* m_encoding;
-	yvector<Feature*> m_features;
+	TVector<Feature::Ptr> m_features;
 	
 	void Clear()
 	{
-		for (yvector<Feature*>::iterator i = m_features.begin(), ie = m_features.end(); i != ie; ++i) {
-			if (*i)
-				(*i)->Destroy();
-		}
 		m_features.clear();
 	}
 };
@@ -135,8 +131,8 @@ private:
 extern const Option<const Encoding&> UTF8;
 extern const Option<const Encoding&> LATIN1;
 
-extern const Option<Feature*> I;
-extern const Option<Feature*> ANDNOT;
+extern const Option<Feature::Ptr> I;
+extern const Option<Feature::Ptr> ANDNOT;
 
 
 class Regexp {
@@ -201,7 +197,7 @@ private:
 	
 	void Init(ypair<const char*, const char*> rawPattern, Options options)
 	{
-		yvector<wchar32> pattern;
+		TVector<wchar32> pattern;
 		options.Encoding().FromLocal(rawPattern.first, rawPattern.second, std::back_inserter(pattern));
 		
 		Lexer lexer(pattern);
@@ -221,7 +217,7 @@ private:
 	static bool BeginsWithCircumflex(const Fsm& fsm)
 	{
 		typedef Fsm::StatesSet Set;
-		ydeque<size_t> queue;
+		TDeque<size_t> queue;
 		BitSet handled(fsm.Size());
 		
 		queue.push_back(fsm.Initial());
@@ -229,14 +225,14 @@ private:
 		
 		while (!queue.empty()) {
 			Set s = fsm.Destinations(queue.front(), SpecialChar::Epsilon);
-			for (Set::iterator i = s.begin(), ie = s.end(); i != ie; ++i) {
-				if (!handled.Test(*i)) {
-					handled.Set(*i);
-					queue.push_back(*i);
+			for (auto&& i : s) {
+				if (!handled.Test(i)) {
+					handled.Set(i);
+					queue.push_back(i);
 				}
 			}
 			
-			yset<Char> lets = fsm.OutgoingLetters(queue.front());
+			TSet<Char> lets = fsm.OutgoingLetters(queue.front());
 			lets.erase(SpecialChar::Epsilon);
 			lets.erase(SpecialChar::BeginMark);
 			if (!lets.empty())

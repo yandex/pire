@@ -33,6 +33,7 @@
 SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 
 	using Pire::CapturingScanner;
+	using Pire::SlowCapturingScanner;
 	typedef Pire::CapturingScanner::State State;
 
 	CapturingScanner Compile(const char* regexp, int index)
@@ -41,13 +42,26 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 
 		lexer.Assign(regexp, regexp + strlen(regexp));
 		lexer.AddFeature(Pire::Features::CaseInsensitive());
-		lexer.AddFeature(Pire::Features::Capture((size_t) index));
+		lexer.AddFeature(Pire::Features::Capture(static_cast<size_t>(index)));
 
 		Pire::Fsm fsm = lexer.Parse();
 
 		fsm.Surround();
 		fsm.Determine();
 		return fsm.Compile<Pire::CapturingScanner>();
+	}
+
+	SlowCapturingScanner SlowCompile(const char* regexp, int index, const Pire::Encoding& encoding = Pire::Encodings::Utf8())
+	{
+		Pire::Lexer lexer;
+		lexer.AddFeature(Pire::Features::Capture((size_t) index));
+		lexer.SetEncoding(encoding);
+		TVector<wchar32> ucs4;
+		encoding.FromLocal(regexp, regexp + strlen(regexp), std::back_inserter(ucs4));
+		lexer.Assign(ucs4.begin(), ucs4.end());
+		Pire::Fsm fsm = lexer.Parse();
+		fsm.Surround();
+		return fsm.Compile<Pire::SlowCapturingScanner>();
 	}
 
 	State RunRegexp(const CapturingScanner& scanner, const char* str)
@@ -57,6 +71,14 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		Step(scanner, state, Pire::BeginMark);
 		Run(scanner, state, str, str + strlen(str));
 		Step(scanner, state, Pire::EndMark);
+		return state;
+	}
+
+	SlowCapturingScanner::State RunRegexp(const SlowCapturingScanner& scanner, const char* str)
+	{
+		SlowCapturingScanner::State state;
+		scanner.Initialize(state);
+		Run(scanner, state, str, str + strlen(str));
 		return state;
 	}
 
@@ -132,30 +154,43 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 
 	SIMPLE_UNIT_TEST(Serialization)
 	{
-		CapturingScanner scanner2 = Compile("google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;", 1);
-
-		BufferOutput wbuf;
+		const char* regex = "google_id\\s*=\\s*[\'\"]([a-z0-9]+)[\'\"]\\s*;";
+		CapturingScanner scanner2 = Compile(regex, 1);
+		SlowCapturingScanner slowScanner2 = SlowCompile(regex, 1);
+		BufferOutput wbuf, wbuf2;
 		::Save(&wbuf, scanner2);
+		::Save(&wbuf2, slowScanner2);
 
 		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
+		MemoryInput rbuf2(wbuf2.Buffer().Data(), wbuf2.Buffer().Size());
 		CapturingScanner scanner;
+		SlowCapturingScanner slowScanner;
 		::Load(&rbuf, scanner);
+		::Load(&rbuf2, slowScanner);
 
 		State state;
+		SlowCapturingScanner::State slowState;
 		const char* str;
 
 		str = "google_id = 'abcde';";
 		state = RunRegexp(scanner, str);
+		slowState = RunRegexp(slowScanner, str);
 		UNIT_ASSERT(state.Captured());
 		UNIT_ASSERT_EQUAL(Captured(state, str), ystring("abcde"));
+		SlowCapturingScanner::SingleState final;
+		UNIT_ASSERT(slowScanner.GetCapture(slowState, final));
+		ystring ans(str, final.GetBegin(), final.GetEnd() - final.GetBegin());
+		UNIT_ASSERT_EQUAL(ans, ystring("abcde"));
 
 		str = "google_id != 'abcde';";
 		state = RunRegexp(scanner, str);
+		slowState = RunRegexp(slowScanner, str);
 		UNIT_ASSERT(!state.Captured());
+		UNIT_ASSERT(!slowScanner.GetCapture(slowState, final));
 
 		CapturingScanner scanner3;
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 		const void* tail = scanner3.Mmap(ptr, wbuf.Buffer().Size());
@@ -211,7 +246,7 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		UNIT_CHECKPOINT(); RunRegexp(sc3, "a string");
 
 		const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
-		yvector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
+		TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 		const void* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 
@@ -221,4 +256,56 @@ SIMPLE_UNIT_TEST_SUITE(TestPireCapture) {
 		UNIT_CHECKPOINT(); RunRegexp(sc4, "a string");
 	}
 
+	void MakeSlowCapturingTest(const char* regexp, const char* text, size_t position, bool ans, const ystring& captured = ystring(""), const Pire::Encoding& encoding = Pire::Encodings::Utf8())
+	{
+		Pire::SlowCapturingScanner sc = SlowCompile(regexp, position, encoding);
+		SlowCapturingScanner::State st = RunRegexp(sc, text);
+		SlowCapturingScanner::SingleState fin;
+		bool ifCaptured = sc.GetCapture(st, fin);
+		if (ans) {
+			UNIT_ASSERT(ifCaptured);
+			ystring answer(text, fin.GetBegin(), fin.GetEnd() - fin.GetBegin());
+			UNIT_ASSERT_EQUAL(answer, captured);
+		} else  {
+			UNIT_ASSERT(!ifCaptured);
+		}
+	}
+
+	SIMPLE_UNIT_TEST(SlowCapturingNonGreedy)
+	{
+		const char* regexp = ".*?(pref.*suff)";
+		const char* text = "pref ala bla pref cla suff dla";
+		MakeSlowCapturingTest(regexp, text, 1, true, ystring("pref ala bla pref cla suff"));
+	}
+
+	SIMPLE_UNIT_TEST(SlowCaptureGreedy)
+	{
+		const char* regexp = ".*(pref.*suff)";
+		const char* text = "pref ala bla pref cla suff dla";
+		MakeSlowCapturingTest(regexp, text, 1, true, ystring("pref cla suff"));
+	}
+
+	SIMPLE_UNIT_TEST(SlowCaptureInOr)
+	{
+		const char* regexp = "(A)|A";
+		const char* text = "A";
+		MakeSlowCapturingTest(regexp, text, 1, true, ystring("A"));
+		const char* regexp2 = "A|(A)";
+		MakeSlowCapturingTest(regexp2, text, 1, false);
+	}
+
+	SIMPLE_UNIT_TEST(SlowCapturing)
+	{
+		const char* regexp = "^http://vk(ontakte[.]ru|[.]com)/id(\\d+)([^0-9]|$)";
+		const char* text = "http://vkontakte.ru/id100500";
+		MakeSlowCapturingTest(regexp, text, 2, true, ystring("100500"));
+	}
+
+	SIMPLE_UNIT_TEST(Utf_8)
+	{
+		const char* regexp = "\xd0\x97\xd0\xb4\xd1\x80\xd0\xb0\xd0\xb2\xd1\x81\xd1\x82\xd0\xb2\xd1\x83\xd0\xb9\xd1\x82\xd0\xb5, ((\\s|\\w|[()]|-)+)!";
+		const char* text ="    \xd0\x97\xd0\xb4\xd1\x80\xd0\xb0\xd0\xb2\xd1\x81\xd1\x82\xd0\xb2\xd1\x83\xd0\xb9\xd1\x82\xd0\xb5, \xd0\xa3\xd0\xb2\xd0\xb0\xd0\xb6\xd0\xb0\xd0\xb5\xd0\xbc\xd1\x8b\xd0\xb9 (-\xd0\xb0\xd1\x8f)!   ";
+		const char* ans = "\xd0\xa3\xd0\xb2\xd0\xb0\xd0\xb6\xd0\xb0\xd0\xb5\xd0\xbc\xd1\x8b\xd0\xb9 (-\xd0\xb0\xd1\x8f)";
+		MakeSlowCapturingTest(regexp, text, 1, true, ystring(ans));
+	}
 }

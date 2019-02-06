@@ -97,9 +97,9 @@ print <<EOF;
 #include <assert.h>
 
 #ifdef PIRE_CHECKED
-#define YASSERT(e) assert(e)
+#define Y_ASSERT(e) assert(e)
 #else
-#define YASSERT(e) do {} while (0)
+#define Y_ASSERT(e) do {} while (0)
 #endif
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
@@ -110,13 +110,12 @@ print <<EOF;
 namespace Pire {
 EOF
 
-print_def 'yvector',   'std::vector',    'class T', 'class A = std::allocator<T>';
-print_def 'ydeque',    'std::deque',     'class T', 'class A = std::allocator<T>';
-print_def 'ylist',     'std::list',      'class T', 'class A = std::allocator<T>';
-print_def 'ymap',      'std::map',       'class K', 'class V', 'class C = std::less<K>', 'class A = std::allocator< std::pair<const K, V> >';
-print_def 'yset',      'std::set',       'class T', 'class C = std::less<T>', 'class A = std::allocator<T>';
+print_def 'TVector',   'std::vector',    'class T', 'class A = std::allocator<T>';
+print_def 'TDeque',    'std::deque',     'class T', 'class A = std::allocator<T>';
+print_def 'TList',     'std::list',      'class T', 'class A = std::allocator<T>';
+print_def 'TMap',      'std::map',       'class K', 'class V', 'class C = std::less<K>', 'class A = std::allocator< std::pair<const K, V> >';
+print_def 'TSet',      'std::set',       'class T', 'class C = std::less<T>', 'class A = std::allocator<T>';
 
-print_def 'yauto_ptr', 'std::auto_ptr',  'class T';
 print_def 'ybitset',   'std::bitset',    'size_t N';
 print_def 'ypair',     'std::pair',      'class A', 'class B';
 

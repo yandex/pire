@@ -60,7 +60,7 @@ public:
 	};
 
 	struct State {
-		yvector<unsigned> states;
+		TVector<unsigned> states;
 		BitSet flags;
 
 		State() {}
@@ -72,7 +72,12 @@ public:
 #endif
 	};
 
-	SlowScanner() { Alias(Null()); }
+	SlowScanner(bool needActions = false) {
+		Alias(Null());
+		need_actions = needActions;
+	}
+
+	size_t GetLettersCount() const {return m.lettersCount; };
 
 	bool Empty() const { return m_finals == Null().m_finals; }
 	
@@ -96,15 +101,15 @@ public:
 	{
 		next.flags.Clear();
 		next.states.clear();
-		for (yvector<unsigned>::const_iterator sit = current.states.begin(), sie = current.states.end(); sit != sie; ++sit) {
+		for (auto&& state : current.states) {
 			const unsigned* begin = 0;
 			const unsigned* end = 0;
 			if (!m_vecptr) {
-				const size_t* pos = m_jumpPos + *sit * m.lettersCount + l;
+				const size_t* pos = m_jumpPos + state * m.lettersCount + l;
 				begin = m_jumps + pos[0];
 				end = m_jumps + pos[1];
 			} else {
-				const yvector<unsigned>& v = (*m_vecptr)[*sit * m.lettersCount + l];
+				const auto& v = (*m_vecptr)[state * m.lettersCount + l];
 				if (!v.empty()) {
 					begin = &v[0];
 					end = &v[0] + v.size();
@@ -143,8 +148,8 @@ public:
 
 	bool Final(const State& s) const
 	{
-		for (yvector<unsigned>::const_iterator it = s.states.begin(), ie = s.states.end(); it != ie; ++it)
-			if (m_finals[*it])
+		for (auto&& state : s.states)
+			if (m_finals[state])
 				return true;
 		return false;
 	}
@@ -185,7 +190,8 @@ public:
 			Impl::MapPtr(s.m_finals, s.m.statesCount, p, size);
 			Impl::MapPtr(s.m_jumpPos, s.m.statesCount * s.m.lettersCount + 1, p, size);
 			Impl::MapPtr(s.m_jumps, s.m_jumpPos[s.m.statesCount * s.m.lettersCount], p, size);
-			
+			if (need_actions)
+				Impl::MapPtr(s.m_actions, s.m_jumpPos[s.m.statesCount * s.m.lettersCount], p, size);
 			Swap(s);
 		}
 		return (const void*) p;
@@ -195,6 +201,7 @@ public:
 	{
 		DoSwap(m_finals, s.m_finals);
 		DoSwap(m_jumps, s.m_jumps);
+		DoSwap(m_actions, s.m_actions);
 		DoSwap(m_jumpPos, s.m_jumpPos);
 		DoSwap(m.statesCount, s.m.statesCount);
 		DoSwap(m.lettersCount, s.m.lettersCount);
@@ -204,6 +211,8 @@ public:
 		DoSwap(m_vec, s.m_vec);
 		
 		DoSwap(m_vecptr, s.m_vecptr);
+		DoSwap(need_actions, s.need_actions);
+		DoSwap(m_actionsvec, s.m_actionsvec);
 		if (m_vecptr == &s.m_vec)
 			m_vecptr = &m_vec;
 		if (s.m_vecptr == &m_vec)
@@ -213,11 +222,14 @@ public:
 	SlowScanner(const SlowScanner& s)
 		: m(s.m)
 		, m_vec(s.m_vec)
+		, need_actions(s.need_actions)
+		, m_actionsvec(s.m_actionsvec)
 	{
 		if (s.m_vec.empty()) {
 			// Empty or mmap()-ed scanner, just copy pointers
 			m_finals = s.m_finals;
 			m_jumps = s.m_jumps;
+			m_actions = s.m_actions;
 			m_jumpPos = s.m_jumpPos;
 			m_letters = s.m_letters;
 			m_vecptr = 0;
@@ -227,32 +239,38 @@ public:
 			memcpy(m_letters, s.m_letters, sizeof(*m_letters) * MaxChar);
 			m_jumps = 0;
 			m_jumpPos = 0;
+			m_actions = 0;
 			alloc(m_finals, m.statesCount);
 			memcpy(m_finals, s.m_finals, sizeof(*m_finals) * m.statesCount);
 			m_vecptr = &m_vec;
 		}
 	}
-	
-	explicit SlowScanner(Fsm& fsm)
+
+	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
+		: need_actions(needActions)
 	{
-		fsm.RemoveEpsilons();
-		fsm.Sparse();
+		if (removeEpsilons)
+			fsm.RemoveEpsilons();
+		fsm.Sparse(!removeEpsilons);
 
 		m.statesCount = fsm.Size();
 		m.lettersCount = fsm.Letters().Size();
 
 		m_vec.resize(m.statesCount * m.lettersCount);
+		if (need_actions)
+			m_actionsvec.resize(m.statesCount * m.lettersCount);
 		m_vecptr = &m_vec;
 		alloc(m_letters, MaxChar);
 		m_jumps = 0;
+		m_actions = 0;
 		m_jumpPos = 0;
 		alloc(m_finals, m.statesCount);
 
 		// Build letter translation table
 		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
-		for (Fsm::LettersTbl::ConstIterator it = fsm.Letters().Begin(), ie = fsm.Letters().End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first;
+		for (auto&& letter : fsm.Letters())
+			for (auto&& character : letter.second.second)
+				m_letters[character] = letter.second.first;
 
 		m.start = fsm.Initial();
 		BuildScanner(fsm, *this);
@@ -263,14 +281,60 @@ public:
 
 	~SlowScanner()
 	{
-		for (yvector<void*>::const_iterator i = m_pool.begin(), ie = m_pool.end(); i != ie; ++i)
-			free(*i);
+		for (auto&& i : m_pool)
+			free(i);
 	}
 
 	void Save(yostream*) const;
 	void Load(yistream*);
 
 	const State& StateIndex(const State& s) const { return s; }
+
+protected:
+	size_t GetSize() const
+	{
+		return m.statesCount;
+	}
+
+	bool IsMmaped() const
+	{
+		return (!m_vecptr);
+	}
+
+	size_t GetJump(size_t pos) const
+	{
+		return m_jumps[pos];
+	}
+
+	Action& GetAction(size_t pos) const
+	{
+		return m_actions[pos];
+	}
+
+	const TVector<Action>& GetActionsVec(size_t from) const
+	{
+		return m_actionsvec[from];
+	}
+
+	const TVector<unsigned int>& GetJumpsVec(size_t from) const
+	{
+		return m_vec[from];
+	}
+
+	size_t* GetJumpPos() const
+	{
+		return m_jumpPos;
+	}
+
+	size_t GetStart() const
+	{
+		return m.start;
+	}
+
+	bool IsFinal(size_t pos) const
+	{
+		return m_finals[pos];
+	}
 
 private:
 
@@ -282,17 +346,20 @@ private:
 
 	bool* m_finals;
 	unsigned* m_jumps;
+	Action* m_actions;
 	size_t* m_jumpPos;
 	size_t* m_letters;
 
-	yvector<void*> m_pool;
-	yvector< yvector<unsigned> > m_vec, *m_vecptr;
+	TVector<void*> m_pool;
+	TVector< TVector<unsigned> > m_vec, *m_vecptr;
 
 	// Only used to force Null() call during static initialization, when Null()::n can be
 	// initialized safely by compilers that don't support thread safe static local vars
 	// initialization
 	static const SlowScanner* m_null;
 
+	bool need_actions;
+	TVector<TVector<Action>> m_actionsvec;
 	inline static const SlowScanner& Null()
 	{
 		static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
@@ -310,22 +377,27 @@ private:
 	{		
 		memcpy(&m, &s.m, sizeof(m));
 		m_vec.clear();
+		need_actions = s.need_actions;
+		m_actionsvec.clear();
 		m_finals = s.m_finals;
 		m_jumps = s.m_jumps;
+		m_actions = s.m_actions;
 		m_jumpPos = s.m_jumpPos;
 		m_letters = s.m_letters;
 		m_vecptr = s.m_vecptr;
 		m_pool.clear();
 	}
 	
-	void SetJump(size_t oldState, Char c, size_t newState, unsigned long /*payload*/)
+	void SetJump(size_t oldState, Char c, size_t newState, unsigned long action)
 	{
-		YASSERT(!m_vec.empty());
-		YASSERT(oldState < m.statesCount);
-		YASSERT(newState < m.statesCount);
+		Y_ASSERT(!m_vec.empty());
+		Y_ASSERT(oldState < m.statesCount);
+		Y_ASSERT(newState < m.statesCount);
 
 		size_t idx = oldState * m.lettersCount + m_letters[c];
 		m_vec[idx].push_back(newState);
+		if (need_actions)
+			m_actionsvec[idx].push_back(action);
 	}
 
 	unsigned long RemapAction(unsigned long action) { return action; }

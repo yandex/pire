@@ -42,8 +42,8 @@ void SimpleScanner::Save(yostream* s) const
 	SavePodType(s, Empty());
 	Impl::AlignSave(s, sizeof(Empty()));
 	if (!Empty()) {
-		YASSERT(m_buffer);
-		Impl::AlignedSaveArray(s, m_buffer, BufSize());
+		Y_ASSERT(m_buffer);
+		Impl::AlignedSaveArray(s, m_buffer.get(), BufSize());
 	}
 }
 
@@ -59,9 +59,9 @@ void SimpleScanner::Load(yistream* s)
 	if (empty) {
 		sc.Alias(Null());
 	} else {
-		sc.m_buffer = new char[sc.BufSize()];
-		Impl::AlignedLoadArray(s, sc.m_buffer, sc.BufSize());
-		sc.Markup(sc.m_buffer);
+		sc.m_buffer = BufferType(new char[sc.BufSize()]);
+		Impl::AlignedLoadArray(s, sc.m_buffer.get(), sc.BufSize());
+		sc.Markup(sc.m_buffer.get());
 		sc.m.initial += reinterpret_cast<size_t>(sc.m_transitions);
 	}
 	Swap(sc);
@@ -76,26 +76,35 @@ void SlowScanner::Save(yostream* s) const
 	SavePodType(s, Empty());
 	Impl::AlignSave(s, sizeof(Empty()));
 	if (!Empty()) {
-		YASSERT(!m_vec.empty());
+		Y_ASSERT(!m_vec.empty());
 		Impl::AlignedSaveArray(s, m_letters, MaxChar);
 		Impl::AlignedSaveArray(s, m_finals, m.statesCount);
 
 		size_t c = 0;
 		SavePodType<size_t>(s, 0);
-		for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i) {
-			size_t n = c + i->size();
+		for (auto&& i : m_vec) {
+			size_t n = c + i.size();
 			SavePodType(s, n);
 			c = n;
 		}
 		Impl::AlignSave(s, (m_vec.size() + 1) * sizeof(size_t));
 
 		size_t size = 0;
-		for (yvector< yvector< unsigned > >::const_iterator i = m_vec.begin(), ie = m_vec.end(); i != ie; ++i)
-			if (!i->empty()) {
-				SavePodArray(s, &(*i)[0], i->size());
-				size += sizeof(unsigned) * i->size();
+		for (auto&& i : m_vec)
+			if (!i.empty()) {
+				SavePodArray(s, &(i)[0], i.size());
+				size += sizeof(unsigned) * i.size();
 			}
 		Impl::AlignSave(s, size);
+		if (need_actions) {
+			size_t pos = 0;
+			for (TVector< TVector< Action > >::const_iterator i = m_actionsvec.begin(), ie = m_actionsvec.end(); i != ie; ++i)
+				if (!i->empty()) {
+					SavePodArray(s, &(*i)[0], i->size());
+					pos += sizeof(Action) * i->size();
+				}
+			Impl::AlignSave(s, pos);
+		}
 	}
 }
 
@@ -108,10 +117,13 @@ void SlowScanner::Load(yistream* s)
 	bool empty;
 	LoadPodType(s, empty);
 	Impl::AlignLoad(s, sizeof(empty));
+	sc.need_actions = need_actions;
 	if (empty) {
 		sc.Alias(Null());
 	} else {
 		sc.m_vec.resize(sc.m.lettersCount * sc.m.statesCount);
+		if (sc.need_actions)
+			sc.m_actionsvec.resize(sc.m.lettersCount * sc.m.statesCount);
 		sc.m_vecptr = &sc.m_vec;
 
 		sc.alloc(sc.m_letters, MaxChar);
@@ -122,21 +134,36 @@ void SlowScanner::Load(yistream* s)
 
 		size_t c;
 		LoadPodType(s, c);
-		for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i) {
+		auto act = sc.m_actionsvec.begin();
+		for (auto&& i : sc.m_vec) {
 			size_t n;
 			LoadPodType(s, n);
-			i->resize(n - c);
+			i.resize(n - c);
+			if (sc.need_actions) {
+				act->resize(n - c);
+				++act;
+			}
 			c = n;
 		}
 		Impl::AlignLoad(s, (m_vec.size() + 1) * sizeof(size_t));
 
 		size_t size = 0;
-		for (yvector< yvector< unsigned > >::iterator i = sc.m_vec.begin(), ie = sc.m_vec.end(); i != ie; ++i)
-			if (!i->empty()) { 
-				LoadPodArray(s, &(*i)[0], i->size());
-				size += sizeof(unsigned) * i->size();
+		for (auto&& i : sc.m_vec)
+			if (!i.empty()) {
+				LoadPodArray(s, &(i)[0], i.size());
+				size += sizeof(unsigned) * i.size();
 			}
 		Impl::AlignLoad(s, size);
+		size_t actSize = 0;
+		if (sc.need_actions) {
+			for (auto&& i : sc.m_actionsvec) {
+				if (!i.empty()) {
+					LoadPodArray(s, &(i)[0], i.size());
+					actSize += sizeof(Action) * i.size();
+				}
+			}
+			Impl::AlignLoad(s, actSize);
+		}
 	}
 	Swap(sc);
 }
@@ -161,12 +188,12 @@ void LoadedScanner::Load(yistream* s)
 	Header header = Impl::ValidateHeader(s, 4, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
-	sc.m_buffer = new char[sc.BufSize()];
-	sc.Markup(sc.m_buffer);
+	sc.m_buffer = BufferType(new char[sc.BufSize()]);
+	sc.Markup(sc.m_buffer.get());
 	Impl::AlignedLoadArray(s, sc.m_letters, MaxChar);
 	Impl::AlignedLoadArray(s, sc.m_jumps, sc.m.statesCount * sc.m.lettersCount);
 	if (header.Version == Header::RE_VERSION_WITH_MACTIONS) {
-		yvector<Action> actions(sc.m.statesCount * sc.m.lettersCount);
+		TVector<Action> actions(sc.m.statesCount * sc.m.lettersCount);
 		Impl::AlignedLoadArray(s, actions.data(), actions.size());
 	}
 	Impl::AlignedLoadArray(s, sc.m_tags, sc.m.statesCount);

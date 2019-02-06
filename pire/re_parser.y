@@ -141,6 +141,7 @@ iteration
 					cur += (orig | Fsm()) * (repc.second - repc.first);
 				}
 			}
+			rlex.Parenthesized($$->As<Fsm>());
 			delete $1;
 			delete $2;
 		}
@@ -183,17 +184,17 @@ void yyerror(Pire::Lexer& rlex, const char* str)
 
 void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& cr)
 {
-	yvector<ystring> strings;
+	TVector<ystring> strings;
 
-	for (Term::Strings::const_iterator i = cr.first.begin(), ie = cr.first.end(); i != ie; ++i) {
+	for (auto&& i : cr.first) {
 		ystring s;
-		for (Term::String::const_iterator j = i->begin(), je = i->end(); j != je; ++j) {
-			ystring c = encoding.ToLocal(*j);
+		for (auto&& j : i) {
+			ystring c = encoding.ToLocal(j);
 			if (c.empty()) {
 				s.clear();
 				break;
 			} else
-				s += encoding.ToLocal(*j);
+				s += encoding.ToLocal(j);
 		}
 		if (!s.empty())
 			strings.push_back(s);

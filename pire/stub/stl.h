@@ -47,9 +47,9 @@
 #include <assert.h>
 
 #ifdef PIRE_CHECKED
-#define YASSERT(e) assert(e)
+#define Y_ASSERT(e) assert(e)
 #else
-#define YASSERT(e) do {} while (0)
+#define Y_ASSERT(e) do {} while (0)
 #endif
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
@@ -59,97 +59,82 @@
 
 namespace Pire {
 	template< class T, class A = std::allocator<T> >
-	class yvector: public std::vector<T, A> {
+	class TVector: public std::vector<T, A> {
 	public:
-		yvector(): std::vector<T, A>() {}
+		TVector(): std::vector<T, A>() {}
 
-		yvector(std::initializer_list<T> il): std::vector<T, A>(il) {}
+		TVector(std::initializer_list<T> il): std::vector<T, A>(il) {}
 
 		template<class Arg1>
-		yvector(Arg1 arg1): std::vector<T, A>(arg1) {}
+		TVector(Arg1 arg1): std::vector<T, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		yvector(Arg1 arg1, Arg2 arg2): std::vector<T, A>(arg1, arg2) {}
+		TVector(Arg1 arg1, Arg2 arg2): std::vector<T, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		yvector(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::vector<T, A>(arg1, arg2, arg3) {}
+		TVector(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::vector<T, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T, class A = std::allocator<T> >
-	class ydeque: public std::deque<T, A> {
+	class TDeque: public std::deque<T, A> {
 	public:
-		ydeque(): std::deque<T, A>() {}
+		TDeque(): std::deque<T, A>() {}
 
 		template<class Arg1>
-		ydeque(Arg1 arg1): std::deque<T, A>(arg1) {}
+		TDeque(Arg1 arg1): std::deque<T, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		ydeque(Arg1 arg1, Arg2 arg2): std::deque<T, A>(arg1, arg2) {}
+		TDeque(Arg1 arg1, Arg2 arg2): std::deque<T, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		ydeque(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::deque<T, A>(arg1, arg2, arg3) {}
+		TDeque(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::deque<T, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T, class A = std::allocator<T> >
-	class ylist: public std::list<T, A> {
+	class TList: public std::list<T, A> {
 	public:
-		ylist(): std::list<T, A>() {}
+		TList(): std::list<T, A>() {}
 
 		template<class Arg1>
-		ylist(Arg1 arg1): std::list<T, A>(arg1) {}
+		TList(Arg1 arg1): std::list<T, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		ylist(Arg1 arg1, Arg2 arg2): std::list<T, A>(arg1, arg2) {}
+		TList(Arg1 arg1, Arg2 arg2): std::list<T, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		ylist(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::list<T, A>(arg1, arg2, arg3) {}
+		TList(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::list<T, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class K, class V, class C = std::less<K>, class A = std::allocator< std::pair<const K, V> > >
-	class ymap: public std::map<K, V, C, A> {
+	class TMap: public std::map<K, V, C, A> {
 	public:
-		ymap(): std::map<K, V, C, A>() {}
+		TMap(): std::map<K, V, C, A>() {}
 
 		template<class Arg1>
-		ymap(Arg1 arg1): std::map<K, V, C, A>(arg1) {}
+		TMap(Arg1 arg1): std::map<K, V, C, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		ymap(Arg1 arg1, Arg2 arg2): std::map<K, V, C, A>(arg1, arg2) {}
+		TMap(Arg1 arg1, Arg2 arg2): std::map<K, V, C, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		ymap(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::map<K, V, C, A>(arg1, arg2, arg3) {}
+		TMap(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::map<K, V, C, A>(arg1, arg2, arg3) {}
 	};
 
 	template< class T, class C = std::less<T>, class A = std::allocator<T> >
-	class yset: public std::set<T, C, A> {
+	class TSet: public std::set<T, C, A> {
 	public:
-		yset(): std::set<T, C, A>() {}
+		TSet(): std::set<T, C, A>() {}
 
-		yset(std::initializer_list<T> il): std::set<T, C, A>(il) {}
+		TSet(std::initializer_list<T> il): std::set<T, C, A>(il) {}
 
 		template<class Arg1>
-		yset(Arg1 arg1): std::set<T, C, A>(arg1) {}
+		TSet(Arg1 arg1): std::set<T, C, A>(arg1) {}
 
 		template<class Arg1, class Arg2>
-		yset(Arg1 arg1, Arg2 arg2): std::set<T, C, A>(arg1, arg2) {}
+		TSet(Arg1 arg1, Arg2 arg2): std::set<T, C, A>(arg1, arg2) {}
 
 		template<class Arg1, class Arg2, class Arg3>
-		yset(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::set<T, C, A>(arg1, arg2, arg3) {}
-	};
-
-	template< class T >
-	class yauto_ptr: public std::auto_ptr<T> {
-	public:
-		yauto_ptr(): std::auto_ptr<T>() {}
-
-		template<class Arg1>
-		yauto_ptr(Arg1 arg1): std::auto_ptr<T>(arg1) {}
-
-		template<class Arg1, class Arg2>
-		yauto_ptr(Arg1 arg1, Arg2 arg2): std::auto_ptr<T>(arg1, arg2) {}
-
-		template<class Arg1, class Arg2, class Arg3>
-		yauto_ptr(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::auto_ptr<T>(arg1, arg2, arg3) {}
+		TSet(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::set<T, C, A>(arg1, arg2, arg3) {}
 	};
 
 	template< size_t N >

@@ -33,8 +33,8 @@ namespace Pire {
 namespace Impl {
 
 typedef LoadedScanner::Action Action;
-typedef ymap<Char, Action> TransitionTagRow;
-typedef yvector<TransitionTagRow> TransitionTagTable;
+typedef TMap<Char, Action> TransitionTagRow;
+typedef TVector<TransitionTagRow> TransitionTagTable;
 
 class CountingFsmTask;
 
@@ -171,7 +171,7 @@ public:
 
 	size_t Next(size_t state, Char letter) const {
 		const auto& tos = mFsm.Determined().Destinations(state, letter);
-		YASSERT(tos.size() == 1);
+		Y_ASSERT(tos.size() == 1);
 		return *tos.begin();
 	}
 
@@ -184,8 +184,8 @@ public:
 		// Unite equality classes into new states
 		for (size_t from = 0; from != Size(); ++from) {
 			const auto fromMinimized = partition.Index(from);
-			for (auto lit = Letters().Begin(), lie = Letters().End(); lit != lie; ++lit) {
-				const auto representative = lit->first;
+			for (auto&& letter : Letters()) {
+				const auto representative = letter.first;
 				const auto next = Next(from, representative);
 				const auto nextMinimized = partition.Index(next);
 				Connect(fromMinimized, nextMinimized, representative);
@@ -204,8 +204,8 @@ public:
 	}
 
 	bool SameClasses(size_t first, size_t second) const {
-		for (auto it = Letters().Begin(), ie = Letters().End(); it != ie; ++it) {
-			const auto letter = it->first;
+		for (auto&& lettersEl : Letters()) {
+			const auto letter = lettersEl.first;
 			if (mFsm.Output(first, letter) != mFsm.Output(second, letter)) {
 				return false;
 			}
@@ -219,7 +219,7 @@ private:
 
 typedef size_t RawState;
 typedef ypair<RawState, unsigned long> TaggedState;
-typedef yset<TaggedState> StateGroup;
+typedef TSet<TaggedState> StateGroup;
 
 struct DeterminedState {
 public:
@@ -237,7 +237,7 @@ bool operator < (const DeterminedState& left, const DeterminedState& right) {
 	return asTuple(left) < asTuple(right);
 }
 
-bool InvalidCharRange(const yvector<Char>& range) {
+bool InvalidCharRange(const TVector<Char>& range) {
 	for (const auto letter : range) {
 		if (letter < MaxCharUnaligned && letter != 256) {
 			return false;
@@ -250,16 +250,16 @@ class BasicCountingFsmDetermineTask : public CountingFsmTask {
 public:
 	using CountingFsmTask::LettersTbl;
 	typedef DeterminedState State;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 
 	explicit BasicCountingFsmDetermineTask(const Fsm& fsm, RawState reInitial)
 		: mFsm(fsm)
 		, mReInitial{reInitial}
 	{
 		mDeadStates = fsm.DeadStates();
-		for (auto lit = fsm.Letters().Begin(), lie = fsm.Letters().End(); lit != lie; ++lit) {
-			if (InvalidCharRange(lit->second.second)) {
-				mInvalidLetters.insert(lit->first);
+		for (auto&& letter : fsm.Letters()) {
+			if (InvalidCharRange(letter.second.second)) {
+				mInvalidLetters.insert(letter.first);
 			}
 		}
 	}
@@ -290,7 +290,7 @@ public:
 		return next;
 	}
 
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		ResizeOutput(states.size());
 		auto& newFsm = Output();
@@ -414,7 +414,7 @@ protected:
 
 	void NormalizeState(State& state) const {
 		if (!state.matched.empty()) {
-			YASSERT(state.unmatched.empty());
+			Y_ASSERT(state.unmatched.empty());
 			state.unmatched.swap(state.matched);
 		}
 
@@ -484,7 +484,7 @@ private:
 		return false;
 	}
 
-	Fsm::StatesSet GetRawStates(const yvector<std::reference_wrapper<const StateGroup>> groups, unsigned long excludedTags) const {
+	Fsm::StatesSet GetRawStates(const TVector<std::reference_wrapper<const StateGroup>> groups, unsigned long excludedTags) const {
 		Fsm::StatesSet result;
 		for (const auto& group : groups) {
 			for (const auto& taggedState : group.get()) {
@@ -512,9 +512,9 @@ private:
 	const Fsm& mFsm;
 	RawState mReInitial;
 	Fsm::StatesSet mDeadStates;
-	yset<Char> mInvalidLetters;
+	TSet<Char> mInvalidLetters;
 
-	mutable ymap<State, TransitionTagRow> mActionByState;
+	mutable TMap<State, TransitionTagRow> mActionByState;
 };
 
 class CountingFsmDetermineTask : public BasicCountingFsmDetermineTask {
@@ -564,7 +564,7 @@ private:
 		if (fromIsEmpty) {
 			from.unmatched.insert(mStartState);
 		}
-		YASSERT(IsValidState(from));
+		Y_ASSERT(IsValidState(from));
 
 		SplitDestinations(next.matched, next.unmatched, next.separated, from.unmatched, letter);
 		if (next.matched.empty() && !next.separated.empty()) {
@@ -627,7 +627,7 @@ private:
 	}
 
 	void SplitSeparatedByFsmTag(State& state) const {
-		YASSERT(state.unmatched.empty());
+		Y_ASSERT(state.unmatched.empty());
 		StateGroup separated;
 		separated.swap(state.separated);
 		SplitGroupByTag(state.matched, state.unmatched, state.separated, separated, true);
@@ -720,15 +720,15 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 	// Make a full Cartesian product of two sep_res
 	sep_re.Determine();
 	sep_re.Unsparse();
-	yset<size_t> dead = sep_re.DeadStates();
+	TSet<size_t> dead = sep_re.DeadStates();
 
 	PIRE_IFDEBUG(Cdbg << "=== Original FSM ===" << Endl << sep_re << ">>> " << sep_re.Size() << " states, dead: [" << Join(dead.begin(), dead.end(), ", ") << "]" << Endl);
 
 	Fsm sq;
 
 	typedef ypair<size_t, size_t> NewState;
-	yvector<NewState> states;
-	ymap<NewState, size_t> invstates;
+	TVector<NewState> states;
+	TMap<NewState, size_t> invstates;
 
 	states.push_back(NewState(sep_re.Initial(), sep_re.Initial()));
 	invstates.insert(ymake_pair(states.back(), states.size() - 1));
@@ -750,9 +750,9 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 			const Fsm::StatesSet& br = sep_re.Destinations(states[curstate].second, letter);
 
 			if (mr.size() != 1)
-				YASSERT(!"Wrong transition size for main");
+				Y_ASSERT(!"Wrong transition size for main");
 			if (br.size() != 1)
-				YASSERT(!"Wrong transition size for backup");
+				Y_ASSERT(!"Wrong transition size for backup");
 
 			NewState ns(*mr.begin(), *br.begin());
 			PIRE_IFDEBUG(NewState savedNs = ns);
@@ -769,7 +769,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 
 			PIRE_IFDEBUG(if (ns != savedNs) Cdbg << "Diverted transition to (" << savedNs.first << ", " << savedNs.second << ") on " << (char) letter << " to (" << ns.first << ", " << ns.second << ")" << dbgout << Endl);
 
-			ymap<NewState, size_t>::iterator nsi = invstates.find(ns);
+			TMap<NewState, size_t>::iterator nsi = invstates.find(ns);
 			if (nsi == invstates.end()) {
 				PIRE_IFDEBUG(Cdbg << "New state " << states.size() << " = (" << ns.first << ", " << ns.second << ")" << Endl);
 				states.push_back(ns);
@@ -777,7 +777,7 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 				sq.Resize(states.size());
 			}
 
-			for (yvector<Char>::const_iterator li = lit->second.second.begin(), le = lit->second.second.end(); li != le; ++li)
+			for (TVector<Char>::const_iterator li = lit->second.second.begin(), le = lit->second.second.end(); li != le; ++li)
 			sq.Connect(curstate, nsi->second, *li);
 			if (outputs)
 				sq.SetOutput(curstate, nsi->second, outputs);
@@ -808,10 +808,10 @@ AdvancedCountingScanner::AdvancedCountingScanner(const Fsm& re, const Fsm& sep, 
 	Init(determined.Size(), letters, determined.Initial(), 1);
 
 	for (size_t from = 0; from != determined.Size(); ++from) {
-		for (auto lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
-			const auto letter = lit->first;
+		for (auto&& lettersEl : letters) {
+			const auto letter = lettersEl.first;
 			const auto& tos = determined.Destinations(from, letter);
-			YASSERT(tos.size() == 1);
+			Y_ASSERT(tos.size() == 1);
 			SetJump(from, letter, *tos.begin(), RemapAction(countingFsm.Output(from, letter)));
 		}
 	}
@@ -825,18 +825,18 @@ public:
 	using typename ScannerGlueCommon<Scanner>::State;
 	using TAction = typename Scanner::Action;
 	using InternalState = typename Scanner::InternalState;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 	
 	CountingScannerGlueTask(const Scanner& lhs, const Scanner& rhs)
 		: ScannerGlueCommon<Scanner>(lhs, rhs, LettersEquality<Scanner>(lhs.m_letters, rhs.m_letters))
 	{
 	}
 	
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		States = states;
 		
-		this->SetSc(new Scanner);
+		this->SetSc(std::unique_ptr<Scanner>(new Scanner));
 		this->Sc().Init(states.size(), this->Letters(), 0, this->Lhs().RegexpsCount() + this->Rhs().RegexpsCount());
 		for (size_t i = 0; i < states.size(); ++i)
 			this->Sc().SetTag(i, this->Lhs().m_tags[this->Lhs().StateIdx(states[i].first)] | (this->Rhs().m_tags[this->Rhs().StateIdx(states[i].second)] << 3));
@@ -849,7 +849,7 @@ public:
 	}
 			
 private:
-	yvector<State> States;
+	TVector<State> States;
 	TAction Action(const Scanner& sc, InternalState state, Char letter) const
 	{
 		size_t state_index = sc.StateIdx(state);
@@ -863,14 +863,14 @@ private:
 	
 CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const CountingScanner& rhs, size_t maxSize /* = 0 */)
 {
-	static const size_t DefMaxSize = 250000;
+	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<CountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 
 AdvancedCountingScanner AdvancedCountingScanner::Glue(const AdvancedCountingScanner& lhs, const AdvancedCountingScanner& rhs, size_t maxSize /* = 0 */)
 {
-	static const size_t DefMaxSize = 250000;
+	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<AdvancedCountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }

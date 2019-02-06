@@ -65,31 +65,26 @@ public:
 		: mMap(new value_type[N])
 		, mFilled(N, false)
 	{}
-
-	~GluedStateLookupTable()
-	{
-		delete [] mMap;
-	}
 	
 	const_iterator end() const {
-		return mMap + MaxSize;
+		return mMap.get() + MaxSize;
 	}
 	// Note that in fact mMap is sparsed and traditional [begin,end)
 	// traversal is unavailable; hence no begin() method here.
 	// end() is only valid for comparing with find() result.
 	const_iterator find(const key_type& st) const {
 		size_t ind = Search(st);
-		return mFilled[ind] ? (mMap + ind) : end();
+		return mFilled[ind] ? (mMap.get() + ind) : end();
 	}
 
 	ypair<iterator, bool> insert(const value_type& v) {
 		size_t ind = Search(v.first);
 		if (!mFilled[ind]) {
-			new(mMap + ind) value_type(v);
+			mMap[ind] = v;
 			mFilled[ind] = true;
-			return ymake_pair(mMap + ind, true);
+			return ymake_pair(mMap.get() + ind, true);
 		} else
-			return ymake_pair(mMap + ind, false);
+			return ymake_pair(mMap.get() + ind, false);
 	}
 
 private:
@@ -107,8 +102,8 @@ private:
 		return size_t((st.first >> 2) ^ (st.second >> 4) ^ (st.second << 10));
 	}
 
-	value_type*   mMap;        // not using vector here to avoid initialization
-	yvector<bool> mFilled;
+	std::unique_ptr<value_type[]> mMap;
+	TVector<bool> mFilled;
 
 	// Noncopyable
 	GluedStateLookupTable(const GluedStateLookupTable&);
@@ -154,13 +149,13 @@ public:
 
 protected:
 	Scanner& Sc() { return *m_result; }
-	void SetSc(Scanner* sc) { m_result.reset(sc); }
+	void SetSc(std::unique_ptr<Scanner>&& sc) { m_result = std::move(sc); }
 
 private:
 	const Scanner& m_lhs;
 	const Scanner& m_rhs;
 	LettersTbl m_letters;
-	yauto_ptr<Scanner> m_result;
+	std::unique_ptr<Scanner> m_result;
 };
 
 }	

@@ -47,7 +47,7 @@ namespace Pire {
 			typedef Partition<char, ImplementationSpecific2> LettersTbl;
 
 			/// A container used for storing map of states to thier indices.
-			typedef ymap<State, size_t> InvStates;
+			typedef TMap<State, size_t> InvStates;
 
 			/// Should return used letters' partition.
 			const LettersTbl& Letters() const;
@@ -62,7 +62,7 @@ namespace Pire {
 			bool IsRequired(const State& /*state*/) const { return true; }
 
 			/// Called when the set of new states is closed.
-			void AcceptStates(const yvector<State>& newstates);
+			void AcceptStates(const TVector<State>& newstates);
 
 			/// Called for each transition from one new state to another.
 			void Connect(size_t from, size_t to, Char letter);
@@ -92,14 +92,13 @@ namespace Pire {
 		typename Task::Result Determine(Task& task, size_t maxSize)
 		{
 			typedef typename Task::State State;
-			typedef typename Task::LettersTbl Letters;
 			typedef typename Task::InvStates InvStates;
-			typedef ydeque< yvector<size_t> > TransitionTable;
+			typedef TDeque< TVector<size_t> > TransitionTable;
 
-			yvector<State> states;
+			TVector<State> states;
 			InvStates invstates;
 			TransitionTable transitions;
-			yvector<size_t> stateIndices;
+			TVector<size_t> stateIndices;
 
 			states.push_back(task.Initial());
 			invstates.insert(typename InvStates::value_type(states[0], 0));
@@ -108,29 +107,29 @@ namespace Pire {
 				if (!task.IsRequired(states[stateIdx]))
 					continue;
 				TransitionTable::value_type row(task.Letters().Size());
-				for (typename Letters::ConstIterator lit = task.Letters().Begin(), lie = task.Letters().End(); lit != lie; ++lit) {
-					State newState = task.Next(states[stateIdx], lit->first);
-					typename InvStates::const_iterator i = invstates.find(newState);
+				for (auto&& letter : task.Letters()) {
+					State newState = task.Next(states[stateIdx], letter.first);
+					auto i = invstates.find(newState);
 					if (i == invstates.end()) {
 						if (!maxSize--)
 							return task.Failure();
 						i = invstates.insert(typename InvStates::value_type(newState, states.size())).first;
 						states.push_back(newState);
 					}
-					row[lit->second.first] = i->second;
+					row[letter.second.first] = i->second;
 				}
 				transitions.push_back(row);
 				stateIndices.push_back(stateIdx);
 			}
 
-			yvector<Char> invletters(task.Letters().Size());
-			for (typename Letters::ConstIterator lit = task.Letters().Begin(), lie = task.Letters().End(); lit != lie; ++lit)
-				invletters[lit->second.first] = lit->first;
+			TVector<Char> invletters(task.Letters().Size());
+			for (auto&& letter : task.Letters())
+				invletters[letter.second.first] = letter.first;
 
 			task.AcceptStates(states);
 			size_t from = 0;
 			for (TransitionTable::iterator i = transitions.begin(), ie = transitions.end(); i != ie; ++i, ++from) {
-				yvector<Char>::iterator l = invletters.begin();
+				TVector<Char>::iterator l = invletters.begin();
 				for (TransitionTable::value_type::iterator j = i->begin(), je = i->end(); j != je; ++j, ++l)
 					task.Connect(stateIndices[from], *j, *l);
 			}
@@ -138,16 +137,16 @@ namespace Pire {
 		}
 
 		// Faster transition table representation for determined FSM
-		typedef yvector<size_t> DeterminedTransitions;
+		typedef TVector<size_t> DeterminedTransitions;
 
 		// Mapping of states into partitions in minimization algorithm.
-		typedef yvector<size_t> StateClassMap;
+		typedef TVector<size_t> StateClassMap;
 
 		template<class Task>
 		struct MinimizeEquality : public ybinary_function<size_t, size_t, bool> {
 		public:
 
-			MinimizeEquality(const DeterminedTransitions& tbl, const yvector<Char>& letters, const StateClassMap* clMap, const Task* task) :
+			MinimizeEquality(const DeterminedTransitions& tbl, const TVector<Char>& letters, const StateClassMap* clMap, const Task* task) :
 				m_tbl(&tbl), m_letters(&letters), m_prev(clMap), m_task(task) {}
 
 			inline bool operator()(size_t a, size_t b) const
@@ -160,8 +159,8 @@ namespace Pire {
 				if (m_prev) {
 					if ((*m_prev)[a] != (*m_prev)[b])
 						return false;
-					for (yvector<Char>::const_iterator it = m_letters->begin(), ie = m_letters->end(); it != ie; ++it)
-						if ((*m_prev)[Next(a, *it)] != (*m_prev)[Next(b, *it)])
+					for (auto&& letter : *m_letters)
+						if ((*m_prev)[Next(a, letter)] != (*m_prev)[Next(b, letter)])
 							return false;
 				}
 				return true;
@@ -169,7 +168,7 @@ namespace Pire {
 
 		private:
 			const DeterminedTransitions* m_tbl;
-			const yvector<Char>* m_letters;
+			const TVector<Char>* m_letters;
 			const StateClassMap* m_prev;
 			const Task* m_task;
 
@@ -184,7 +183,7 @@ namespace Pire {
 		template<class Task>
 		bool UpdateStateClassMap(StateClassMap& clMap, const Partition<size_t, MinimizeEquality<Task>>& stPartition)
 		{
-			YASSERT(!clMap.empty());
+			Y_ASSERT(!clMap.empty());
 			bool changed = false;
 			for (size_t st = 0; st < clMap.size(); st++) {
 				size_t cl = stPartition.Representative(st);
@@ -204,14 +203,14 @@ namespace Pire {
 				return task.Failure();
 			}
 
-			yvector<Char> distinctLetters;
+			TVector<Char> distinctLetters;
 			DeterminedTransitions detTran(task.Size() * MaxChar);
-			for (auto lit = task.Letters().Begin(), lie = task.Letters().End(); lit != lie; ++lit) {
-				const auto representative = lit->first;
+			for (auto&& letters : task.Letters()) {
+				const auto representative = letters.first;
 				distinctLetters.push_back(representative);
 				for (size_t from = 0; from != task.Size(); ++from) {
 					const auto next = task.Next(from, representative);
-					for (auto letter : lit->second.second) {
+					for (auto letter : letters.second.second) {
 						detTran[from * MaxChar + letter] = next;
 					}
 				}

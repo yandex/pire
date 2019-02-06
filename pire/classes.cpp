@@ -52,17 +52,17 @@ namespace {
 				return r;
 			}
 
-			yset<wchar32> ToSet() const
+			TSet<wchar32> ToSet() const
 			{
-				yset<wchar32> ret;
-				for (yvector<ypair<wchar32, wchar32> >::const_iterator it = m_bounds.begin(), ie = m_bounds.end(); it != ie; ++it)
-					for (wchar32 c = it->first; c <= it->second; ++c)
+				TSet<wchar32> ret;
+				for (auto&& bound : m_bounds)
+					for (wchar32 c = bound.first; c <= bound.second; ++c)
 						ret.insert(c);
 				return ret;
 			}
 
 		private:
-			yvector<ypair<wchar32, wchar32> > m_bounds;
+			TVector<ypair<wchar32, wchar32> > m_bounds;
 		};
 
 	public:
@@ -71,9 +71,9 @@ namespace {
 			return (m_classes.find(to_lower(wc & ~ControlMask)) != m_classes.end());
 		}
 
-		yset<wchar32> Get(wchar32 wc) const
+		TSet<wchar32> Get(wchar32 wc) const
 		{
-			ymap<wchar32, CharClass>::const_iterator it = m_classes.find(to_lower(wc & ~ControlMask));
+			auto it = m_classes.find(to_lower(wc & ~ControlMask));
 			if (it == m_classes.end())
 				throw Error("Unknown character class");
 			return it->second.ToSet();
@@ -101,7 +101,7 @@ namespace {
 			m_classes['t'] = CharClass('\t');
 		}
 
-		ymap<wchar32, CharClass> m_classes;
+		TMap<wchar32, CharClass> m_classes;
 	};
 
 	class CharClassesImpl: public Feature {
@@ -118,18 +118,18 @@ namespace {
 				CharSet altered;
 				bool pos = false;
 				bool neg = false;
-				for (CharSet::const_iterator i = old.begin(), ie = old.end(); i != ie; ++i)
-					if (i->size() == 1 && ((*i)[0] & ControlMask) == Control && m_table->Has((*i)[0])) {
-						if (is_upper((*i)[0] & ~ControlMask))
+				for (auto&& i : old)
+					if (i.size() == 1 && (i[0] & ControlMask) == Control && m_table->Has(i[0])) {
+						if (is_upper(i[0] & ~ControlMask))
 							neg = true;
 						else
 							pos = true;
 
-						yset<wchar32> klass = m_table->Get((*i)[0]);
-						for (yset<wchar32>::iterator j = klass.begin(), je = klass.end(); j != je; ++j)
-							altered.insert(Term::String(1, *j));
+						TSet<wchar32> klass = m_table->Get(i[0]);
+						for (auto&& j : klass)
+							altered.insert(Term::String(1, j));
 					} else
-						altered.insert(*i);
+						altered.insert(i);
 
 				if (neg && (pos || range.second))
 					Error("Positive and negative character ranges mixed");
@@ -144,7 +144,7 @@ namespace {
 }
 
 namespace Features {
-	Feature* CharClasses() { return new CharClassesImpl; }
+	Feature::Ptr CharClasses() { return Feature::Ptr(new CharClassesImpl); }
 }
 
 }

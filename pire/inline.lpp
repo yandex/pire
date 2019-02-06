@@ -13,7 +13,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -34,7 +34,7 @@
 #include <pire.h>
 ystring filename = "";
 int line = 1;
-yvector<ystring> args;
+TVector<ystring> args;
 
 #ifdef _WIN32
 static int isatty(int) { return 0; }
@@ -124,12 +124,12 @@ void eatComment(void (*action)(char));
 
 	if (args.size() & 1 || args.empty())
 		Die() << "Usage: PIRE_REGEXP(\"regexp1\", \"flags1\" [, \"regexp2\", \"flags2\" [,...] ])";
-	
+
 	bool first = true;
 	Pire::Scanner sc;
 	ystring pattern;
-	for (yvector<ystring>::iterator i = args.begin(), ie = args.end(); i != ie; i += 2) {
-		
+	for (auto i = args.begin(), ie = args.end(); i != ie; i += 2) {
+
 		Pire::Lexer lexer(i->c_str(), i->c_str() + i->size());
 		bool surround = false;
 		bool greedy = false;
@@ -150,7 +150,7 @@ void eatComment(void (*action)(char));
 			else
 				Die() << "unknown option " <<  *option << "";
 		}
-		
+
 		Pire::Fsm fsm;
 		try {
 			fsm = lexer.Parse();
@@ -185,7 +185,7 @@ void eatComment(void (*action)(char));
 
 	fprintf(yyout, "Pire::MmappedScanner<Pire::Scanner>(PIRE_LITERAL( // %s \n    \"", pattern.c_str());
 	size_t pos = 5;
-	for (BufferIterator i = buf.Buffer().Begin(), ie = buf.Buffer().End(); i != ie; ++i) {
+	for (auto i = buf.Buffer().Begin(), ie = buf.Buffer().End(); i != ie; ++i) {
 		pos += fprintf(yyout, "\\x%02X", static_cast<unsigned char>(*i));
 		if (pos >= 78) {
 			fprintf(yyout, "\"\n    \"");
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
 			filename = ystring(argv[1]);
 		else if (argc > 2)
 			Die() << "usage: pire_inline [-o outfile] [infile]";
-	    
+
 		yyin = stdin, yyout = stdout;
 		if (outfile && (yyout = fopen(outfile, "w")) == NULL)
 			Die() << "cannot open file " <<  outfile << " for writing";

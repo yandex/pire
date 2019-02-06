@@ -83,9 +83,9 @@ public:
 			m_transitions = s.m_transitions;
 		} else {
 			// In-memory scanner, perform deep copy
-			m_buffer = new char[BufSize()];
-			memcpy(m_buffer, s.m_buffer, BufSize());
-			Markup(m_buffer);
+			m_buffer = BufferType(new char[BufSize()]);
+			memcpy(m_buffer.get(), s.m_buffer.get(), BufSize());
+			Markup(m_buffer.get());
 
 			m.initial += (m_transitions - s.m_transitions) * sizeof(Transition);
 		}
@@ -96,7 +96,7 @@ public:
 	void Alias(const SimpleScanner& s)
 	{
 		m = s.m;
-		m_buffer = 0;
+		m_buffer.reset();
 		m_transitions = s.m_transitions;
 	}
 
@@ -109,11 +109,6 @@ public:
 	}
 
 	SimpleScanner& operator = (const SimpleScanner& s) { SimpleScanner(s).Swap(*this); return *this; }
-
-	~SimpleScanner()
-	{
-		delete[] m_buffer;
-	}
 
 	/*
 	 * Constructs the scanner from mmap()-ed memory range, returning a pointer
@@ -171,7 +166,8 @@ protected:
 		size_t initial;
 	} m;
 
-	char* m_buffer;
+	using BufferType = std::unique_ptr<char[]>;
+	BufferType m_buffer;
 
 	Transition* m_transitions;
 
@@ -196,9 +192,9 @@ protected:
 
 	void SetJump(size_t oldState, Char c, size_t newState)
 	{
-		YASSERT(m_buffer);
-		YASSERT(oldState < m.statesCount);
-		YASSERT(newState < m.statesCount);
+		Y_ASSERT(m_buffer);
+		Y_ASSERT(oldState < m.statesCount);
+		Y_ASSERT(newState < m.statesCount);
 		m_transitions[oldState * STATE_ROW_SIZE + 1 + c]
 			= (((newState - oldState) * STATE_ROW_SIZE) * sizeof(Transition));
 	}
@@ -207,13 +203,13 @@ protected:
 
 	void SetInitial(size_t state)
 	{
-		YASSERT(m_buffer);
+		Y_ASSERT(m_buffer);
 		m.initial = reinterpret_cast<size_t>(m_transitions + state * STATE_ROW_SIZE + 1);
 	}
 
 	void SetTag(size_t state, size_t tag)
 	{
-		YASSERT(m_buffer);
+		Y_ASSERT(m_buffer);
 		m_transitions[state * STATE_ROW_SIZE] = tag;
 	}
 
@@ -223,21 +219,21 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm)
 	fsm.Canonize();
 	
 	m.statesCount = fsm.Size();
-	m_buffer = new char[BufSize()];
-	memset(m_buffer, 0, BufSize());
-	Markup(m_buffer);
+	m_buffer = BufferType(new char[BufSize()]);
+	memset(m_buffer.get(), 0, BufSize());
+	Markup(m_buffer.get());
 	m.initial = reinterpret_cast<size_t>(m_transitions + fsm.Initial() * STATE_ROW_SIZE + 1);
 	for (size_t state = 0; state < fsm.Size(); ++state)
 		SetTag(state, fsm.Tag(state) | (fsm.IsFinal(state) ? 1 : 0));
 
 	for (size_t from = 0; from != fsm.Size(); ++from)
-		for (Fsm::LettersTbl::ConstIterator i = fsm.Letters().Begin(), ie = fsm.Letters().End(); i != ie; ++i) {
-			const Fsm::StatesSet& tos = fsm.Destinations(from, i->first);
+		for (auto&& i : fsm.Letters()) {
+			const auto& tos = fsm.Destinations(from, i.first);
 			if (tos.empty())
 				continue;
-			for (yvector<Char>::const_iterator l = i->second.second.begin(), le = i->second.second.end(); l != le; ++l)
-				for (Fsm::StatesSet::const_iterator to = tos.begin(), toEnd = tos.end(); to != toEnd; ++to)
-					SetJump(from, *l, *to);
+			for (auto&& l : i.second.second)
+				for (auto&& to : tos)
+					SetJump(from, l, to);
 		}
 }
 

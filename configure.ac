@@ -40,6 +40,7 @@ AC_CHECK_FUNCS([memset strchr])
 
 AC_C_BIGENDIAN
 
+CXXFLAGS="$CXXFLAGS -std=c++11"
 # Utility check routine combining AC_TRY_COMPILE, AC_CACHE_CHECK and AC_DEFINE.
 AC_DEFUN([AX_DEFINE_IF_COMPILES], [
 	pire_saved_CXXFLAGS="$CXXFLAGS"

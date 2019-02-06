@@ -73,24 +73,24 @@ ystring CharDump(Char c)
 void Fsm::DumpState(yostream& s, size_t state) const
 {
 	// Fill in a 'row': Q -> exp(V) (for current state)
-	yvector< ybitset<MaxChar> > row(Size());
-	for (TransitionRow::const_iterator rit = m_transitions[state].begin(), rie = m_transitions[state].end(); rit != rie; ++rit)
-		for (StatesSet::const_iterator sit = rit->second.begin(), sie = rit->second.end(); sit != sie; ++sit) {
-			if (*sit >= Size()) {
-				std::cerr << "WTF?! Transition from " << state << " on letter " << rit->first << " leads to non-existing state " << *sit << "\n";
-				YASSERT(false);
+	TVector< ybitset<MaxChar> > row(Size());
+	for (auto&& transition : m_transitions[state])
+		for (auto&& transitionState : transition.second) {
+			if (transitionState >= Size()) {
+				std::cerr << "WTF?! Transition from " << state << " on letter " << transition.first << " leads to non-existing state " << transitionState << "\n";
+				Y_ASSERT(false);
 			}
-			if (Letters().Contains(rit->first)) {
-				const yvector<Char>& letters = Letters().Klass(Letters().Representative(rit->first));
-				for (yvector<Char>::const_iterator lit = letters.begin(), lie = letters.end(); lit != lie; ++lit)
-					row[*sit].set(*lit);
+			if (Letters().Contains(transition.first)) {
+				const TVector<Char>& letters = Letters().Klass(Letters().Representative(transition.first));
+				for (auto&& letter : letters)
+					row[transitionState].set(letter);
 			} else
-				row[*sit].set(rit->first);
+				row[transitionState].set(transition.first);
 		}
 
 	bool statePrinted = false;
 	// Display each destination state
-	for (yvector< ybitset<MaxChar> >::iterator rit = row.begin(), rie = row.end(); rit != rie; ++rit) {
+	for (auto rit = row.begin(), rie = row.end(); rit != rie; ++rit) {
 		unsigned begin = 0, end = 0;
 
 		ystring delimiter;
@@ -138,7 +138,7 @@ void Fsm::DumpState(yostream& s, size_t state) const
 		if (!label.empty()) {
 			if (!statePrinted) {
 				s << "    " << state << "[shape=\"" << (IsFinal(state) ? "double" : "") << "circle\",label=\"" << state;
-				Tags::const_iterator ti = tags.find(state);
+				auto ti = tags.find(state);
 				if (ti != tags.end())
 					s << " (tags: " << ti->second << ")";
 				s << "\"]\n";
@@ -149,13 +149,13 @@ void Fsm::DumpState(yostream& s, size_t state) const
 			s << "    " << state << " -> " << std::distance(row.begin(), rit) << "[label=\"" << label;
 
 			// Display outputs
-			Outputs::const_iterator oit = outputs.find(state);
+			auto oit = outputs.find(state);
 			if (oit != outputs.end()) {
-				Outputs::value_type::second_type::const_iterator oit2 = oit->second.find(std::distance(row.begin(), rit));
+				auto oit2 = oit->second.find(std::distance(row.begin(), rit));
 				if (oit2 == oit->second.end())
 					;
 				else {
-					yvector<int> payload;
+					TVector<int> payload;
 					for (unsigned i = 0; i < sizeof(oit2->second) * 8; ++i)
 						if (oit2->second & (1ul << i))
 							payload.push_back(i);
@@ -216,13 +216,13 @@ Char Fsm::Translate(Char c) const
 
 bool Fsm::Connected(size_t from, size_t to, Char c) const
 {
-	TransitionRow::const_iterator it = m_transitions[from].find(Translate(c));
+	auto it = m_transitions[from].find(Translate(c));
 	return (it != m_transitions[from].end() && it->second.find(to) != it->second.end());
 }
 
 bool Fsm::Connected(size_t from, size_t to) const
 {
-	for (TransitionRow::const_iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
+	for (auto i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
 		if (i->second.find(to) != i->second.end())
 			return true;
 	return false;
@@ -230,15 +230,15 @@ bool Fsm::Connected(size_t from, size_t to) const
 
 const Fsm::StatesSet& Fsm::Destinations(size_t from, Char c) const
 {
-	TransitionRow::const_iterator i = m_transitions[from].find(Translate(c));
+	auto i = m_transitions[from].find(Translate(c));
 	return (i != m_transitions[from].end()) ? i->second : DefaultValue<StatesSet>();
 }
 
-yset<Char> Fsm::OutgoingLetters(size_t state) const
+TSet<Char> Fsm::OutgoingLetters(size_t state) const
 {
-	yset<Char> ret;
-	for (TransitionRow::const_iterator i = m_transitions[state].begin(), ie = m_transitions[state].end(); i != ie; ++i)
-		ret.insert(i->first);
+	TSet<Char> ret;
+	for (auto&& i : m_transitions[state])
+		ret.insert(i.first);
 	return ret;
 }
 
@@ -292,8 +292,8 @@ Fsm& Fsm::Append(char c)
     
 Fsm& Fsm::Append(const ystring& str)
 {
-    for (ystring::const_iterator i = str.begin(), ie = str.end(); i != ie; ++i)
-        Append(*i);
+    for (auto&& i : str)
+        Append(i);
     return *this;
 }
 
@@ -307,10 +307,10 @@ Fsm& Fsm::AppendSpecial(Char c)
     return *this;
 }
 
-Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
+Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 {
-	for (yvector<ystring>::const_iterator i = strings.begin(), ie = strings.end(); i != ie; ++i)
-		if (i->empty())
+	for (auto&& i : strings)
+		if (i.empty())
 			throw Error("None of strings passed to appendStrings() can be empty");
 
 	Resize(Size() + 1);
@@ -324,19 +324,17 @@ Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
 	// state #0 cannot appear in LTRs. Thus we can use this
 	// criteria to test whether a transition has been created or not.
 	typedef ypair<size_t, char> Transition;
-	ymap<char, size_t> startLtr;
-	ymap<Transition, size_t> ltr;
+	TMap<char, size_t> startLtr;
+	TMap<Transition, size_t> ltr;
 
 	// A presense of a transition in this set indicates that
 	// a that transition already points somewhere (either to end
 	// or somewhere else). Another attempt to create such transition
 	// will clear `determined flag.
-	yset<Transition> usedTransitions;
-	yset<char> usedFirsts;
+	TSet<Transition> usedTransitions;
+	TSet<char> usedFirsts;
 
-	for (yvector<ystring>::const_iterator sit = strings.begin(), sie = strings.end(); sit != sie; ++sit) {
-		const ystring& str = *sit;
-
+	for (const auto& str : strings) {
 		if (str.size() > 1) {
 
 			// First letter: all previously final states are connected to the new state
@@ -349,7 +347,7 @@ Fsm& Fsm::AppendStrings(const yvector<ystring>& strings)
 
 			// All other letters except last one
 			size_t state = firstJump;
-			for (ystring::const_iterator cit = str.begin() + 1, cie = str.end() - 1; cit != cie; ++cit) {
+			for (auto cit = str.begin() + 1, cie = str.end() - 1; cit != cie; ++cit) {
 				size_t& newState = ltr[ymake_pair(state, *cit)];
 				if (!newState) {
 					newState = Resize(Size() + 1);
@@ -384,46 +382,46 @@ void Fsm::Import(const Fsm& rhs)
 
 	size_t oldsize = Resize(Size() + rhs.Size());
 
-	for (TransitionTable::iterator outer = m_transitions.begin(), outerEnd = m_transitions.end(); outer != outerEnd; ++outer) {
-		for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
-			TransitionRow::const_iterator targets = outer->find(lit->first);
-			if (targets == outer->end())
+	for (auto&& outer : m_transitions) {
+		for (auto&& letter : letters) {
+			auto targets = outer.find(letter.first);
+			if (targets == outer.end())
 				continue;
-			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
-				if (*cit != lit->first)
-					outer->insert(ymake_pair(*cit, targets->second));
+			for (auto&& character : letter.second.second)
+				if (character != letter.first)
+					outer.insert(ymake_pair(character, targets->second));
 		}
 	}
 
-	TransitionTable::iterator dest = m_transitions.begin() + oldsize;
-	for (TransitionTable::const_iterator outer = rhs.m_transitions.begin(), outerEnd = rhs.m_transitions.end(); outer != outerEnd; ++outer, ++dest) {
-		for (TransitionRow::const_iterator inner = outer->begin(), innerEnd = outer->end(); inner != innerEnd; ++inner) {
-			yset<size_t> targets;
-			std::transform(inner->second.begin(), inner->second.end(), std::inserter(targets, targets.begin()),
+	auto dest = m_transitions.begin() + oldsize;
+	for (auto outer = rhs.m_transitions.begin(), outerEnd = rhs.m_transitions.end(); outer != outerEnd; ++outer, ++dest) {
+		for (auto&& inner : *outer) {
+			TSet<size_t> targets;
+			std::transform(inner.second.begin(), inner.second.end(), std::inserter(targets, targets.begin()),
 				std::bind2nd(std::plus<size_t>(), oldsize));
-			dest->insert(ymake_pair(inner->first, targets));
+			dest->insert(ymake_pair(inner.first, targets));
 		}
 
-		for (LettersTbl::ConstIterator lit = rhs.letters.Begin(), lie = rhs.letters.End(); lit != lie; ++lit) {
-			TransitionRow::const_iterator targets = dest->find(lit->first);
+		for (auto&& letter : rhs.letters) {
+			auto targets = dest->find(letter.first);
 			if (targets == dest->end())
 				continue;
-			for (yvector<Char>::const_iterator cit = lit->second.second.begin(), cie = lit->second.second.end(); cit != cie; ++cit)
-				if (*cit != lit->first)
-					dest->insert(ymake_pair(*cit, targets->second));
+			for (auto&& character : letter.second.second)
+				if (character != letter.first)
+					dest->insert(ymake_pair(character, targets->second));
 		}
 	}
 
 	// Import outputs
-	for (Outputs::const_iterator oit = rhs.outputs.begin(), oie = rhs.outputs.end(); oit != oie; ++oit) {
-		Outputs::value_type::second_type& dest = outputs[oit->first + oldsize];
-		for (Outputs::value_type::second_type::const_iterator rit = oit->second.begin(), rie = oit->second.end(); rit != rie; ++rit)
-			dest.insert(ymake_pair(rit->first + oldsize, rit->second));
+	for (auto&& output : rhs.outputs) {
+		auto& dest = outputs[output.first + oldsize];
+		for (auto&& element : output.second)
+			dest.insert(ymake_pair(element.first + oldsize, element.second));
 	}
 
 	// Import tags
-	for (Tags::const_iterator it = rhs.tags.begin(), ie = rhs.tags.end(); it != ie; ++it)
-		tags.insert(ymake_pair(it->first + oldsize, it->second));
+	for (auto&& tag : rhs.tags)
+		tags.insert(ymake_pair(tag.first + oldsize, tag.second));
 
 	letters = LettersTbl(LettersEquality(m_transitions));
 }
@@ -436,14 +434,14 @@ void Fsm::Connect(size_t from, size_t to, Char c /* = Epsilon */)
 
 void Fsm::ConnectFinal(size_t to, Char c /* = Epsilon */)
 {
-	for (FinalTable::iterator it = m_final.begin(), ie = m_final.end(); it != ie; ++it)
-		Connect(*it, to, c);
+	for (auto&& final : m_final)
+		Connect(final, to, c);
 	ClearHints();
 }
 
 void Fsm::Disconnect(size_t from, size_t to, Char c)
 {
-	TransitionRow::iterator i = m_transitions[from].find(c);
+	auto i = m_transitions[from].find(c);
 	if (i != m_transitions[from].end())
 		i->second.erase(to);
 	ClearHints();
@@ -451,17 +449,17 @@ void Fsm::Disconnect(size_t from, size_t to, Char c)
 
 void Fsm::Disconnect(size_t from, size_t to)
 {
-	for (TransitionRow::iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
-		i->second.erase(to);
+	for (auto&& i : m_transitions[from])
+		i.second.erase(to);
 	ClearHints();
 }
 
 unsigned long Fsm::Output(size_t from, size_t to) const
 {
-	Outputs::const_iterator i = outputs.find(from);
+	auto i = outputs.find(from);
 	if (i == outputs.end())
 		return 0;
-	Outputs::mapped_type::const_iterator j = i->second.find(to);
+	auto j = i->second.find(to);
 	if (j == i->second.end())
 		return 0;
 	else
@@ -475,20 +473,20 @@ Fsm& Fsm::operator += (const Fsm& rhs)
 
 	const TransitionRow& row = m_transitions[lhsSize + rhs.initial];
 
-	for (TransitionRow::const_iterator outer = row.begin(), outerEnd = row.end(); outer != outerEnd; ++outer)
-		for (StatesSet::const_iterator inner = outer->second.begin(), innerEnd = outer->second.end(); inner != innerEnd; ++inner)
-			ConnectFinal(*inner, outer->first);
+	for (auto&& outer : row)
+		for (auto&& inner : outer.second)
+			ConnectFinal(inner, outer.first);
 
-	Outputs::const_iterator out = rhs.outputs.find(rhs.initial);
+	auto out = rhs.outputs.find(rhs.initial);
 	if (out != rhs.outputs.end())
-		for (Outputs::value_type::second_type::const_iterator it = out->second.begin(), ie = out->second.end(); it != ie; ++it) {
-			for (FinalTable::iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit)
-				outputs[*fit].insert(ymake_pair(it->first + lhsSize, it->second));
+		for (auto&& toAndOutput : out->second) {
+			for (auto&& final : m_final)
+				outputs[final].insert(ymake_pair(toAndOutput.first + lhsSize, toAndOutput.second));
 		}
 
 	ClearFinal();
-	for (FinalTable::const_iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
-		SetFinal(*it + lhsSize, true);
+	for (auto&& letter : rhs.m_final)
+		SetFinal(letter + lhsSize, true);
 	determined = false;
 
 	ClearHints();
@@ -502,8 +500,8 @@ Fsm& Fsm::operator |= (const Fsm& rhs)
 	size_t lhsSize = Size();
 
 	Import(rhs);
-	for (FinalTable::const_iterator it = rhs.m_final.begin(), ie = rhs.m_final.end(); it != ie; ++it)
-		m_final.insert(*it + lhsSize);	
+	for (auto&& final : rhs.m_final)
+		m_final.insert(final + lhsSize);	
 	
 	if (!isAlternative && !rhs.isAlternative) {
 		Resize(Size() + 1);
@@ -517,9 +515,9 @@ Fsm& Fsm::operator |= (const Fsm& rhs)
 		initial = rhs.initial + lhsSize;
 	} else if (isAlternative && rhs.isAlternative) {
 		const StatesSet& tos = rhs.Destinations(rhs.initial, Epsilon);
-		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to) {
-			Connect(initial, *to + lhsSize, Epsilon);
-			Disconnect(rhs.initial + lhsSize, *to + lhsSize, Epsilon);
+		for (auto&& to : tos) {
+			Connect(initial, to + lhsSize, Epsilon);
+			Disconnect(rhs.initial + lhsSize, to + lhsSize, Epsilon);
 		}
 	}
 
@@ -600,39 +598,39 @@ void Fsm::MakeSuffix()
 }
 	
 Fsm& Fsm::Reverse()
-{	
+{
 	Fsm out;
 	out.Resize(Size() + 1);
 	out.letters = Letters();
-	
+
 	// Invert transitions
 	for (size_t from = 0; from < Size(); ++from)
-		for (TransitionRow::iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i)
-			for (StatesSet::iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
-				out.Connect(*j, from, i->first);
-		
+		for (auto&& i : m_transitions[from])
+			for (auto&& j : i.second)
+				out.Connect(j, from, i.first);
+
 	// Invert initial and final states
 	out.SetFinal(initial, true);
-	for (FinalTable::iterator i = m_final.begin(), ie = m_final.end(); i != ie; ++i)
-		out.Connect(Size(), *i, Epsilon);
+	for (auto i : m_final)
+		out.Connect(Size(), i, Epsilon);
 	out.SetInitial(Size());
-	
+
 	// Invert outputs
-	for (Outputs::iterator i = outputs.begin(), ie = outputs.end(); i != ie; ++i)
-		for (Outputs::mapped_type::iterator j = i->second.begin(), je = i->second.end(); j != je; ++j)
-			out.SetOutput(j->first, i->first, j->second);
-	
+	for (auto&& i : outputs)
+		for (auto&& j : i.second)
+			out.SetOutput(j.first, i.first, j.second);
+
 	// Preserve tags (although thier semantics are usually heavily broken at this point)
 	out.tags = tags;
-	
+
 	// Apply
 	Swap(out);
 	return *this;
 }
 
-yset<size_t> Fsm::DeadStates() const
+TSet<size_t> Fsm::DeadStates() const
 {
-	yset<size_t> res;
+	TSet<size_t> res;
 
 	for (int invert = 0; invert <= 1; ++invert) {
 		Fsm digraph;
@@ -651,9 +649,9 @@ yset<size_t> Fsm::DeadStates() const
 			}
 		}
 
-		yvector<bool> unchecked(Size(), true);
-		yvector<bool> useless(Size(), true);
-		ydeque<size_t> queue;
+		TVector<bool> unchecked(Size(), true);
+		TVector<bool> useless(Size(), true);
+		TDeque<size_t> queue;
 
 		// Put all final (or initial) states into queue, marking them useful
 		for (size_t i = 0; i < Size(); ++i)
@@ -670,11 +668,11 @@ yset<size_t> Fsm::DeadStates() const
 
 			// All the states that are connected to this state in the transition matrix are useful
 			const StatesSet& connections = (digraph.m_transitions[to])[0];
-			for (StatesSet::const_iterator fr = connections.begin(), fre = connections.end(); fr != fre; ++fr) {
+			for (auto&& fr : connections) {
 				// Enqueue the state for further traversal if it hasnt been already checked
-				if (unchecked[*fr] && useless[*fr]) {
-					useless[*fr] = false;
-					queue.push_back(*fr);
+				if (unchecked[fr] && useless[fr]) {
+					useless[fr] = false;
+					queue.push_back(fr);
 				}
 			}
 
@@ -696,14 +694,14 @@ void Fsm::RemoveDeadEnds()
 {
 	PIRE_IFDEBUG(Cdbg << "Removing dead ends on:" << Endl << *this << Endl);
 
-	yset<size_t> dead = DeadStates();
+	TSet<size_t> dead = DeadStates();
 	// Erase all useless states
-	for (yset<size_t>::iterator i = dead.begin(), ie = dead.end(); i != ie; ++i) {
-		PIRE_IFDEBUG(Cdbg << "Removing useless state " << *i << Endl);
-		m_transitions[*i].clear();
-		for (TransitionTable::iterator j = m_transitions.begin(), je = m_transitions.end(); j != je; ++j)
-			for (TransitionRow::iterator k = j->begin(), ke = j->end(); k != ke; ++k)
-				k->second.erase(*i);
+	for (auto&& i : dead) {
+		PIRE_IFDEBUG(Cdbg << "Removing useless state " << i << Endl);
+		m_transitions[i].clear();
+		for (auto&& j : m_transitions)
+			for (auto&& k : j)
+				k.second.erase(i);
 	}
 	ClearHints();
 
@@ -724,20 +722,20 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 	}
 
 	// Merge transitions from 'to' state into transitions from 'from' state
-	for (TransitionRow::const_iterator it = m_transitions[to].begin(), ie = m_transitions[to].end(); it != ie; ++it) {
-		yset<size_t> connStates;
-		std::copy(it->second.begin(), it->second.end(),
-			std::inserter(m_transitions[from][it->first], m_transitions[from][it->first].end()));
+	for (auto&& transition : m_transitions[to]) {
+		TSet<size_t> connStates;
+		std::copy(transition.second.begin(), transition.second.end(),
+			std::inserter(m_transitions[from][transition.first], m_transitions[from][transition.first].end()));
 
 		// If there is an output of the 'from'->'to' connection it has to be set to all
 		// new connections that were merged from 'to' state
 		if (fsEpsOutputExists) {
 			// Compute the set of states that are reachable from 'to' state
-			std::copy(it->second.begin(), it->second.end(), std::inserter(connStates, connStates.end()));
+			std::copy(transition.second.begin(), transition.second.end(), std::inserter(connStates, connStates.end()));
 
 			// For each of these states add an output equal to the Epsilon-connection output
-			for (yset<size_t>::const_iterator newConnSt = connStates.begin(), ncse = connStates.end(); newConnSt != ncse; ++newConnSt) {
-				outputs[from][*newConnSt] |= frEpsOutput;
+			for (auto&& newConnSt : connStates) {
+				outputs[from][newConnSt] |= frEpsOutput;
 			}
 		}
 	}
@@ -747,16 +745,16 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 		SetFinal(from, true);
 
 	// Combine tags
-	Tags::iterator ti = tags.find(to);
+	auto ti = tags.find(to);
 	if (ti != tags.end())
 		tags[from] |= ti->second;
 
 	// Merge all 'to' into 'from' outputs:
 	//      outputs[from][i] |= (outputs[from][to] | outputs[to][i])
-	Outputs::iterator toOit = outputs.find(to);
+	auto toOit = outputs.find(to);
 	if (toOit != outputs.end()) {
-		for (Outputs::value_type::second_type::const_iterator oit = toOit->second.begin(), oite = toOit->second.end(); oit != oite; ++oit) {
-			outputs[from][oit->first] |= (frEpsOutput | oit->second);
+		for (auto&& output : toOit->second) {
+			outputs[from][output.first] |= (frEpsOutput | output.second);
 		}
 	}
 }
@@ -765,19 +763,19 @@ void Fsm::MergeEpsilonConnection(size_t from, size_t to)
 // finds all states which are Epsilon-reachable from 'thru' and connects
 // them directly to 'from' with Epsilon transition having proper output.
 // Updates inverse map of epsilon transitions as well.
-void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inveps)
+void Fsm::ShortCutEpsilon(size_t from, size_t thru, TVector< TSet<size_t> >& inveps)
 {
 	PIRE_IFDEBUG(Cdbg << "In Fsm::ShortCutEpsilon(" << from << ", " << thru << ")\n");
 	const StatesSet& to = Destinations(thru, Epsilon);
 	Outputs::iterator outIt = outputs.find(from);
 	unsigned long fromThruOut = Output(from, thru);
-	for (StatesSet::const_iterator toi = to.begin(), toe = to.end(); toi != toe; ++toi) {
-		PIRE_IFDEBUG(Cdbg << "Epsilon connecting " << from << " --> " << thru << " --> " << *toi << "\n");
-		Connect(from, *toi, Epsilon);
-		inveps[*toi].insert(from);
+	for (auto&& toElement : to) {
+		PIRE_IFDEBUG(Cdbg << "Epsilon connecting " << from << " --> " << thru << " --> " << toElement << "\n");
+		Connect(from, toElement, Epsilon);
+		inveps[toElement].insert(from);
 		if (outIt != outputs.end())
-			outIt->second[*toi] |= (fromThruOut | Output(thru, *toi));
-	}	
+			outIt->second[toElement] |= (fromThruOut | Output(thru, toElement));
+	}
 }
 
 // Removes all Epsilon-connections by iterating though states and merging each Epsilon-connection
@@ -785,62 +783,62 @@ void Fsm::ShortCutEpsilon(size_t from, size_t thru, yvector< yset<size_t> >& inv
 void Fsm::RemoveEpsilons()
 {
 	Unsparse();
-	
+
 	// Build inverse map of epsilon transitions
-	yvector< yset<size_t> > inveps(Size()); // We have to use yset<> here since we want it sorted
+	TVector< TSet<size_t> > inveps(Size()); // We have to use TSet<> here since we want it sorted
 	for (size_t from = 0; from != Size(); ++from) {
 		const StatesSet& tos = Destinations(from, Epsilon);
-		for (StatesSet::const_iterator to = tos.begin(), toe = tos.end(); to != toe; ++to)
-			inveps[*to].insert(from);
+		for (auto&& to : tos)
+			inveps[to].insert(from);
 	}
-	
+
 	// Make a transitive closure of all epsilon transitions (Floyd-Warshall algorithm)
 	// (if there exists an epsilon-path between two states, epsilon-connect them directly)
 	for (size_t thru = 0; thru != Size(); ++thru)
-		for (StatesSet::iterator from = inveps[thru].begin(); from != inveps[thru].end(); ++from)
+		for (auto&& from : inveps[thru])
 			// inveps[thru] may alter during loop body, hence we cannot cache ivneps[thru].end()
-			if (*from != thru)
-				ShortCutEpsilon(*from, thru, inveps);
-	
+			if (from != thru)
+				ShortCutEpsilon(from, thru, inveps);
+
 	PIRE_IFDEBUG(Cdbg << "=== After epsilons shortcut\n" << *this << Endl);
-	
+
 	// Iterate through all epsilon-connected state pairs, merging states together
 	for (size_t from = 0; from != Size(); ++from) {
 		const StatesSet& to = Destinations(from, Epsilon);
-		for (StatesSet::const_iterator toi = to.begin(), toe = to.end(); toi != toe; ++toi)
-			if (*toi != from)
-				MergeEpsilonConnection(from, *toi); // it's a NOP if to == from, so don't waste time
+		for (auto&& toElement : to)
+			if (toElement != from)
+				MergeEpsilonConnection(from, toElement); // it's a NOP if to == from, so don't waste time
 	}
-	
+
 	PIRE_IFDEBUG(Cdbg << "=== After epsilons merged\n" << *this << Endl);
-	
+
 	// Drop all epsilon transitions
-	for (TransitionTable::iterator i = m_transitions.begin(), ie = m_transitions.end(); i != ie; ++i)
-		i->erase(Epsilon);
-	
+	for (auto&& i : m_transitions)
+		i.erase(Epsilon);
+
 	Sparse();
 	ClearHints();
 }
 
 bool Fsm::LettersEquality::operator()(Char a, Char b) const
 {
-	for (Fsm::TransitionTable::const_iterator outer = m_tbl->begin(), outerEnd = m_tbl->end(); outer != outerEnd; ++outer) {
-		Fsm::TransitionRow::const_iterator ia = outer->find(a);
-		Fsm::TransitionRow::const_iterator ib = outer->find(b);
-		if (ia == outer->end() && ib == outer->end())
+	for (auto&& outer : *m_tbl) {
+		auto ia = outer.find(a);
+		auto ib = outer.find(b);
+		if (ia == outer.end() && ib == outer.end())
 			continue;
-		else if (ia == outer->end() || ib == outer->end() || ia->second != ib->second) {
+		else if (ia == outer.end() || ib == outer.end() || ia->second != ib->second) {
 			return false;
 		}
 	}
 	return true;
 }
 
-void Fsm::Sparse()
+void Fsm::Sparse(bool needEpsilons /* = false */)
 {
 	letters = LettersTbl(LettersEquality(m_transitions));
 	for (unsigned letter = 0; letter < MaxChar; ++letter)
-		if (letter != Epsilon)
+		if (letter != Epsilon || needEpsilons)
 			letters.Append(letter);
 
 	m_sparsed = true;
@@ -849,26 +847,26 @@ void Fsm::Sparse()
 
 void Fsm::Unsparse()
 {
-	for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit)
-		for (TransitionTable::iterator i = m_transitions.begin(), ie = m_transitions.end(); i != ie; ++i)
-			for (yvector<Char>::const_iterator j = lit->second.second.begin(), je = lit->second.second.end(); j != je; ++j)
-				(*i)[*j] = (*i)[lit->first];
+	for (auto&& letter : letters)
+		for (auto&& i : m_transitions)
+			for (auto&& j : letter.second.second)
+				i[j] = i[letter.first];
 	m_sparsed = false;
 }
 
 // Returns a set of 'terminal states', which are those of the final states,
 // from which a transition to themselves on any letter is possible.
-yset<size_t> Fsm::TerminalStates() const
+TSet<size_t> Fsm::TerminalStates() const
 {
-	yset<size_t> terminals;
-	for (FinalTable::const_iterator fit = m_final.begin(), fie = m_final.end(); fit != fie; ++fit) {
+	TSet<size_t> terminals;
+	for (auto&& final : m_final) {
 		bool ok = true;
-		for (LettersTbl::ConstIterator lit = letters.Begin(), lie = letters.End(); lit != lie; ++lit) {
-			TransitionRow::const_iterator dests = m_transitions[*fit].find(lit->first);
-			ok = ok && (dests != m_transitions[*fit].end() && dests->second.find(*fit) != dests->second.end());
+		for (auto&& letter : letters) {
+			auto dests = m_transitions[final].find(letter.first);
+			ok = ok && (dests != m_transitions[final].end() && dests->second.find(final) != dests->second.end());
 		}
 		if (ok)
-			terminals.insert(*fit);
+			terminals.insert(final);
 	}
 	return terminals;
 }
@@ -876,9 +874,9 @@ yset<size_t> Fsm::TerminalStates() const
 namespace Impl {
 class FsmDetermineTask {
 public:
-	typedef yvector<size_t> State;
+	typedef TVector<size_t> State;
 	typedef Fsm::LettersTbl LettersTbl;
-	typedef ymap<State, size_t> InvStates;
+	typedef TMap<State, size_t> InvStates;
 	
 	FsmDetermineTask(const Fsm& fsm)
 		: mFsm(fsm)
@@ -891,8 +889,8 @@ public:
 	State Initial() const { return State(1, mFsm.initial); }
 	bool IsRequired(const State& state) const
 	{
-		for (State::const_iterator i = state.begin(), ie = state.end(); i != ie; ++i)
-			if (mTerminals.find(*i) != mTerminals.end())
+		for (auto&& i : state)
+			if (mTerminals.find(i) != mTerminals.end())
 				return false;
 		return true;
 	}
@@ -901,8 +899,8 @@ public:
 	{
 		State next;
 		next.reserve(20);
-		for (State::const_iterator from = state.begin(), fromEnd = state.end(); from != fromEnd; ++from) {
-			const Fsm::StatesSet& part = mFsm.Destinations(*from, letter);
+		for (auto&& from : state) {
+			const auto& part = mFsm.Destinations(from, letter);
 			std::copy(part.begin(), part.end(), std::back_inserter(next));
 		}
 
@@ -913,7 +911,7 @@ public:
 		return next;
 	}
 	
-	void AcceptStates(const yvector<State>& states)
+	void AcceptStates(const TVector<State>& states)
 	{
 		mNewFsm.Resize(states.size());
 		mNewFsm.initial = 0;
@@ -922,51 +920,51 @@ public:
 		mNewFsm.m_final.clear();
 		for (size_t ns = 0; ns < states.size(); ++ns) {
 			PIRE_IFDEBUG(Cdbg << "State " << ns << " = [" << Join(states[ns].begin(), states[ns].end(), ", ") << "]" << Endl);
-			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j) {
-				
+			for (auto&& j : states[ns]) {
+
 				// If it was a terminal state, connect it to itself
-				if (mTerminals.find(*j) != mTerminals.end()) {
-					for (LettersTbl::ConstIterator letterIt = Letters().Begin(), letterEnd = Letters().End(); letterIt != letterEnd; ++letterIt)
-						mNewFsm.Connect(ns, ns, letterIt->first);
+				if (mTerminals.find(j) != mTerminals.end()) {
+					for (auto&& letter : Letters())
+						mNewFsm.Connect(ns, ns, letter.first);
 					mNewTerminals.insert(ns);
-					PIRE_IFDEBUG(Cdbg << "State " << ns << " becomes terminal because of old state " << *j << Endl);
+					PIRE_IFDEBUG(Cdbg << "State " << ns << " becomes terminal because of old state " << j << Endl);
 				}
 			}
-			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j) {
+			for (auto&& j : states[ns]) {
 				// If any state containing in our one is marked final, mark the new state final as well
-				if (mFsm.IsFinal(*j)) {
-					PIRE_IFDEBUG(Cdbg << "State " << ns << " becomes final because of old state " << *j << Endl);
+				if (mFsm.IsFinal(j)) {
+					PIRE_IFDEBUG(Cdbg << "State " << ns << " becomes final because of old state " << j << Endl);
 					mNewFsm.SetFinal(ns, true);
 					if (mFsm.tags.empty())
 						// Weve got no tags and already know that the state is final,
 						// hence weve done with this state and got nothing more to do.
 						break;
 				}
-				
+
 				// Bitwise OR all tags in states
-				Fsm::Tags::const_iterator ti = mFsm.tags.find(*j);
+				auto ti = mFsm.tags.find(j);
 				if (ti != mFsm.tags.end()) {
-					PIRE_IFDEBUG(Cdbg << "State " << ns << " carries tag " << ti->second << " because of old state " << *j << Endl);
+					PIRE_IFDEBUG(Cdbg << "State " << ns << " carries tag " << ti->second << " because of old state " << j << Endl);
 					mNewFsm.tags[ns] |= ti->second;
 				}
 			}
 		}
 		// For each old state, prepare a list of new state it is contained in
-		typedef ymap< size_t, yvector<size_t> > Old2New;
+		typedef TMap< size_t, TVector<size_t> > Old2New;
 		Old2New old2new;
 		for (size_t ns = 0; ns < states.size(); ++ns)
-			for (State::const_iterator j = states[ns].begin(), je = states[ns].end(); j != je; ++j)
-				old2new[*j].push_back(ns);
-		
+			for (auto&& j : states[ns])
+				old2new[j].push_back(ns);
+
 		// Copy all outputs
-		for (Fsm::Outputs::const_iterator i = mFsm.outputs.begin(), ie = mFsm.outputs.end(); i != ie; ++i) {
-			for (Fsm::Outputs::mapped_type::const_iterator j = i->second.begin(), je = i->second.end(); j != je; ++j) {
-				Old2New::iterator from = old2new.find(i->first);
-				Old2New::iterator to   = old2new.find(j->first);
+		for (auto&& i : mFsm.outputs) {
+			for (auto&& j : i.second) {
+				auto from = old2new.find(i.first);
+				auto to = old2new.find(j.first);
 				if (from != old2new.end() && to != old2new.end()) {
-					for (yvector<size_t>::iterator k = from->second.begin(), ke = from->second.end(); k != ke; ++k)
-						for (yvector<size_t>::iterator l = to->second.begin(), le = to->second.end(); l != le; ++l)
-							mNewFsm.outputs[*k][*l] |= j->second;
+					for (auto&& k : from->second)
+						for (auto&& l : to->second)
+							mNewFsm.outputs[k][l] |= j.second;
 				}
 			}
 		}
@@ -976,7 +974,7 @@ public:
 	void Connect(size_t from, size_t to, Char letter)
 	{
 		PIRE_IFDEBUG(Cdbg << "Connecting " << from << " --" << letter << "--> " << to << Endl);
-		YASSERT(mNewTerminals.find(from) == mNewTerminals.end());
+		Y_ASSERT(mNewTerminals.find(from) == mNewTerminals.end());
 		mNewFsm.Connect(from, to, letter);
 	}
 	typedef bool Result;
@@ -986,13 +984,13 @@ public:
 		// remove redundant outputs
 		oldOutputs.swap(mNewFsm.outputs);
 		for (size_t from = 0; from < mNewFsm.Size(); ++from) {
-			Fsm::Outputs::const_iterator fromOutput = oldOutputs.find(from);
+			auto fromOutput = oldOutputs.find(from);
 			if (fromOutput == oldOutputs.end())
 				continue;
-			const Fsm::TransitionRow& newTransitionsRow = mNewFsm.m_transitions[from];
-			for (Fsm::TransitionRow::const_iterator rowIt = newTransitionsRow.begin(); rowIt != newTransitionsRow.end(); ++rowIt) {
-				for (Fsm::StatesSet::const_iterator stateIt = rowIt->second.begin(); stateIt != rowIt->second.end(); ++stateIt) {
-					Fsm::Outputs::mapped_type::const_iterator toOutput = fromOutput->second.find(*stateIt);
+			const auto& newTransitionsRow = mNewFsm.m_transitions[from];
+			for (auto&& row : newTransitionsRow) {
+				for (auto&& stateIt : row.second) {
+					auto toOutput = fromOutput->second.find(stateIt);
 					if (toOutput != fromOutput->second.end()) {
 						mNewFsm.outputs[from].insert(*toOutput);
 					}
@@ -1008,8 +1006,8 @@ public:
 private:
 	const Fsm& mFsm;
 	Fsm mNewFsm;
-	yset<size_t> mTerminals;
-	yset<size_t> mNewTerminals;
+	TSet<size_t> mTerminals;
+	TSet<size_t> mNewTerminals;
 };
 }
 
@@ -1057,7 +1055,7 @@ public:
 
 	size_t Next(size_t state, Char letter) const {
 		const Fsm::StatesSet& tos = mFsm.Destinations(state, letter);
-		YASSERT(tos.size() == 1);
+		Y_ASSERT(tos.size() == 1);
 		return *tos.begin();
 	}
 
@@ -1070,12 +1068,12 @@ public:
 
 		// Unite equality classes into new states
 		size_t fromIdx = 0;
-		for (Fsm::TransitionTable::const_iterator from = mFsm.m_transitions.begin(), fromEnd = mFsm.m_transitions.end(); from != fromEnd; ++from, ++fromIdx) {
+		for (auto from = mFsm.m_transitions.begin(), fromEnd = mFsm.m_transitions.end(); from != fromEnd; ++from, ++fromIdx) {
 			size_t dest = partition.Index(fromIdx);
 			PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
-			for (Fsm::TransitionRow::const_iterator letter = from->begin(), letterEnd = from->end(); letter != letterEnd; ++letter) {
-				YASSERT(letter->second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
-				mNewFsm.Connect(dest, partition.Index(*letter->second.begin()), letter->first);
+			for (auto&& letter : *from) {
+				Y_ASSERT(letter.second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
+				mNewFsm.Connect(dest, partition.Index(*letter.second.begin()), letter.first);
 			}
 			if (mFsm.IsFinal(fromIdx)) {
 				mNewFsm.SetFinal(dest, true);
@@ -1083,7 +1081,7 @@ public:
 			}
 
 			// Append tags
-			Fsm::Tags::const_iterator ti = mFsm.tags.find(fromIdx);
+			auto ti = mFsm.tags.find(fromIdx);
 			if (ti != mFsm.tags.end()) {
 				mNewFsm.tags[dest] |= ti->second;
 				PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " carries tag " << ti->second << " because of old state " << fromIdx << Endl);
@@ -1092,9 +1090,9 @@ public:
 		mNewFsm.initial = partition.Representative(mFsm.initial);
 
 		// Restore outputs
-		for (auto oit = mFsm.outputs.cbegin(), oie = mFsm.outputs.cend(); oit != oie; ++oit)
-			for (auto oit2 = oit->second.cbegin(), oie2 = oit->second.cend(); oit2 != oie2; ++oit2)
-				mNewFsm.outputs[partition.Index(oit->first)].insert(ymake_pair(partition.Index(oit2->first), oit2->second));
+		for (auto&& output : mFsm.outputs)
+			for (auto&& output2 : output.second)
+				mNewFsm.outputs[partition.Index(output.first)].insert(ymake_pair(partition.Index(output2.first), output2.second));
 	}
 
 	void Connect(size_t from, size_t to, Char letter) {
@@ -1128,7 +1126,7 @@ private:
 void Fsm::Minimize()
 {
 	// Minimization algorithm is only applicable to a determined FSM.
-	YASSERT(determined);
+	Y_ASSERT(determined);
 
 	Impl::FsmMinimizeTask task{*this};
 	if (Pire::Impl::Minimize(task)) {
@@ -1186,9 +1184,9 @@ void Fsm::Divert(size_t from, size_t to, size_t dest)
 		return;
 
 	// Assign the output
-	Outputs::iterator oi = outputs.find(from);
+	auto oi = outputs.find(from);
 	if (oi != outputs.end()) {
-		Outputs::mapped_type::iterator oi2 = oi->second.find(to);
+		auto oi2 = oi->second.find(to);
 		if (oi2 != oi->second.end()) {
 			unsigned long output = oi2->second;
 			oi->second.erase(oi2);
@@ -1197,11 +1195,11 @@ void Fsm::Divert(size_t from, size_t to, size_t dest)
 	}
 
 	// Assign the transition
-	for (TransitionRow::iterator i = m_transitions[from].begin(), ie = m_transitions[from].end(); i != ie; ++i) {
-		TransitionRow::mapped_type::iterator di = i->second.find(to);
-		if (di != i->second.end()) {
-			i->second.erase(di);
-			i->second.insert(dest);
+	for (auto&& i : m_transitions[from]) {
+		auto di = i.second.find(to);
+		if (di != i.second.end()) {
+			i.second.erase(di);
+			i.second.insert(dest);
 		}
 	}
 

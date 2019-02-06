@@ -40,7 +40,7 @@ using namespace Pire;
 inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pire::Encoding** enc = 0)
 {
 	Pire::Lexer lexer;
-	yvector<wchar32> ucs4;
+	TVector<wchar32> ucs4;
 
 	bool surround = true;
 	for (; *options; ++options) {
@@ -135,20 +135,32 @@ void DbgRun(const Scanner& scanner, typename Scanner::State& state, const char* 
 #endif
 
 template<class Scanner>
-typename Scanner::State RunRegexp(const Scanner& scanner, const char* str)
+typename Scanner::State RunRegexp(const Scanner& scanner, const ystring& str)
 {
 	PIRE_IFDEBUG(std::clog << "--- checking against " << str << "\n");
 
 	typename Scanner::State state;
 	scanner.Initialize(state);
 	scanner.Next(state, BeginMark);
-	Run(scanner, state, str, str + strlen(str));
+	Run(scanner, state, str.c_str(), str.c_str() + str.length());
 	scanner.Next(state, EndMark);
 	return state;
 }
 
 template<class Scanner>
+typename Scanner::State RunRegexp(const Scanner& scanner, const char* str)
+{
+	return RunRegexp(scanner, ystring(str));
+}
+
+template<class Scanner>
 bool Matches(const Scanner& scanner, const char* str)
+{
+	return scanner.Final(RunRegexp(scanner, str));
+}
+
+template<class Scanner>
+bool Matches(const Scanner& scanner, const ystring& str)
 {
 	return scanner.Final(RunRegexp(scanner, str));
 }

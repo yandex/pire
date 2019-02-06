@@ -37,7 +37,7 @@ namespace Pire {
 template<class T, class Eq>
 class Partition {
 private:
-	typedef ymap< T, ypair< size_t, yvector<T> > > Set;
+	typedef TMap< T, ypair< size_t, TVector<T> > > Set;
 
 public:
 	Partition(const Eq& eq)
@@ -56,7 +56,13 @@ public:
 	ConstIterator Begin() const {
 		return m_set.begin();
 	}
+	ConstIterator begin() const {
+		return m_set.begin();
+	}
 	ConstIterator End() const {
+		return m_set.end();
+	}
+	ConstIterator end() const {
 		return m_set.end();
 	}
 	size_t Size() const {
@@ -71,7 +77,7 @@ public:
 	/// - representative(a) is equivalent to a.
 	const T& Representative(const T& t) const
 	{
-		typename ymap<T, T>::const_iterator it = m_inv.find(t);
+		auto it = m_inv.find(t);
 		if (it != m_inv.end())
 			return it->second;
 		else
@@ -88,22 +94,22 @@ public:
 	/// - 0 <= index(a) < size().
 	size_t Index(const T& t) const
 	{
-		typename ymap<T, T>::const_iterator it = m_inv.find(t);
+		auto it = m_inv.find(t);
 		if (it == m_inv.end())
 			throw Error("Partition::index(): attempted to obtain an index of nonexistent item");
-		typename Set::const_iterator it2 = m_set.find(it->second);
-		YASSERT(it2 != m_set.end());
+		auto it2 = m_set.find(it->second);
+		Y_ASSERT(it2 != m_set.end());
 		return it2->second.first;
 	}
 	/// Returns the whole equivalence class of @p t (i.e. item @p i
 	/// is returned iff representative(i) == representative(t)).
-	const yvector<T>& Klass(const T& t) const
+	const TVector<T>& Klass(const T& t) const
 	{
-		typename ymap<T, T>::const_iterator it = m_inv.find(t);
+		auto it = m_inv.find(t);
 		if (it == m_inv.end())
 			throw Error("Partition::index(): attempted to obtain an index of nonexistent item");
-		ConstIterator it2 = m_set.find(it->second);
-		YASSERT(it2 != m_set.end());
+		auto it2 = m_set.find(it->second);
+		Y_ASSERT(it2 != m_set.end());
 		return it2->second.second;
 	}
 
@@ -118,15 +124,15 @@ public:
 	{
 		m_eq = eq;
 
-		for (typename Set::iterator sit = m_set.begin(), sie = m_set.end(); sit != sie; ++sit)
-			if (sit->second.second.size() > 1) {
-				yvector<T>& v = sit->second.second;
-				typename yvector<T>::iterator bound = std::partition(v.begin(), v.end(), std::bind2nd(m_eq, v[0]));
+		for (auto&& element : m_set)
+			if (element.second.second.size() > 1) {
+				TVector<T>& v = element.second.second;
+				auto bound = std::partition(v.begin(), v.end(), std::bind2nd(m_eq, v[0]));
 				if (bound == v.end())
 					continue;
 
 				Set delta;
-				for (typename yvector<T>::iterator it = bound, ie = v.end(); it != ie; ++it)
+				for (auto it = bound, ie = v.end(); it != ie; ++it)
 					DoAppend(delta, *it);
 
 				v.erase(bound, v.end());
@@ -137,13 +143,13 @@ public:
 private:
 	Eq m_eq;
 	Set m_set;
-	ymap<T, T> m_inv;
+	TMap<T, T> m_inv;
 	size_t m_maxidx;
 
 	void DoAppend(Set& set, const T& t)
 	{
-		typename Set::iterator it = set.begin();
-		typename Set::iterator end = set.end();
+		auto it = set.begin();
+		auto end = set.end();
 		for (; it != end; ++it)
 			if (m_eq(it->first, t)) {
 				it->second.second.push_back(t);
@@ -153,7 +159,7 @@ private:
 
 		if (it == end) {
 			// Begin new set
-			yvector<T> v(1, t);
+			TVector<T> v(1, t);
 			set.insert(ymake_pair(t, ymake_pair(m_maxidx++, v)));
 			m_inv[t] = t;
 		}
@@ -165,15 +171,15 @@ template<class T, class Eq>
 yostream& operator << (yostream& stream, const Partition<T, Eq>& partition)
 {
 	stream << "Partition {\n";
-	for (typename Partition<T, Eq>::ConstIterator it = partition.Begin(), ie = partition.End(); it != ie; ++it) {
-		stream << "    Class " << it->second.first << " \"" << it->first << "\" { ";
+	for (auto&& partitionElement : partition) {
+		stream << "    Class " << partitionElement.second.first << " \"" << partitionElement.first << "\" { ";
 		bool first = false;
-		for (typename yvector<T>::const_iterator iit = it->second.second.begin(), iie = it->second.second.end(); iit != iie; ++iit) {
+		for (auto&& element : partitionElement.second.second) {
 			if (first)
 				stream << ", ";
 			else
 				first = true;
-			stream << *iit;
+			stream << element;
 		}
 		stream << " }\n";
 	}

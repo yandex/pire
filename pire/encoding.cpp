@@ -92,7 +92,7 @@ namespace {
 			size_t len;
 			unsigned char* p = (unsigned char*) &*ret.begin();
 			if (utf8_put_rune(c, len, p, p + ret.size()) != RECODE_OK)
-				YASSERT(!"Pire::UTF8::toLocal(): Internal error");
+				Y_ASSERT(!"Pire::UTF8::toLocal(): Internal error");
 			return ret;
 		}
 

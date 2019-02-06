@@ -78,9 +78,9 @@ protected:
 	LoadedScanner(const LoadedScanner& s): m(s.m)
 	{
 		if (s.m_buffer) {
-			m_buffer = new char [BufSize()];
-			memcpy(m_buffer, s.m_buffer, BufSize());
-			Markup(m_buffer);
+			m_buffer = BufferType(new char [BufSize()]);
+			memcpy(m_buffer.get(), s.m_buffer.get(), BufSize());
+			Markup(m_buffer.get());
 			m.initial = (InternalState)m_jumps + (s.m.initial - (InternalState)s.m_jumps);
 		} else {
 			Alias(s);
@@ -144,17 +144,17 @@ public:
 		m.statesCount = states;
 		m.lettersCount = letters.Size();
 		m.regexpsCount = regexpsCount;
-		m_buffer = new char[BufSize()];
-		memset(m_buffer, 0, BufSize());
-		Markup(m_buffer);
+		m_buffer = BufferType(new char[BufSize()]);
+		memset(m_buffer.get(), 0, BufSize());
+		Markup(m_buffer.get());
 
 		m.initial = reinterpret_cast<size_t>(m_jumps + startState * m.lettersCount);
 
 		// Build letter translation table
 		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
-		for (typename Partition<Char, Eq>::ConstIterator it = letters.Begin(), ie = letters.End(); it != ie; ++it)
-			for (yvector<Char>::const_iterator it2 = it->second.second.begin(), ie2 = it->second.second.end(); it2 != ie2; ++it2)
-				m_letters[*it2] = it->second.first;
+		for (auto&& letter : letters)
+			for (auto&& character : letter.second.second)
+				m_letters[character] = letter.second.first;
 	}
 
 	size_t StateSize() const
@@ -169,9 +169,9 @@ public:
 
 	void SetJump(size_t oldState, Char c, size_t newState, Action action)
 	{
-		YASSERT(m_buffer);
-		YASSERT(oldState < m.statesCount);
-		YASSERT(newState < m.statesCount);
+		Y_ASSERT(m_buffer);
+		Y_ASSERT(oldState < m.statesCount);
+		Y_ASSERT(newState < m.statesCount);
 
 		size_t shift = (newState - oldState) * StateSize();
 		Transition tr;
@@ -182,8 +182,8 @@ public:
 
 	Action RemapAction(Action action) { return action; }
 
-	void SetInitial(size_t state) { YASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
-	void SetTag(size_t state, Tag tag) { YASSERT(m_buffer); m_tags[state] = tag; }
+	void SetInitial(size_t state) { Y_ASSERT(m_buffer); m.initial = reinterpret_cast<size_t>(m_jumps + state * m.lettersCount); }
+	void SetTag(size_t state, Tag tag) { Y_ASSERT(m_buffer); m_tags[state] = tag; }
 	void FinishBuild() {}
 
 	size_t StateIdx(InternalState s) const
@@ -216,7 +216,8 @@ protected:
 		size_t initial;
 	} m;
 
-	char* m_buffer;
+	using BufferType = std::unique_ptr<char[]>;
+	BufferType m_buffer;
 
 	Letter* m_letters;
 	Transition* m_jumps;
@@ -268,10 +269,7 @@ private:
 	friend class Fsm;
 };
 
-inline LoadedScanner::~LoadedScanner()
-{
-	delete [] m_buffer;
-}
+inline LoadedScanner::~LoadedScanner() = default;
 
 }
 

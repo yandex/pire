@@ -34,13 +34,9 @@ namespace Pire {
 class Any {
 
 public:
-	Any()
-		: h(0)
-	{
-	}
+	Any() = default;
 
 	Any(const Any& any)
-		: h(0)
 	{
 		if (any.h)
 			h = any.h->Duplicate();
@@ -50,10 +46,6 @@ public:
 	{
 		any.Swap(*this);
 		return *this;
-	}
-
-	~Any() {
-		delete h;
 	}
 
 	template <class T>
@@ -88,7 +80,7 @@ public:
 			throw Pire::Error("type mismatch");
 	}
 
-	void Swap(Any& a) throw () {
+	void Swap(Any& a) noexcept {
 		DoSwap(h, a.h);
 	}
 
@@ -97,7 +89,7 @@ private:
 	struct AbstractHolder {
 		virtual ~AbstractHolder() {
 		}
-		virtual AbstractHolder* Duplicate() const = 0;
+		virtual std::unique_ptr<AbstractHolder> Duplicate() const = 0;
 		virtual bool IsA(const std::type_info& id) const = 0;
 		virtual void* Ptr() = 0;
 		virtual const void* Ptr() const = 0;
@@ -109,8 +101,8 @@ private:
 			: d(t)
 		{
 		}
-		AbstractHolder* Duplicate() const {
-			return new Holder<T>(d);
+		std::unique_ptr<AbstractHolder> Duplicate() const {
+			return std::unique_ptr<AbstractHolder>(new Holder<T>(d));
 		}
 		bool IsA(const std::type_info& id) const {
 			return id == typeid(T);
@@ -125,7 +117,7 @@ private:
 		T d;
 	};
 
-	AbstractHolder* h;
+	std::unique_ptr<AbstractHolder> h;
 };
 
 }
