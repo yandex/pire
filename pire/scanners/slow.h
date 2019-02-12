@@ -79,6 +79,8 @@ public:
 
 	size_t GetLettersCount() const {return m.lettersCount; };
 
+	size_t Size() const { GetSize(); }
+	size_t GetSize() const { return m.statesCount; }
 	bool Empty() const { return m_finals == Null().m_finals; }
 	
 	size_t Id() const {return (size_t) -1;}
@@ -291,11 +293,6 @@ public:
 	const State& StateIndex(const State& s) const { return s; }
 
 protected:
-	size_t GetSize() const
-	{
-		return m.statesCount;
-	}
-
 	bool IsMmaped() const
 	{
 		return (!m_vecptr);
