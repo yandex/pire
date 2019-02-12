@@ -213,15 +213,15 @@ public:
 				m_end = pos;
 		}
 
-        size_t Begin() const
-        {
-            return GetBegin();
-        }
+		size_t Begin() const
+		{
+			return GetBegin();
+		}
 
-        size_t End() const
-        {
-            return GetEnd();
-        }
+		size_t End() const
+		{
+			return GetEnd();
+		}
 
 		size_t GetBegin() const
 		{
