@@ -1,9 +1,8 @@
 /*
- * extra.h -- a single include file, which enables additional features,
- *            unnecessary for major part of users.
+ * unicode_range.h -- declaration of the UnicodeRange feature.
  *
- * Copyright (c) 2007-2010, Dmitry Prokoptsev <dprokoptsev@gmail.com>,
- *                          Alexander Gololobov <agololobov@gmail.com>
+ * Copyright (c) 2019 YANDEX LLC
+ * Author: Karina Usmanova <usmanova.karin@yandex.ru>
  *
  * This file is part of Pire, the Perl Incompatible
  * Regular Expressions library.
@@ -12,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -22,14 +21,21 @@
  */
 
 
-#ifndef PIRE_EXTRA_H
-#define PIRE_EXTRA_H
+#ifndef PIRE_EXTRA_UNICODE_RANGE_H
+#define PIRE_EXTRA_UNICODE_RANGE_H
 
+#include <contrib/libs/pire/pire/stub/stl.h>
 
-#include <contrib/libs/pire/pire/extra/capture.h>
-#include <contrib/libs/pire/pire/extra/count.h>
-#include <contrib/libs/pire/pire/extra/glyphs.h>
-#include <contrib/libs/pire/pire/extra/unicode_support.h>
-#include <contrib/libs/pire/pire/extra/unicode_range.h>
+namespace Pire {
+class Feature;
+namespace Features {
+    /**
+    * A feature which tells Pire to convert \r[...] sequences
+    * to range of UTF-32 symbols and match any symbol contained in this range
+    * e.g. \r[\x41-\x43] matches "a", "b" or "c"
+    */
+    THolder<Feature> UnicodeRange();
+}
+}
 
 #endif
