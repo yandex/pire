@@ -23,7 +23,7 @@
 
 #include "unicode_range.h"
 
-#include <contrib/libs/pire/pire/re_lexer.h>
+#include "re_lexer.h"
 
 namespace Pire {
 

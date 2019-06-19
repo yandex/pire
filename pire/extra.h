@@ -26,10 +26,10 @@
 #define PIRE_EXTRA_H
 
 
-#include <contrib/libs/pire/pire/extra/capture.h>
-#include <contrib/libs/pire/pire/extra/count.h>
-#include <contrib/libs/pire/pire/extra/glyphs.h>
-#include <contrib/libs/pire/pire/extra/unicode_support.h>
-#include <contrib/libs/pire/pire/extra/unicode_range.h>
+#include "extra/capture.h"
+#include "extra/count.h"
+#include "extra/glyphs.h"
+#include "extra/unicode_support.h"
+#include "extra/unicode_range.h"
 
 #endif

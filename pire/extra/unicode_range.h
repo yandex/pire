@@ -24,17 +24,18 @@
 #ifndef PIRE_EXTRA_UNICODE_RANGE_H
 #define PIRE_EXTRA_UNICODE_RANGE_H
 
-#include <contrib/libs/pire/pire/stub/stl.h>
+#include <memory>
 
 namespace Pire {
 class Feature;
 namespace Features {
+
     /**
     * A feature which tells Pire to convert \r[...] sequences
     * to range of UTF-32 symbols and match any symbol contained in this range
     * e.g. \r[\x41-\x43] matches "a", "b" or "c"
     */
-    THolder<Feature> UnicodeRange();
+    std::unique_ptr<Feature> UnicodeRange();
 }
 }
 
