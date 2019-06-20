@@ -60,6 +60,10 @@ libpire_la_SOURCES += \
 	extra/count.h \
 	extra/glyphs.cpp \
 	extra/glyphs.h \
+	extra/read_unicode.cpp \
+	extra/read_unicode.h \
+	extra/unicode_range.cpp \
+	extra/unicode_range.h \
 	extra/unicode_support.cpp \
 	extra/unicode_support.h
 endif
@@ -93,6 +97,7 @@ pire_extra_HEADERS = \
 	extra/capture.h \
 	extra/count.h \
 	extra/glyphs.h \
+	extra/unicode_range.h \
 	extra/unicode_support.h
 endif
 

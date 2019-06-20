@@ -24,6 +24,7 @@ pire_test_SOURCES += \
 	capture_ut.cpp \
 	count_ut.cpp \
 	glyph_ut.cpp \
+	unicode_range_ut.cpp \
 	unicode_support_ut.cpp
 endif
 

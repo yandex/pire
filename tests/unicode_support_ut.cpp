@@ -42,15 +42,6 @@ SIMPLE_UNIT_TEST_SUITE(UnicodeSupport) {
         return result;
     }
 
-    bool HasError(const char* regexp) {
-        try {
-            ParseFsm(regexp);
-            return false;
-        } catch (Pire::Error& ex) {
-            return true;
-        }
-    }
-
     SIMPLE_UNIT_TEST(ZeroSymbol)
     {
         SCANNER(ParseFsm("\\x{0}")) {
@@ -83,30 +74,30 @@ SIMPLE_UNIT_TEST_SUITE(UnicodeSupport) {
 
     SIMPLE_UNIT_TEST(ErrorsWhileCompiling)
     {
-        UNIT_ASSERT(HasError("\\x"));
-        UNIT_ASSERT(HasError("\\x0"));
-        UNIT_ASSERT(HasError("\\xfu"));
-        UNIT_ASSERT(HasError("\\xs1"));
-        UNIT_ASSERT(HasError("\\x 0"));
-        UNIT_ASSERT(HasError("\\x0 "));
+        UNIT_ASSERT(HasError("\\x", ParseFsm));
+        UNIT_ASSERT(HasError("\\x0", ParseFsm));
+        UNIT_ASSERT(HasError("\\xfu", ParseFsm));
+        UNIT_ASSERT(HasError("\\xs1", ParseFsm));
+        UNIT_ASSERT(HasError("\\x 0", ParseFsm));
+        UNIT_ASSERT(HasError("\\x0 ", ParseFsm));
 
-        UNIT_ASSERT(HasError("\\x{2A1"));
-        UNIT_ASSERT(HasError("\\x{"));
-        UNIT_ASSERT(HasError("\\x}"));
-        UNIT_ASSERT(HasError("\\x2}"));
-        UNIT_ASSERT(HasError("\\x{{3}"));
-        UNIT_ASSERT(HasError("\\x{2a{5}"));
+        UNIT_ASSERT(HasError("\\x{2A1", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{", ParseFsm));
+        UNIT_ASSERT(HasError("\\x}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x2}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{{3}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{2a{5}", ParseFsm));
 
-        UNIT_ASSERT(HasError("\\x{}"));
-        UNIT_ASSERT(HasError("\\x{+3}"));
-        UNIT_ASSERT(HasError("\\x{-3}"));
-        UNIT_ASSERT(HasError("\\x{ 2F}"));
-        UNIT_ASSERT(HasError("\\x{2A F}"));
-        UNIT_ASSERT(HasError("\\x{2Arft}"));
-        UNIT_ASSERT(HasError("\\x{110000}"));
+        UNIT_ASSERT(HasError("\\x{}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{+3}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{-3}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{ 2F}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{2A F}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{2Arft}", ParseFsm));
+        UNIT_ASSERT(HasError("\\x{110000}", ParseFsm));
 
-        UNIT_ASSERT(!HasError("\\x{fB1}"));
-        UNIT_ASSERT(!HasError("\\x00"));
-        UNIT_ASSERT(!HasError("\\x{10FFFF}"));
+        UNIT_ASSERT(!HasError("\\x{fB1}", ParseFsm));
+        UNIT_ASSERT(!HasError("\\x00", ParseFsm));
+        UNIT_ASSERT(!HasError("\\x{10FFFF}", ParseFsm));
     }
 }

@@ -29,7 +29,6 @@
 namespace Pire {
 class Feature;
 namespace Features {
-
     /**
     * A feature which tells Pire to convert \r[...] sequences
     * to range of UTF-32 symbols and match any symbol contained in this range
