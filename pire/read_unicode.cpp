@@ -68,9 +68,9 @@ namespace Pire {
         try {
             converted = std::stoul(hexStr, 0, 16);
         } catch (std::out_of_range &) {
-            converted = MAX_UNICODE + 1;
+            converted = MaxUnicode + 1;
         }
-        if (converted > MAX_UNICODE) {
+        if (converted > MaxUnicode) {
             Error("Pire::UnicodeReader::HexToDec(): hex number in \"\\x...\" sequence is too large");
         }
         return converted;

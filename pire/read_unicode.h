@@ -33,7 +33,7 @@ namespace Pire {
         wchar32 ReadUnicodeCharacter();
 
     private:
-        static const wchar32 MAX_UNICODE = 0x10FFFF;
+        static const wchar32 MaxUnicode = 0x10FFFF;
 
         bool IsHexDigit(wchar32 ch);
         ystring ReadHexDigit(std::function<bool(wchar32, size_t)> shouldStop);
