@@ -1,8 +1,8 @@
 /*
- * unicode_support.cpp -- implementation for the EnableUnicodeSequences feature.
+ * read_unicode.h -- declaration of the UnicodeReader class.
  *
- * Copyright (c) 2018 YANDEX LLC
- * Author: Andrey Logvin <andry@logvin.net>
+ * Copyright (c) 2019 YANDEX LLC
+ * Author: Karina Usmanova <usmanova.karin@yandex.ru>
  *
  * This file is part of Pire, the Perl Incompatible
  * Regular Expressions library.
@@ -21,27 +21,24 @@
  */
 
 
-#include "unicode_support.h"
-#include "read_unicode.h"
+#ifndef PIRE_READ_UNICODE_H
+#define PIRE_READ_UNICODE_H
 
-#include "re_lexer.h"
+
+#include <re_lexer.h>
 
 namespace Pire {
-	
-namespace {
-    class EnableUnicodeSequencesImpl : public UnicodeReader {
+    class UnicodeReader : public Feature {
     public:
-        bool Accepts(wchar32 c) const {
-            return c == (Control | 'x');
-        }
+        wchar32 ReadUnicodeCharacter();
 
-        Term Lex() {
-            return Term::Character(ReadUnicodeCharacter());
-        }
+    private:
+        static const wchar32 MAX_UNICODE = 0x10FFFF;
+
+        bool IsHexDigit(wchar32 ch);
+        ystring ReadHexDigit(std::function<bool(wchar32, size_t)> shouldStop);
+        wchar32 HexToDec(const ystring& hexStr);
     };
 }
-	
-namespace Features {
-    Feature::Ptr EnableUnicodeSequences() { return Feature::Ptr(new EnableUnicodeSequencesImpl); }
-};
-}
+
+#endif

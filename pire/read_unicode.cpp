@@ -20,7 +20,6 @@
  * along with Pire.  If not, see <http://www.gnu.org/licenses>.
  */
 
-
 #include "read_unicode.h"
 
 namespace Pire {
@@ -69,13 +68,11 @@ namespace Pire {
         try {
             converted = std::stoul(hexStr, 0, 16);
         } catch (std::out_of_range &) {
-            converted = MaxUnicode + 1;
+            converted = MAX_UNICODE + 1;
         }
-        if (converted > MaxUnicode) {
+        if (converted > MAX_UNICODE) {
             Error("Pire::UnicodeReader::HexToDec(): hex number in \"\\x...\" sequence is too large");
         }
         return converted;
     }
 }
-
-

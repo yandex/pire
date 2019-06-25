@@ -29,7 +29,5 @@
 #include "extra/capture.h"
 #include "extra/count.h"
 #include "extra/glyphs.h"
-#include "extra/unicode_support.h"
-#include "extra/unicode_range.h"
 
 #endif
