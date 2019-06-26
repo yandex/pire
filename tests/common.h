@@ -11,7 +11,7 @@
  * it under the terms of the GNU Lesser Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Pire is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -69,12 +69,12 @@ inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pi
 }
 
 inline bool HasError(const char* regexp) {
-    try {
-        ParseRegexp(regexp);
-        return false;
-    } catch (Pire::Error& ex) {
-        return true;
-    }
+	try {
+		ParseRegexp(regexp);
+		return false;
+	} catch (Pire::Error& ex) {
+		return true;
+	}
 }
 
 struct Scanners {
@@ -86,12 +86,12 @@ struct Scanners {
 	Pire::NonrelocScannerNoMask nonrelocNoMask;
 
 	Scanners(const Pire::Fsm& fsm)
-		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>())
- 		, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>())
-		, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>())
-		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>())
-		, fastNoMask(Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>())
- 		, nonrelocNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>())
+			: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>())
+			, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>())
+			, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>())
+			, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>())
+			, fastNoMask(Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>())
+			, nonrelocNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>())
 	{}
 
 	Scanners(const char* str, const char* options = "")
@@ -102,7 +102,7 @@ struct Scanners {
 		simple = Pire::Fsm(fsm).Compile<Pire::SimpleScanner>();
 		slow = Pire::Fsm(fsm).Compile<Pire::SlowScanner>();
 		fastNoMask = Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>();
- 		nonrelocNoMask = Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>();
+		nonrelocNoMask = Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>();
 	}
 };
 
