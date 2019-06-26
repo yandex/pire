@@ -61,7 +61,7 @@ libpire_la_SOURCES += \
 	extra/count.cpp \
 	extra/count.h \
 	extra/glyphs.cpp \
-	extra/glyphs.h
+	extra/glyphs.h \
 endif
 
 pire_hdrdir = $(includedir)/pire
@@ -93,7 +93,7 @@ pire_extradir = $(includedir)/pire/extra
 pire_extra_HEADERS = \
 	extra/capture.h \
 	extra/count.h \
-	extra/glyphs.h
+	extra/glyphs.h \
 endif
 
 pire_scannersdir = $(includedir)/pire/scanners

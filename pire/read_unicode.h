@@ -1,8 +1,8 @@
 /*
  * read_unicode.h -- declaration of the UnicodeReader class.
  *
- * Copyright (c) 2019 YANDEX LLC
- * Author: Karina Usmanova <usmanova.karin@yandex.ru>
+ * Copyright (c) 2018-2019 YANDEX LLC, Andrey Logvin <andry@logvin.net>
+ *                                     Karina Usmanova <usmanova.karin@yandex.ru>
  *
  * This file is part of Pire, the Perl Incompatible
  * Regular Expressions library.
