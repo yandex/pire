@@ -68,6 +68,15 @@ inline Pire::Fsm ParseRegexp(const char* str, const char* options = "", const Pi
 	return fsm;
 }
 
+inline bool HasError(const char* regexp) {
+	try {
+		ParseRegexp(regexp);
+		return false;
+	} catch (Pire::Error& ex) {
+		return true;
+	}
+}
+
 struct Scanners {
 	Pire::Scanner fast;
 	Pire::NonrelocScanner nonreloc;

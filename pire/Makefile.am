@@ -27,6 +27,8 @@ libpire_la_SOURCES = \
 	pire.h \
 	re_lexer.cpp \
 	re_lexer.h \
+	read_unicode.cpp \
+	read_unicode.h \
 	run.h \
 	scanner_io.cpp \
 	static_assert.h \
@@ -59,9 +61,7 @@ libpire_la_SOURCES += \
 	extra/count.cpp \
 	extra/count.h \
 	extra/glyphs.cpp \
-	extra/glyphs.h \
-	extra/unicode_support.cpp \
-	extra/unicode_support.h
+	extra/glyphs.h
 endif
 
 pire_hdrdir = $(includedir)/pire
@@ -80,6 +80,7 @@ pire_hdr_HEADERS = \
 	pire.h \
 	re_lexer.h \
 	re_parser.h \
+	read_unicode.h \
 	run.h \
 	static_assert.h \
 	platform.h \
@@ -92,8 +93,7 @@ pire_extradir = $(includedir)/pire/extra
 pire_extra_HEADERS = \
 	extra/capture.h \
 	extra/count.h \
-	extra/glyphs.h \
-	extra/unicode_support.h
+	extra/glyphs.h
 endif
 
 pire_scannersdir = $(includedir)/pire/scanners

@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include "re_lexer.h"
 #include "re_parser.h"
+#include "read_unicode.h"
 #include "fsm.h"
 #include "stub/stl.h"
 
@@ -201,7 +202,18 @@ wchar32 Feature::CorrectChar(wchar32 c, const char* controls)
 }
 
 namespace {
-	class CharacterRangeReader: public Feature {
+	class EnableUnicodeSequencesImpl : public UnicodeReader {
+	public:
+		bool Accepts(wchar32 c) const {
+			return c == (Control | 'x');
+		}
+
+		Term Lex() {
+			return Term::Character(ReadUnicodeCharacter());
+		}
+	};
+
+	class CharacterRangeReader: public UnicodeReader {
 	public:
 		bool Accepts(wchar32 c) const { return c == '[' || c == (Control | '[') || c == (Control | ']'); }
 
@@ -220,22 +232,49 @@ namespace {
 				ch = CorrectChar(GetChar(), controls);
 			}
 
+			bool firstUnicode;
+			wchar32 unicodeSymbol = 0;
+
 			for (; ch != End && ch != (Control | ']'); ch = CorrectChar(GetChar(), controls)) {
-				if ((ch & ControlMask) != Control && CorrectChar(PeekChar(), controls) == (Control | '-')) {
+				if (ch == (Control | 'x')) {
+					UngetChar(ch);
+					firstUnicode = true;
+					unicodeSymbol = ReadUnicodeCharacter();
+				} else {
+					firstUnicode = false;
+				}
+
+				if (((ch & ControlMask) != Control || firstUnicode) && CorrectChar(PeekChar(), controls) == (Control | '-')) {
 					GetChar();
-					wchar32 end = CorrectChar(GetChar(), controls);
-					if ((end & ControlMask) == Control)
-						Error("Wrong character range");
-					for (; ch <= end; ++ch)
+					wchar32 current = GetChar();
+
+					bool secondUnicode = (current == (Control | 'x'));
+
+					wchar32 begin = (firstUnicode) ? unicodeSymbol : ch;
+					wchar32 end;
+					if (secondUnicode) {
+						UngetChar(current);
+						end = ReadUnicodeCharacter();
+					} else {
+						end = CorrectChar(current, controls);
+						if ((end & ControlMask) == Control)
+							Error("Wrong character range");
+					}
+
+					for (ch = begin; ch <= end; ++ch) {
 						cs.first.insert(Term::String(1, ch));
-				} else if (ch == (Control | '-'))
+					}
+				} else if (ch == (Control | '-')) {
 					cs.first.insert(Term::String(1, '-'));
-				else if ((ch & ControlMask) == Control && (strchr(controls2, ch & ~ControlMask) || strchr(controls, ch & ~ControlMask)))
+				}
+				else if ((ch & ControlMask) == Control && (strchr(controls2, ch & ~ControlMask) || strchr(controls, ch & ~ControlMask))) {
 					cs.first.insert(Term::String(1, ch & ~ControlMask));
-				else if ((ch & ControlMask) != Control || !strchr(controls, ch & ~ControlMask))
-					cs.first.insert(Term::String(1, ch));
-				else
+				}
+				else if ((ch & ControlMask) != Control || !strchr(controls, ch & ~ControlMask)) {
+					cs.first.insert(Term::String(1, (firstUnicode) ? unicodeSymbol : ch));
+				} else {
 					Error("Wrong character in range");
+				}
 			}
 			if (ch == End)
 				Error("Unexpected end of pattern");
@@ -334,6 +373,7 @@ void Lexer::InstallDefaultFeatures()
 	AddFeature(Feature::Ptr(new CharacterRangeReader));
 	AddFeature(Feature::Ptr(new RepetitionCountReader));
 	AddFeature(Features::CharClasses());
+	AddFeature(Feature::Ptr(new EnableUnicodeSequencesImpl));
 }
 
 Fsm Lexer::Parse()

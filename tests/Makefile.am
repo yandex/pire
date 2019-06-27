@@ -24,7 +24,7 @@ pire_test_SOURCES += \
 	capture_ut.cpp \
 	count_ut.cpp \
 	glyph_ut.cpp \
-	unicode_support_ut.cpp
+	read_unicode_ut.cpp
 endif
 
 nodist_pire_test_SOURCES = inline_ut_2.cpp
