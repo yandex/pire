@@ -232,31 +232,37 @@ namespace {
 				ch = CorrectChar(GetChar(), controls);
 			}
 
-			bool parse_unicode;
-			wchar32 unicode_ch = 0;
+			bool firstUnicode;
+			wchar32 unicodeSymbol = 0;
 
 			for (; ch != End && ch != (Control | ']'); ch = CorrectChar(GetChar(), controls)) {
 				if (ch == (Control | 'x')) {
 					UngetChar(ch);
-					parse_unicode = true;
-					unicode_ch = ReadUnicodeCharacter();
+					firstUnicode = true;
+					unicodeSymbol = ReadUnicodeCharacter();
 				} else {
-					parse_unicode = false;
+					firstUnicode = false;
 				}
 
-				if (((ch & ControlMask) != Control || parse_unicode) && CorrectChar(PeekChar(), controls) == (Control | '-')) {
+				if (((ch & ControlMask) != Control || firstUnicode) && CorrectChar(PeekChar(), controls) == (Control | '-')) {
 					GetChar();
-					if (!parse_unicode) {
-						wchar32 end = CorrectChar(GetChar(), controls);
+					wchar32 current = GetChar();
+
+					bool secondUnicode = (current == (Control | 'x'));
+
+					wchar32 begin = (firstUnicode) ? unicodeSymbol : ch;
+					wchar32 end;
+					if (secondUnicode) {
+						UngetChar(current);
+						end = ReadUnicodeCharacter();
+					} else {
+						end = CorrectChar(current, controls);
 						if ((end & ControlMask) == Control)
 							Error("Wrong character range");
-						for (; ch <= end; ++ch)
-							cs.first.insert(Term::String(1, ch));
-					} else {
-						wchar32 unicode_end = ReadUnicodeCharacter();
-						for (; unicode_ch <= unicode_end; ++unicode_ch) {
-							cs.first.insert(Term::String(1, unicode_ch));
-						}
+					}
+
+					for (ch = begin; ch <= end; ++ch) {
+						cs.first.insert(Term::String(1, ch));
 					}
 				} else if (ch == (Control | '-')) {
 					cs.first.insert(Term::String(1, '-'));
@@ -265,7 +271,7 @@ namespace {
 					cs.first.insert(Term::String(1, ch & ~ControlMask));
 				}
 				else if ((ch & ControlMask) != Control || !strchr(controls, ch & ~ControlMask)) {
-					cs.first.insert(Term::String(1, (parse_unicode) ? unicode_ch : ch));
+					cs.first.insert(Term::String(1, (firstUnicode) ? unicodeSymbol : ch));
 				} else {
 					Error("Wrong character in range");
 				}

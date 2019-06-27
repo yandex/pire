@@ -176,7 +176,7 @@ SIMPLE_UNIT_TEST_SUITE(ReadUnicodeTest) {
 			DENIES("aaa");
 		}
 
-		REGEXP("[^\\x{61}-x{7a}]") {
+		REGEXP("[^\\x{61}-\\x{7a}]") {
 			ACCEPTS("A");
 			ACCEPTS("123");
 			ACCEPTS("acb1");
@@ -212,6 +212,31 @@ SIMPLE_UNIT_TEST_SUITE(ReadUnicodeTest) {
 			DENIES("aB");
 			DENIES("testb");
 			DENIES("test");
+		}
+
+		REGEXP("[\\x{61}-c]") {
+			ACCEPTS("a");
+			ACCEPTS("b");
+			ACCEPTS("c");
+			ACCEPTS("testb");
+			DENIES("d");
+		}
+
+		REGEXP("[^a-\\x{7a}]") {
+			ACCEPTS("A");
+			ACCEPTS("123");
+			ACCEPTS("acb1");
+			DENIES("a");
+			DENIES("abcxyz");
+		}
+
+		REGEXP("[\\x{41}-Ba-\\x{62}]") {
+			ACCEPTS("a");
+			ACCEPTS("b");
+			ACCEPTS("A");
+			ACCEPTS("B");
+			DENIES("c");
+			DENIES("C");
 		}
 	}
 
