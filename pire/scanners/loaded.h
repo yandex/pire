@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include "common.h"
+#include "../approx_matching.h"
 #include "../fsm.h"
 #include "../partition.h"
 
@@ -226,8 +227,11 @@ protected:
 	virtual ~LoadedScanner();
 
 private:
-	explicit LoadedScanner(Fsm& fsm)
+	explicit LoadedScanner(Fsm& fsm, size_t distance = 0)
 	{
+		if (distance) {
+			fsm = CreateApproxFsm(fsm, distance);
+		}
 		fsm.Canonize();
 		Init(fsm.Size(), fsm.Letters(), fsm.Initial());
 		BuildScanner(fsm, *this);

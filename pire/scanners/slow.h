@@ -25,6 +25,7 @@
 #define PIRE_SCANNERS_SLOW_H
 
 #include "common.h"
+#include "../approx_matching.h"
 #include "../stub/stl.h"
 #include "../partition.h"
 #include "../vbitset.h"
@@ -248,9 +249,12 @@ public:
 		}
 	}
 
-	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
+	explicit SlowScanner(Fsm& fsm, size_t distance = 0, bool needActions = false, bool removeEpsilons = true)
 		: need_actions(needActions)
 	{
+		if (distance) {
+			fsm = CreateApproxFsm(fsm, distance);
+		}
 		if (removeEpsilons)
 			fsm.RemoveEpsilons();
 		fsm.Sparse(!removeEpsilons);

@@ -28,6 +28,7 @@
 #include "../scanners/loaded.h"
 #include "../scanners/multi.h"
 #include "../scanners/slow.h"
+#include "../approx_matching.h"
 #include "../fsm.h"
 #include "../re_lexer.h"
 #include "../run.h"
@@ -136,8 +137,11 @@ public:
 
 	CapturingScanner() {}
 	CapturingScanner(const CapturingScanner& s): LoadedScanner(s) {}
-	explicit CapturingScanner(Fsm& fsm)
+	explicit CapturingScanner(Fsm& fsm, size_t distance = 0)
 	{
+		if (distance) {
+			fsm = CreateApproxFsm(fsm, distance);
+		}
 		fsm.Canonize();
 		Init(fsm.Size(), fsm.Letters(), fsm.Initial());
 		BuildScanner(fsm, *this);
@@ -570,8 +574,8 @@ public:
 	{
 	}
 
-	SlowCapturingScanner(Fsm& fsm)
-		: SlowScanner(fsm, true, false)
+	SlowCapturingScanner(Fsm& fsm, size_t distance = 0)
+		: SlowScanner(fsm, distance, true, false)
 	{
 	}
 };

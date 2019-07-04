@@ -85,13 +85,13 @@ struct Scanners {
 	Pire::ScannerNoMask fastNoMask;
 	Pire::NonrelocScannerNoMask nonrelocNoMask;
 
-	Scanners(const Pire::Fsm& fsm)
-		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>())
- 		, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>())
-		, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>())
-		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>())
-		, fastNoMask(Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>())
- 		, nonrelocNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>())
+	Scanners(const Pire::Fsm& fsm, size_t distance = 0)
+		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>(distance))
+ 		, nonreloc(Pire::Fsm(fsm).Compile<Pire::NonrelocScanner>(distance))
+		, simple(Pire::Fsm(fsm).Compile<Pire::SimpleScanner>(distance))
+		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>(distance))
+		, fastNoMask(Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>(distance))
+ 		, nonrelocNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>(distance))
 	{}
 
 	Scanners(const char* str, const char* options = "")
@@ -175,6 +175,7 @@ bool Matches(const Scanner& scanner, const ystring& str)
 }
 
 #define SCANNER(fsm) for (Scanners m_scanners(fsm), *m_flag = &m_scanners; m_flag; m_flag = 0)
+#define SCANNER2(fsm, distance) for (Scanners m_scanners(fsm, distance), *m_flag = &m_scanners; m_flag; m_flag = 0)
 #define REGEXP(pattern) for (Scanners m_scanners(pattern), *m_flag = &m_scanners; m_flag; m_flag = 0)
 #define REGEXP2(pattern,flags) for (Scanners m_scanners(pattern, flags), *m_flag = &m_scanners; m_flag; m_flag = 0)
 #define ACCEPTS(str) \
