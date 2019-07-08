@@ -37,7 +37,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 	SIMPLE_UNIT_TEST(Simple) {
 		auto fsm = BuildFsm("^ab$");
 
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("ab");
 			ACCEPTS("ax");
 			ACCEPTS("xb");
@@ -54,7 +54,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^ab$");
-		SCANNER2(fsm, 2) {
+		APPROXIMATE_SCANNER(fsm, 2) {
 			ACCEPTS("ab");
 			ACCEPTS("xy");
 			ACCEPTS("");
@@ -67,7 +67,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 	SIMPLE_UNIT_TEST(SpecialSymbols) {
 		auto fsm = BuildFsm("^.*ab$");
 
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("b");
 			ACCEPTS("ab");
@@ -78,7 +78,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^[a-c]$");
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("b");
 			ACCEPTS("c");
@@ -90,7 +90,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^x{4}$");
-		SCANNER2(fsm, 2) {
+		APPROXIMATE_SCANNER(fsm, 2) {
 			DENIES ("x");
 			ACCEPTS("xx");
 			ACCEPTS("xxx");
@@ -105,7 +105,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^(a|b)$");
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("b");
 			ACCEPTS("x");
@@ -116,7 +116,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^(ab|cd)$");
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("ab");
 			ACCEPTS("cd");
 			ACCEPTS("ax");
@@ -129,7 +129,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^[a-c]{3}$");
-		SCANNER2(fsm, 2) {
+		APPROXIMATE_SCANNER(fsm, 2) {
 			ACCEPTS("abc");
 			ACCEPTS("aaa");
 			ACCEPTS("a");
@@ -141,7 +141,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^\\x{61}$");
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("x");
 			ACCEPTS("");
@@ -155,7 +155,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 	SIMPLE_UNIT_TEST(TestSurrounded) {
 		auto fsm = BuildFsm("abc").Surround();
 
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("abc");
 			ACCEPTS("abcd");
 			ACCEPTS("xabcx");
@@ -165,7 +165,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^abc$").Surround();
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("abc");
 			ACCEPTS("abcx");
 			ACCEPTS("xabc");
@@ -177,7 +177,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 
 	SIMPLE_UNIT_TEST(GlueFsm) {
 		auto fsm = BuildFsm("^a$") | BuildFsm("^b$");
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("");
 			ACCEPTS("a");
 			ACCEPTS("b");
@@ -188,7 +188,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 
 		fsm = BuildFsm("^[a-b]$") | BuildFsm("^c{2}$");
 
-		SCANNER2(fsm, 1) {
+		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("b");
 			ACCEPTS("cc");
@@ -198,6 +198,54 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 			ACCEPTS("xc");
 			ACCEPTS("cxc");
 			ACCEPTS("");
+		}
+	}
+
+	SIMPLE_UNIT_TEST(StressTest) {
+		ystring regexp = "^";
+		for (size_t letter = 0; letter < 10; ++letter) {
+			regexp += ystring(3, letter + 'a');
+		}
+		regexp += "$";
+
+		auto fsm = BuildFsm(regexp.data());
+
+		ystring changedRegexp = regexp.substr(1, regexp.size() - 2);
+
+		APPROXIMATE_SCANNER(fsm, 1) {
+			for (size_t pos = 0; pos < regexp.size() - 2; ++pos) {
+				changedRegexp[pos] = 'x';
+				ACCEPTS(changedRegexp);
+
+				changedRegexp.erase(pos, 1);
+				ACCEPTS(changedRegexp);
+				changedRegexp.insert(pos, 1, regexp[pos + 1]);
+
+				changedRegexp.insert(pos, 1, 'x');
+				ACCEPTS(changedRegexp);
+				changedRegexp.erase(pos, 1);
+			}
+		}
+
+		APPROXIMATE_SCANNER(fsm, 2) {
+			for (size_t posLeft = 0; posLeft < changedRegexp.size() / 2; ++posLeft) {
+				size_t posRight = changedRegexp.size() - posLeft - 1;
+				changedRegexp[posLeft] = 'x';
+				changedRegexp[posRight] = 'x';
+				ACCEPTS(changedRegexp);
+
+				changedRegexp.erase(posRight, 1);
+				changedRegexp.erase(posLeft, 1);
+				ACCEPTS(changedRegexp);
+				changedRegexp.insert(posLeft, 1, regexp[posLeft + 1]);
+				changedRegexp.insert(posRight, 1, regexp[posRight + 1]);
+
+				changedRegexp.insert(posRight, 1, 'x');
+				changedRegexp.insert(posLeft, 1, 'x');
+				ACCEPTS(changedRegexp);
+				changedRegexp.erase(posLeft, 1);
+				changedRegexp.erase(posRight, 1);
+			}
 		}
 	}
 }

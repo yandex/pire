@@ -175,7 +175,7 @@ bool Matches(const Scanner& scanner, const ystring& str)
 }
 
 #define SCANNER(fsm) for (Scanners m_scanners(fsm), *m_flag = &m_scanners; m_flag; m_flag = 0)
-#define SCANNER2(fsm, distance) for (Scanners m_scanners(fsm, distance), *m_flag = &m_scanners; m_flag; m_flag = 0)
+#define APPROXIMATE_SCANNER(fsm, distance) for (Scanners m_scanners(fsm, distance), *m_flag = &m_scanners; m_flag; m_flag = 0)
 #define REGEXP(pattern) for (Scanners m_scanners(pattern), *m_flag = &m_scanners; m_flag; m_flag = 0)
 #define REGEXP2(pattern,flags) for (Scanners m_scanners(pattern, flags), *m_flag = &m_scanners; m_flag; m_flag = 0)
 #define ACCEPTS(str) \

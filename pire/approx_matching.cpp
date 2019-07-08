@@ -40,28 +40,27 @@ namespace Pire {
 
 		for (size_t fsmIdx = 0; fsmIdx < distance; ++fsmIdx) {
 			approxFsm.Import(regexp);
-			size_t shift = fsmIdx * regexp.Size();
+			const auto shift = fsmIdx * regexp.Size();
 
-			for (size_t state = shift; state < regexp.Size() + shift; ++state) {
-				for (Char letter : outgoingLettersTable[state % regexp.Size()]) {
-					for (size_t to : destinationsTable[state % regexp.Size()][letter]) {
-						for (Char ch = 0; ch <= MaxCharUnaligned; ++ch) {
-							if (approxFsm.Connected(state, to + shift, ch)) {
-								continue;
+			for (size_t state = 0; state < regexp.Size(); ++state) {
+				for (Char letter : outgoingLettersTable[state]) {
+					for (size_t to : destinationsTable[state][letter]) {
+						for (Char ch = 0; ch < MaxChar; ++ch) {
+							if (!approxFsm.Connected(state + shift, to + shift, ch)) {
+								approxFsm.Connect(state + shift, to + shift + regexp.Size(), ch);
 							}
-							approxFsm.Connect(state, to + shift + regexp.Size(), ch);
 						}
 
-						approxFsm.Connect(state, to + shift + regexp.Size(), Epsilon);
+						approxFsm.Connect(state + shift, to + shift + regexp.Size(), Epsilon);
 					}
 
-					for (Char ch = 0; ch <= MaxCharUnaligned; ++ch) {
-						approxFsm.Connect(state, state + regexp.Size(), ch);
+					for (Char ch = 0; ch < MaxChar; ++ch) {
+						approxFsm.Connect(state + shift, state + shift + regexp.Size(), ch);
 					}
 				}
 
-				if (regexp.IsFinal(state % regexp.Size())) {
-					approxFsm.SetFinal(state + regexp.Size(), true);
+				if (regexp.IsFinal(state)) {
+					approxFsm.SetFinal(state + shift + regexp.Size(), true);
 				}
 			}
 		}
