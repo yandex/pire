@@ -123,8 +123,9 @@ public:
 	{
 		if (distance) {
 			fsm = CreateApproxFsm(fsm, distance);
+		} else {
+			fsm.Canonize();
 		}
-		fsm.Canonize();
 		Init(fsm.Size(), fsm.Letters(), fsm.Finals().size(), fsm.Initial(), 1);
 		BuildScanner(fsm, *this);
 	}
