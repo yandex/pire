@@ -201,50 +201,91 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 	}
 
-	SIMPLE_UNIT_TEST(StressTest) {
-		ystring regexp = "^";
-		for (size_t letter = 0; letter < 10; ++letter) {
-			regexp += ystring(3, letter + 'a');
+	enum MutateOperation {
+		Substitute = 0,
+		Delete = 1,
+		Insert = 2
+	};
+	
+	ystring ChangeText(const ystring& text, int operation, int posLeft, int posRight = -1)
+	{
+		auto changedText = text;
+		switch (operation) {
+			case MutateOperation::Substitute:
+				if (posRight >= 0) {
+					changedText[posRight] = 'x';
+				}
+				changedText[posLeft] = 'x';
+				break;
+			case MutateOperation::Delete:
+				if (posRight >= 0) {
+					changedText.erase(posRight, 1);
+				}
+				changedText.erase(posLeft, 1);
+				break;
+			case MutateOperation::Insert:
+				if (posRight >= 0) {
+					changedText.insert(posRight + 1, 1, 'x');
+				}
+				changedText.insert(posLeft, 1, 'x');
+				break;
 		}
-		regexp += "$";
 
+		return changedText;
+	}
+
+	SIMPLE_UNIT_TEST(StressTest) {
+		ystring text;
+		for (size_t letter = 0; letter < 10; ++letter) {
+			text += ystring(3, letter + 'a');
+		}
+		const ystring regexp = "^" + text + "$";
 		auto fsm = BuildFsm(regexp.data());
 
-		ystring changedRegexp = regexp.substr(1, regexp.size() - 2);
-
 		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS(text);
+
 			for (size_t pos = 0; pos < regexp.size() - 2; ++pos) {
-				changedRegexp[pos] = 'x';
-				ACCEPTS(changedRegexp);
+				for (int operation = 0; operation < 3; ++operation) {
+					auto changedText = ChangeText(text, operation, pos);
+					ACCEPTS(changedText);
+				}
+			}
+		}
 
-				changedRegexp.erase(pos, 1);
-				ACCEPTS(changedRegexp);
-				changedRegexp.insert(pos, 1, regexp[pos + 1]);
+		APPROXIMATE_SCANNER(fsm, 0) {
+			ACCEPTS(text);
 
-				changedRegexp.insert(pos, 1, 'x');
-				ACCEPTS(changedRegexp);
-				changedRegexp.erase(pos, 1);
+			for (size_t pos = 0; pos < regexp.size() - 2; ++pos) {
+				for (int operation = 0; operation < 3; ++operation) {
+					auto changedText = ChangeText(text, operation, pos);
+					DENIES(changedText);
+				}
 			}
 		}
 
 		APPROXIMATE_SCANNER(fsm, 2) {
-			for (size_t posLeft = 0; posLeft < changedRegexp.size() / 2; ++posLeft) {
-				size_t posRight = changedRegexp.size() - posLeft - 1;
-				changedRegexp[posLeft] = 'x';
-				changedRegexp[posRight] = 'x';
-				ACCEPTS(changedRegexp);
+			ACCEPTS(text);
 
-				changedRegexp.erase(posRight, 1);
-				changedRegexp.erase(posLeft, 1);
-				ACCEPTS(changedRegexp);
-				changedRegexp.insert(posLeft, 1, regexp[posLeft + 1]);
-				changedRegexp.insert(posRight, 1, regexp[posRight + 1]);
+			for (size_t posLeft = 0; posLeft < text.size() / 2; ++posLeft) {
+				size_t posRight = text.size() - posLeft - 1;
+				for (int operation = 0; operation < 3; ++operation) {
+					auto changedText = ChangeText(text, operation, posLeft, posRight);
+					ACCEPTS(changedText);
+				}
+			}
+		}
 
-				changedRegexp.insert(posRight, 1, 'x');
-				changedRegexp.insert(posLeft, 1, 'x');
-				ACCEPTS(changedRegexp);
-				changedRegexp.erase(posLeft, 1);
-				changedRegexp.erase(posRight, 1);
+		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS(text);
+
+			for (size_t posLeft = 0; posLeft < text.size() / 2; ++posLeft) {
+				size_t posRight = text.size() - posLeft - 1;
+
+				for (int operation = 0; operation < 3; ++operation) {
+					auto changedText = ChangeText(text, operation, posLeft, posRight);
+					DENIES(changedText);
+				}
 			}
 		}
 	}
