@@ -36,7 +36,6 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 
 	SIMPLE_UNIT_TEST(Simple) {
 		auto fsm = BuildFsm("^ab$");
-
 		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("ab");
 			ACCEPTS("ax");
@@ -66,7 +65,6 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 
 	SIMPLE_UNIT_TEST(SpecialSymbols) {
 		auto fsm = BuildFsm("^.*ab$");
-
 		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("b");
@@ -150,16 +148,25 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 			DENIES("xx");
 		}
 
+		fsm = BuildFsm("^a.bc$");
+		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS("axxbc");
+			ACCEPTS("abc");
+			ACCEPTS("xabc");
+			ACCEPTS("xaxbc");
+			DENIES("bc");
+			DENIES("abcx");
+		}
 	}
 
 	SIMPLE_UNIT_TEST(TestSurrounded) {
 		auto fsm = BuildFsm("abc").Surround();
-
 		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("abc");
-			ACCEPTS("abcd");
 			ACCEPTS("xabcx");
-			ACCEPTS("xabxx");
+			ACCEPTS("xabx");
+			ACCEPTS("axc");
+			ACCEPTS("bac");
 			DENIES("a");
 			DENIES("xaxxxx");
 		}
@@ -170,6 +177,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 			ACCEPTS("abcx");
 			ACCEPTS("xabc");
 			ACCEPTS("axc");
+			ACCEPTS("bac");
 			DENIES("xabx");
 			DENIES("axx");
 		}
@@ -187,7 +195,6 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		}
 
 		fsm = BuildFsm("^[a-b]$") | BuildFsm("^c{2}$");
-
 		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS("a");
 			ACCEPTS("b");
@@ -206,7 +213,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		Delete = 1,
 		Insert = 2
 	};
-	
+
 	ystring ChangeText(const ystring& text, int operation, int posLeft, int posRight = -1)
 	{
 		auto changedText = text;
@@ -281,11 +288,92 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 
 			for (size_t posLeft = 0; posLeft < text.size() / 2; ++posLeft) {
 				size_t posRight = text.size() - posLeft - 1;
-
 				for (int operation = 0; operation < 3; ++operation) {
 					auto changedText = ChangeText(text, operation, posLeft, posRight);
 					DENIES(changedText);
 				}
+			}
+		}
+	}
+
+	SIMPLE_UNIT_TEST(SwapLetters) {
+		auto fsm = BuildFsm("^abc$");
+		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS("bac");
+			ACCEPTS("acb");
+			DENIES("cba");
+			DENIES("bax");
+		}
+
+		fsm = BuildFsm("^abcd$");
+		APPROXIMATE_SCANNER(fsm, 2) {
+			ACCEPTS("bacd");
+			ACCEPTS("acbd");
+			ACCEPTS("baxd");
+			ACCEPTS("badc");
+			ACCEPTS("bcad");
+			ACCEPTS("bcda");
+			DENIES("xcbx");
+			DENIES("baxx");
+			DENIES("ba");
+			DENIES("cdab");
+		}
+
+		fsm = BuildFsm("^abc$");
+		APPROXIMATE_SCANNER(fsm, 0) {
+			ACCEPTS("abc");
+			DENIES("bac");
+		}
+
+		fsm = BuildFsm("^[a-c][1-3]$");
+		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS("a3");
+			ACCEPTS("c");
+			ACCEPTS("1");
+			ACCEPTS("1a");
+			ACCEPTS("3b");
+			DENIES("4a");
+		}
+
+		fsm = BuildFsm("^.*abc$");
+		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS("ab");
+			ACCEPTS("xxxxbac");
+			DENIES("xxxxa");
+			DENIES("xxxxcb");
+		}
+	}
+
+	SIMPLE_UNIT_TEST(SwapStressTest) {
+		ystring text;
+		for (size_t letter = 0; letter < 30; ++letter) {
+			text += ystring(1, (letter % 26) + 'a');
+		}
+		const ystring regexp = "^" + text + "$";
+		auto fsm = BuildFsm(regexp.data());
+		auto changedText = text;
+
+		APPROXIMATE_SCANNER(fsm, 1) {
+			ACCEPTS(text);
+
+			for (size_t pos = 0; pos < text.size() - 1; ++pos) {
+				changedText[pos] = text[pos + 1];
+				changedText[pos + 1] = text[pos];
+				ACCEPTS(changedText);
+				changedText[pos] = text[pos];
+				changedText[pos + 1] = text[pos + 1];
+			}
+		}
+
+		APPROXIMATE_SCANNER(fsm, 0) {
+			ACCEPTS(text);
+
+			for (size_t pos = 0; pos < text.size() - 1; ++pos) {
+				changedText[pos] = text[pos + 1];
+				changedText[pos + 1] = text[pos];
+				DENIES(changedText);
+				changedText[pos] = text[pos];
+				changedText[pos + 1] = text[pos + 1];
 			}
 		}
 	}

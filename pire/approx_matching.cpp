@@ -65,6 +65,30 @@ namespace Pire {
 			}
 		}
 
+		size_t maxState = (distance > 0) ? approxFsm.Size() - regexp.Size() : 0;
+		for (size_t state = 0; state < maxState; ++state) {
+			size_t currentDist = state / regexp.Size();
+			size_t intState = state % regexp.Size();
+
+			for (Char firstLetter : outgoingLettersTable[intState]) {
+				for (size_t firstDest : destinationsTable[intState][firstLetter]) {
+					for (Char secondLetter : outgoingLettersTable[firstDest]) {
+						for (size_t secondDest : destinationsTable[firstDest][secondLetter]) {
+							if (secondDest != intState || firstDest != intState) {
+								approxFsm.Resize(approxFsm.Size() + 1);
+
+								size_t to = secondDest + (currentDist + 1) * regexp.Size();
+								size_t middle = approxFsm.Size() - 1;
+
+								approxFsm.Connect(state, middle, secondLetter);
+								approxFsm.Connect(middle, to, firstLetter);
+							}
+						}
+					}
+				}
+			}
+		}
+
 		approxFsm.Canonize();
 
 		return approxFsm;
