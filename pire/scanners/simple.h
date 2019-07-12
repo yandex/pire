@@ -219,9 +219,8 @@ inline SimpleScanner::SimpleScanner(Fsm& fsm, size_t distance)
 {
 	if (distance) {
 		fsm = CreateApproxFsm(fsm, distance);
-	} else {
-		fsm.Canonize();
 	}
+	fsm.Canonize();
 	
 	m.statesCount = fsm.Size();
 	m_buffer = BufferType(new char[BufSize()]);

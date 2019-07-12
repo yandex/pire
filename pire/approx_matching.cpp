@@ -89,8 +89,6 @@ namespace Pire {
 			}
 		}
 
-		approxFsm.Canonize();
-
 		return approxFsm;
 	}
 }

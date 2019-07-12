@@ -267,7 +267,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		APPROXIMATE_SCANNER(fsm, 2) {
 			ACCEPTS(text);
 
-			for (size_t posLeft = 0; posLeft < text.size() / 2 - 1; ++posLeft) {
+			for (size_t posLeft = 0; posLeft < text.size() / 2 - 1; ++posLeft) { // Subtract 1 to avoid interaction of operationLeft and operationRight
 				size_t posRight = text.size() - posLeft - 1;
 				for (int operationLeft = MutateOperation::Begin; operationLeft < MutateOperation::End; ++operationLeft) {
 					for (int operationRight  = MutateOperation::Begin; operationRight < MutateOperation::End; ++operationRight) {
@@ -282,7 +282,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS(text);
 
-			for (size_t posLeft = 0; posLeft < text.size() / 2 - 1; ++posLeft) {
+			for (size_t posLeft = 0; posLeft < text.size() / 2 - 1; ++posLeft) { // Subtract 1 to avoid interaction of operationLeft and operationRight
 				size_t posRight = text.size() - posLeft - 1;
 				for (int operationLeft = MutateOperation::Begin; operationLeft < MutateOperation::End; ++operationLeft) {
 					for (int operationRight  = MutateOperation::Begin; operationRight < MutateOperation::End; ++operationRight) {
