@@ -209,32 +209,25 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 	}
 
 	enum MutateOperation {
-		Substitute = 0,
-		Delete = 1,
-		Insert = 2
+		Begin,
+		Substitute = Begin,
+		Delete,
+		Insert,
+		End
 	};
 
-	ystring ChangeText(const ystring& text, int operation, int posLeft, int posRight = -1)
+	ystring ChangeText(const ystring& text, int operation, int pos)
 	{
 		auto changedText = text;
 		switch (operation) {
 			case MutateOperation::Substitute:
-				if (posRight >= 0) {
-					changedText[posRight] = 'x';
-				}
-				changedText[posLeft] = 'x';
+				changedText[pos] = 'x';
 				break;
 			case MutateOperation::Delete:
-				if (posRight >= 0) {
-					changedText.erase(posRight, 1);
-				}
-				changedText.erase(posLeft, 1);
+				changedText.erase(pos, 1);
 				break;
 			case MutateOperation::Insert:
-				if (posRight >= 0) {
-					changedText.insert(posRight + 1, 1, 'x');
-				}
-				changedText.insert(posLeft, 1, 'x');
+				changedText.insert(pos, 1, 'x');
 				break;
 		}
 
@@ -253,7 +246,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 			ACCEPTS(text);
 
 			for (size_t pos = 0; pos < regexp.size() - 2; ++pos) {
-				for (int operation = 0; operation < 3; ++operation) {
+				for (int operation = MutateOperation::Begin; operation < MutateOperation::End; ++operation) {
 					auto changedText = ChangeText(text, operation, pos);
 					ACCEPTS(changedText);
 				}
@@ -264,7 +257,7 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 			ACCEPTS(text);
 
 			for (size_t pos = 0; pos < regexp.size() - 2; ++pos) {
-				for (int operation = 0; operation < 3; ++operation) {
+				for (int operation = MutateOperation::Begin; operation < MutateOperation::End; ++operation) {
 					auto changedText = ChangeText(text, operation, pos);
 					DENIES(changedText);
 				}
@@ -274,11 +267,14 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		APPROXIMATE_SCANNER(fsm, 2) {
 			ACCEPTS(text);
 
-			for (size_t posLeft = 0; posLeft < text.size() / 2; ++posLeft) {
+			for (size_t posLeft = 0; posLeft < text.size() / 2 - 1; ++posLeft) {
 				size_t posRight = text.size() - posLeft - 1;
-				for (int operation = 0; operation < 3; ++operation) {
-					auto changedText = ChangeText(text, operation, posLeft, posRight);
-					ACCEPTS(changedText);
+				for (int operationLeft = MutateOperation::Begin; operationLeft < MutateOperation::End; ++operationLeft) {
+					for (int operationRight  = MutateOperation::Begin; operationRight < MutateOperation::End; ++operationRight) {
+						auto changedText = ChangeText(text, operationRight, posRight);
+						changedText = ChangeText(changedText, operationLeft, posLeft);
+						ACCEPTS(changedText);
+					}
 				}
 			}
 		}
@@ -286,11 +282,14 @@ SIMPLE_UNIT_TEST_SUITE(ApproxMatchingTest) {
 		APPROXIMATE_SCANNER(fsm, 1) {
 			ACCEPTS(text);
 
-			for (size_t posLeft = 0; posLeft < text.size() / 2; ++posLeft) {
+			for (size_t posLeft = 0; posLeft < text.size() / 2 - 1; ++posLeft) {
 				size_t posRight = text.size() - posLeft - 1;
-				for (int operation = 0; operation < 3; ++operation) {
-					auto changedText = ChangeText(text, operation, posLeft, posRight);
-					DENIES(changedText);
+				for (int operationLeft = MutateOperation::Begin; operationLeft < MutateOperation::End; ++operationLeft) {
+					for (int operationRight  = MutateOperation::Begin; operationRight < MutateOperation::End; ++operationRight) {
+						auto changedText = ChangeText(text, operationRight, posRight);
+						changedText = ChangeText(changedText, operationLeft, posLeft);
+						DENIES(changedText);
+					}
 				}
 			}
 		}
