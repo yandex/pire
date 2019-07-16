@@ -250,13 +250,13 @@ public:
 	}
 
 	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
-			: need_actions(needActions)
+		: need_actions(needActions)
 	{
 		BuildScanner(BuildInternalFsm(fsm, removeEpsilons), *this);
 	}
 
 	explicit SlowScanner(Fsm& fsm, size_t distance, bool needActions = false, bool removeEpsilons = true)
-			: need_actions(needActions)
+		: need_actions(needActions)
 	{
 		fsm = CreateApproxFsm(fsm, distance);
 		BuildScanner(BuildInternalFsm(fsm, removeEpsilons), *this);
