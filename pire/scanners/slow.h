@@ -249,39 +249,18 @@ public:
 		}
 	}
 
-	explicit SlowScanner(Fsm& fsm, size_t distance = 0, bool needActions = false, bool removeEpsilons = true)
-		: need_actions(needActions)
+	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
+			: need_actions(needActions)
 	{
-		if (distance) {
-			fsm = CreateApproxFsm(fsm, distance);
-		}
-		if (removeEpsilons)
-			fsm.RemoveEpsilons();
-		fsm.Sparse(!removeEpsilons);
-
-		m.statesCount = fsm.Size();
-		m.lettersCount = fsm.Letters().Size();
-
-		m_vec.resize(m.statesCount * m.lettersCount);
-		if (need_actions)
-			m_actionsvec.resize(m.statesCount * m.lettersCount);
-		m_vecptr = &m_vec;
-		alloc(m_letters, MaxChar);
-		m_jumps = 0;
-		m_actions = 0;
-		m_jumpPos = 0;
-		alloc(m_finals, m.statesCount);
-
-		// Build letter translation table
-		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
-		for (auto&& letter : fsm.Letters())
-			for (auto&& character : letter.second.second)
-				m_letters[character] = letter.second.first;
-
-		m.start = fsm.Initial();
-		BuildScanner(fsm, *this);
+		BuildScanner(BuildInternalFsm(fsm, removeEpsilons), *this);
 	}
 
+	explicit SlowScanner(Fsm& fsm, size_t distance, bool needActions = false, bool removeEpsilons = true)
+			: need_actions(needActions)
+	{
+		fsm = CreateApproxFsm(fsm, distance);
+		BuildScanner(BuildInternalFsm(fsm, removeEpsilons), *this);
+	}
 
 	SlowScanner& operator = (const SlowScanner& s) { SlowScanner(s).Swap(*this); return *this; }
 
@@ -419,6 +398,35 @@ private:
 	{
 		static size_t v[1] = { 0 };
 		return ymake_pair(v, v);
+	}
+
+	Fsm BuildInternalFsm(Fsm& fsm, bool removeEpsilons = true) {
+		if (removeEpsilons)
+			fsm.RemoveEpsilons();
+		fsm.Sparse(!removeEpsilons);
+
+		m.statesCount = fsm.Size();
+		m.lettersCount = fsm.Letters().Size();
+
+		m_vec.resize(m.statesCount * m.lettersCount);
+		if (need_actions)
+			m_actionsvec.resize(m.statesCount * m.lettersCount);
+		m_vecptr = &m_vec;
+		alloc(m_letters, MaxChar);
+		m_jumps = 0;
+		m_actions = 0;
+		m_jumpPos = 0;
+		alloc(m_finals, m.statesCount);
+
+		// Build letter translation table
+		Fill(m_letters, m_letters + MaxChar, 0);
+		for (auto&& letter : fsm.Letters())
+			for (auto&& character : letter.second.second)
+				m_letters[character] = letter.second.first;
+
+		m.start = fsm.Initial();
+
+		return fsm;
 	}
 
 	friend void BuildScanner<SlowScanner>(const Fsm&, SlowScanner&);
