@@ -575,7 +575,7 @@ public:
 	}
 
 	SlowCapturingScanner(Fsm& fsm, size_t distance = 0)
-		: SlowScanner(fsm, distance, true, false)
+		: SlowScanner(fsm, true, false, distance)
 	{
 	}
 };

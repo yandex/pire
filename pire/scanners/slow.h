@@ -249,17 +249,37 @@ public:
 		}
 	}
 
-	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
+	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true, size_t distance = 0)
 		: need_actions(needActions)
 	{
-		BuildScanner(BuildInternalFsm(fsm, removeEpsilons), *this);
-	}
+		if (distance) {
+			fsm = CreateApproxFsm(fsm, distance);
+		}
+		if (removeEpsilons)
+			fsm.RemoveEpsilons();
+		fsm.Sparse(!removeEpsilons);
 
-	explicit SlowScanner(Fsm& fsm, size_t distance, bool needActions = false, bool removeEpsilons = true)
-		: need_actions(needActions)
-	{
-		fsm = CreateApproxFsm(fsm, distance);
-		BuildScanner(BuildInternalFsm(fsm, removeEpsilons), *this);
+		m.statesCount = fsm.Size();
+		m.lettersCount = fsm.Letters().Size();
+
+		m_vec.resize(m.statesCount * m.lettersCount);
+		if (need_actions)
+			m_actionsvec.resize(m.statesCount * m.lettersCount);
+		m_vecptr = &m_vec;
+		alloc(m_letters, MaxChar);
+		m_jumps = 0;
+		m_actions = 0;
+		m_jumpPos = 0;
+		alloc(m_finals, m.statesCount);
+
+		// Build letter translation table
+		Fill(m_letters, m_letters + MaxChar, 0);
+		for (auto&& letter : fsm.Letters())
+			for (auto&& character : letter.second.second)
+				m_letters[character] = letter.second.first;
+
+		m.start = fsm.Initial();
+		BuildScanner(fsm, *this);
 	}
 
 	SlowScanner& operator = (const SlowScanner& s) { SlowScanner(s).Swap(*this); return *this; }
@@ -340,11 +360,7 @@ private:
 
 	bool need_actions;
 	TVector<TVector<Action>> m_actionsvec;
-	inline static const SlowScanner& Null()
-	{
-		static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
-		return n;
-	}
+	static const SlowScanner& Null();
 
 	template<class T> void alloc(T*& p, size_t size)
 	{
@@ -400,37 +416,19 @@ private:
 		return ymake_pair(v, v);
 	}
 
-	Fsm BuildInternalFsm(Fsm& fsm, bool removeEpsilons = true) {
-		if (removeEpsilons)
-			fsm.RemoveEpsilons();
-		fsm.Sparse(!removeEpsilons);
-
-		m.statesCount = fsm.Size();
-		m.lettersCount = fsm.Letters().Size();
-
-		m_vec.resize(m.statesCount * m.lettersCount);
-		if (need_actions)
-			m_actionsvec.resize(m.statesCount * m.lettersCount);
-		m_vecptr = &m_vec;
-		alloc(m_letters, MaxChar);
-		m_jumps = 0;
-		m_actions = 0;
-		m_jumpPos = 0;
-		alloc(m_finals, m.statesCount);
-
-		// Build letter translation table
-		Fill(m_letters, m_letters + MaxChar, 0);
-		for (auto&& letter : fsm.Letters())
-			for (auto&& character : letter.second.second)
-				m_letters[character] = letter.second.first;
-
-		m.start = fsm.Initial();
-
-		return fsm;
-	}
-
 	friend void BuildScanner<SlowScanner>(const Fsm&, SlowScanner&);
 };
+
+template<>
+inline SlowScanner Fsm::Compile(size_t distance) {
+	return SlowScanner(*this, false, true, distance);
+}
+
+inline const SlowScanner& SlowScanner::Null()
+{
+	static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
+	return n;
+}
 
 #ifndef PIRE_DEBUG	
 /// A specialization of Run(), since its state is much heavier than other ones
