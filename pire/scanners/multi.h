@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include "common.h"
+#include "../approx_matching.h"
 #include "../stub/stl.h"
 #include "../fsm.h"
 #include "../partition.h"
@@ -118,8 +119,11 @@ public:
 
 	Scanner() { Alias(Null()); }
 	
-	explicit Scanner(Fsm& fsm)
+	explicit Scanner(Fsm& fsm, size_t distance = 0)
 	{
+		if (distance) {
+			fsm = CreateApproxFsm(fsm, distance);
+		}
 		fsm.Canonize();
 		Init(fsm.Size(), fsm.Letters(), fsm.Finals().size(), fsm.Initial(), 1);
 		BuildScanner(fsm, *this);

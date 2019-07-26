@@ -9,6 +9,8 @@ endif
 
 lib_LTLIBRARIES = libpire.la
 libpire_la_SOURCES = \
+	approx_matching.cpp \
+	approx_matching.h \
 	align.h \
 	any.h \
 	classes.cpp \
@@ -66,6 +68,7 @@ endif
 
 pire_hdrdir = $(includedir)/pire
 pire_hdr_HEADERS = \
+	approx_matching.h \
 	align.h \
 	any.h \
 	defs.h \

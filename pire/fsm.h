@@ -115,7 +115,7 @@ namespace Pire {
 		Fsm& Canonize(size_t maxSize = 0);
 		
 		template<class Scanner>
-		Scanner Compile();
+		Scanner Compile(size_t distance = 0);
 
 		void DumpState(yostream& s, size_t state) const;
 		void DumpTo(yostream& s, const ystring& name = "") const;
@@ -269,9 +269,9 @@ namespace Pire {
 	}
 	
 	template<class Scanner>
-	inline Scanner Fsm::Compile()
+	inline Scanner Fsm::Compile(size_t distance)
 	{
-		return Scanner(*this);
+		return Scanner(*this, distance);
 	}
 
 	yostream& operator << (yostream&, const Fsm&);

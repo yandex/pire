@@ -25,6 +25,7 @@
 #define PIRE_SCANNERS_SLOW_H
 
 #include "common.h"
+#include "../approx_matching.h"
 #include "../stub/stl.h"
 #include "../partition.h"
 #include "../vbitset.h"
@@ -248,9 +249,12 @@ public:
 		}
 	}
 
-	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true)
+	explicit SlowScanner(Fsm& fsm, bool needActions = false, bool removeEpsilons = true, size_t distance = 0)
 		: need_actions(needActions)
 	{
+		if (distance) {
+			fsm = CreateApproxFsm(fsm, distance);
+		}
 		if (removeEpsilons)
 			fsm.RemoveEpsilons();
 		fsm.Sparse(!removeEpsilons);
@@ -269,7 +273,7 @@ public:
 		alloc(m_finals, m.statesCount);
 
 		// Build letter translation table
-		Fill(m_letters, m_letters + sizeof(m_letters)/sizeof(*m_letters), 0);
+		Fill(m_letters, m_letters + MaxChar, 0);
 		for (auto&& letter : fsm.Letters())
 			for (auto&& character : letter.second.second)
 				m_letters[character] = letter.second.first;
@@ -277,7 +281,6 @@ public:
 		m.start = fsm.Initial();
 		BuildScanner(fsm, *this);
 	}
-
 
 	SlowScanner& operator = (const SlowScanner& s) { SlowScanner(s).Swap(*this); return *this; }
 
@@ -357,11 +360,7 @@ private:
 
 	bool need_actions;
 	TVector<TVector<Action>> m_actionsvec;
-	inline static const SlowScanner& Null()
-	{
-		static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
-		return n;
-	}
+	static const SlowScanner& Null();
 
 	template<class T> void alloc(T*& p, size_t size)
 	{
@@ -419,6 +418,17 @@ private:
 
 	friend void BuildScanner<SlowScanner>(const Fsm&, SlowScanner&);
 };
+
+template<>
+inline SlowScanner Fsm::Compile(size_t distance) {
+	return SlowScanner(*this, false, true, distance);
+}
+
+inline const SlowScanner& SlowScanner::Null()
+{
+	static const SlowScanner n = Fsm::MakeFalse().Compile<SlowScanner>();
+	return n;
+}
 
 #ifndef PIRE_DEBUG	
 /// A specialization of Run(), since its state is much heavier than other ones

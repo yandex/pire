@@ -21,6 +21,7 @@ pire_test_SOURCES = \
 
 if ENABLE_EXTRA
 pire_test_SOURCES += \
+	approx_matching_ut.cpp \
 	capture_ut.cpp \
 	count_ut.cpp \
 	glyph_ut.cpp \
