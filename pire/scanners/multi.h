@@ -285,7 +285,7 @@ public:
 	 * Returns default-constructed scanner in case of failure
 	 * (consult Scanner::Empty() to find out whether the operation was successful).
 	 */
-	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0);
+	static Scanner Glue(const Scanner& a, const Scanner& b, size_t maxSize = 0, size_t memoryLimit = 0);
 
 	// Returns the size of the memory buffer used (or required) by scanner.
 	size_t BufSize() const
@@ -1083,7 +1083,7 @@ private:
 
 
 template<class Relocation, class Shortcutting>
-Impl::Scanner<Relocation, Shortcutting> Impl::Scanner<Relocation, Shortcutting>::Glue(const Impl::Scanner<Relocation, Shortcutting>& lhs, const Impl::Scanner<Relocation, Shortcutting>& rhs, size_t maxSize /* = 0 */)
+Impl::Scanner<Relocation, Shortcutting> Impl::Scanner<Relocation, Shortcutting>::Glue(const Impl::Scanner<Relocation, Shortcutting>& lhs, const Impl::Scanner<Relocation, Shortcutting>& rhs, size_t maxSize /* = 0 */, size_t memoryLimit)
 {
 	if (lhs.Empty())
 		return rhs;
@@ -1092,6 +1092,9 @@ Impl::Scanner<Relocation, Shortcutting> Impl::Scanner<Relocation, Shortcutting>:
 	
 	static const size_t DefMaxSize = 80000;
 	Impl::ScannerGlueTask< Impl::Scanner<Relocation, Shortcutting> > task(lhs, rhs);
+	if (memoryLimit) {
+		maxSize = std::min(maxSize, memoryLimit / (sizeof(Transition) * task.Letters().Size()));
+	}
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 

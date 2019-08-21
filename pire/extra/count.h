@@ -235,7 +235,7 @@ public:
 	CountingScanner() {}
 	CountingScanner(const Fsm& re, const Fsm& sep);
 
-	static CountingScanner Glue(const CountingScanner& a, const CountingScanner& b, size_t maxSize = 0);
+	static CountingScanner Glue(const CountingScanner& a, const CountingScanner& b, size_t maxSize = 0, size_t memoryLimit = 0);
 
 	template<size_t ActualReCount>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
@@ -268,7 +268,7 @@ public:
 	AdvancedCountingScanner() {}
 	AdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple = nullptr);
 
-	static AdvancedCountingScanner Glue(const AdvancedCountingScanner& a, const AdvancedCountingScanner& b, size_t maxSize = 0);
+	static AdvancedCountingScanner Glue(const AdvancedCountingScanner& a, const AdvancedCountingScanner& b, size_t maxSize = 0, size_t memoryLimit = 0);
 
 	template<size_t ActualReCount>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION

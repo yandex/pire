@@ -861,17 +861,23 @@ private:
 
 }
 	
-CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const CountingScanner& rhs, size_t maxSize /* = 0 */)
+CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const CountingScanner& rhs, size_t maxSize /* = 0 */, size_t memoryLimit)
 {
 	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<CountingScanner> task(lhs, rhs);
+	if (memoryLimit) {
+		maxSize = std::min(maxSize, memoryLimit / (sizeof(Transition) * task.Letters().Size()));
+	}
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 
-AdvancedCountingScanner AdvancedCountingScanner::Glue(const AdvancedCountingScanner& lhs, const AdvancedCountingScanner& rhs, size_t maxSize /* = 0 */)
+AdvancedCountingScanner AdvancedCountingScanner::Glue(const AdvancedCountingScanner& lhs, const AdvancedCountingScanner& rhs, size_t maxSize /* = 0 */, size_t memoryLimit)
 {
 	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<AdvancedCountingScanner> task(lhs, rhs);
+	if (memoryLimit) {
+		maxSize = std::min(maxSize, memoryLimit / (sizeof(Transition) * task.Letters().Size()));
+	}
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 
