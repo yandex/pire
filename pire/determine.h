@@ -176,65 +176,6 @@ namespace Pire {
 				return (*m_tbl)[state * MaxChar + letter];
 			}
 		};
-
-		// Updates the mapping of states to partitions.
-		// Returns true if the mapping has changed.
-		// TODO: Think how to update only changed states
-		template<class Task>
-		bool UpdateStateClassMap(StateClassMap& clMap, const Partition<size_t, MinimizeEquality<Task>>& stPartition)
-		{
-			Y_ASSERT(!clMap.empty());
-			bool changed = false;
-			for (size_t st = 0; st < clMap.size(); st++) {
-				size_t cl = stPartition.Representative(st);
-				if (clMap[st] != cl) {
-					clMap[st] = cl;
-					changed = true;
-				}
-			}
-			return changed;
-		}
-
-		template<class Task>
-		typename Task::Result Minimize(Task& task)
-		{
-			// Minimization algorithm is only applicable to a determined FSM.
-			if (!task.IsDetermined()) {
-				return task.Failure();
-			}
-
-			TVector<Char> distinctLetters;
-			DeterminedTransitions detTran(task.Size() * MaxChar);
-			for (auto&& letters : task.Letters()) {
-				const auto representative = letters.first;
-				distinctLetters.push_back(representative);
-				for (size_t from = 0; from != task.Size(); ++from) {
-					const auto next = task.Next(from, representative);
-					for (auto letter : letters.second.second) {
-						detTran[from * MaxChar + letter] = next;
-					}
-				}
-			}
-
-			typedef Partition<size_t, MinimizeEquality<Task>> StateClasses;
-
-			StateClasses last(MinimizeEquality<Task>{detTran, distinctLetters, nullptr, &task});
-
-			// Make an initial states partition
-			for (size_t state = 0; state < task.Size(); ++state)
-				last.Append(state);
-
-			StateClassMap stateClassMap(task.Size());
-
-			// Iteratively split states into equality classes
-			while (UpdateStateClassMap(stateClassMap, last)) {
-				last.Split(MinimizeEquality<Task>{detTran, distinctLetters, &stateClassMap, nullptr});
-			}
-
-			task.AcceptPartition(last);
-
-			return task.Success();
-		}
 	}
 }
 

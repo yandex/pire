@@ -35,6 +35,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <unordered_map>
 #include <bitset>
 #include <utility>
 #include <memory>
@@ -135,6 +136,21 @@ namespace Pire {
 
 		template<class Arg1, class Arg2, class Arg3>
 		TSet(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::set<T, C, A>(arg1, arg2, arg3) {}
+	};
+
+	template< class K, class V, class H = std::hash<K>, class E = std::equal_to<K>, class A = std::allocator< std::pair<const K, V> > >
+	class THashMap: public std::unordered_map<K, V, H, E, A> {
+	public:
+		THashMap(): std::unordered_map<K, V, H, E, A>() {}
+
+		template<class Arg1>
+		THashMap(Arg1 arg1): std::unordered_map<K, V, H, E, A>(arg1) {}
+
+		template<class Arg1, class Arg2>
+		THashMap(Arg1 arg1, Arg2 arg2): std::unordered_map<K, V, H, E, A>(arg1, arg2) {}
+
+		template<class Arg1, class Arg2, class Arg3>
+		THashMap(Arg1 arg1, Arg2 arg2, Arg3 arg3): std::unordered_map<K, V, H, E, A>(arg1, arg2, arg3) {}
 	};
 
 	template< size_t N >
