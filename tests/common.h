@@ -84,6 +84,10 @@ struct Scanners {
 	Pire::SlowScanner slow;
 	Pire::ScannerNoMask fastNoMask;
 	Pire::NonrelocScannerNoMask nonrelocNoMask;
+	Pire::HalfFinalScanner halfFinal;
+	Pire::HalfFinalScannerNoMask halfFinalNoMask;
+	Pire::NonrelocHalfFinalScanner nonrelocHalfFinal;
+	Pire::NonrelocHalfFinalScannerNoMask nonrelocHalfFinalNoMask;
 
 	Scanners(const Pire::Fsm& fsm, size_t distance = 0)
 		: fast(Pire::Fsm(fsm).Compile<Pire::Scanner>(distance))
@@ -92,6 +96,10 @@ struct Scanners {
 		, slow(Pire::Fsm(fsm).Compile<Pire::SlowScanner>(distance))
 		, fastNoMask(Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>(distance))
  		, nonrelocNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>(distance))
+		, halfFinal(Pire::Fsm(fsm).Compile<Pire::HalfFinalScanner>(distance))
+		, halfFinalNoMask(Pire::Fsm(fsm).Compile<Pire::HalfFinalScannerNoMask>(distance))
+		, nonrelocHalfFinal(Pire::Fsm(fsm).Compile<Pire::NonrelocHalfFinalScanner>(distance))
+		, nonrelocHalfFinalNoMask(Pire::Fsm(fsm).Compile<Pire::NonrelocHalfFinalScannerNoMask>(distance))
 	{}
 
 	Scanners(const char* str, const char* options = "")
@@ -102,7 +110,11 @@ struct Scanners {
 		simple = Pire::Fsm(fsm).Compile<Pire::SimpleScanner>();
 		slow = Pire::Fsm(fsm).Compile<Pire::SlowScanner>();
 		fastNoMask = Pire::Fsm(fsm).Compile<Pire::ScannerNoMask>();
- 		nonrelocNoMask = Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>();
+		nonrelocNoMask = Pire::Fsm(fsm).Compile<Pire::NonrelocScannerNoMask>();
+		halfFinal = Pire::Fsm(fsm).Compile<Pire::HalfFinalScanner>();
+		halfFinalNoMask = Pire::Fsm(fsm).Compile<Pire::HalfFinalScannerNoMask>();
+		nonrelocHalfFinal = Pire::Fsm(fsm).Compile<Pire::NonrelocHalfFinalScanner>();
+		nonrelocHalfFinalNoMask = Pire::Fsm(fsm).Compile<Pire::NonrelocHalfFinalScannerNoMask>();
 	}
 };
 
@@ -150,9 +162,9 @@ typename Scanner::State RunRegexp(const Scanner& scanner, const ystring& str)
 
 	typename Scanner::State state;
 	scanner.Initialize(state);
-	scanner.Next(state, BeginMark);
+	Step(scanner, state, BeginMark);
 	Run(scanner, state, str.c_str(), str.c_str() + str.length());
-	scanner.Next(state, EndMark);
+	Step(scanner, state, EndMark);
 	return state;
 }
 
@@ -168,6 +180,13 @@ bool Matches(const Scanner& scanner, const char* str)
 	return scanner.Final(RunRegexp(scanner, str));
 }
 
+template<typename Relocation, typename Shortcutting>
+bool HalfFinalMatches(const Pire::Impl::HalfFinalScanner<Relocation, Shortcutting>& scanner, const ystring& str) {
+	auto state = RunRegexp(scanner, str);
+	auto result = scanner.AcceptedRegexps(state);
+	return result.first != result.second;
+}
+
 template<class Scanner>
 bool Matches(const Scanner& scanner, const ystring& str)
 {
@@ -181,21 +200,29 @@ bool Matches(const Scanner& scanner, const ystring& str)
 #define ACCEPTS(str) \
 	do {\
 		UNIT_ASSERT(Matches(m_scanners.fast, str));\
-        UNIT_ASSERT(Matches(m_scanners.nonreloc, str));\
+		UNIT_ASSERT(Matches(m_scanners.nonreloc, str));\
 		UNIT_ASSERT(Matches(m_scanners.simple, str));\
 		UNIT_ASSERT(Matches(m_scanners.slow, str));\
 		UNIT_ASSERT(Matches(m_scanners.fastNoMask, str));\
 		UNIT_ASSERT(Matches(m_scanners.nonrelocNoMask, str));\
+		UNIT_ASSERT(HalfFinalMatches(m_scanners.halfFinal, str));\
+		UNIT_ASSERT(HalfFinalMatches(m_scanners.halfFinalNoMask, str));\
+		UNIT_ASSERT(HalfFinalMatches(m_scanners.nonrelocHalfFinal, str));\
+		UNIT_ASSERT(HalfFinalMatches(m_scanners.nonrelocHalfFinalNoMask, str));\
 	} while (false)
 
 #define DENIES(str) \
 	do {\
 		UNIT_ASSERT(!Matches(m_scanners.fast, str));\
-        UNIT_ASSERT(!Matches(m_scanners.nonreloc, str));\
+		UNIT_ASSERT(!Matches(m_scanners.nonreloc, str));\
 		UNIT_ASSERT(!Matches(m_scanners.simple, str));\
 		UNIT_ASSERT(!Matches(m_scanners.slow, str));\
 		UNIT_ASSERT(!Matches(m_scanners.fastNoMask, str));\
 		UNIT_ASSERT(!Matches(m_scanners.nonrelocNoMask, str));\
+		UNIT_ASSERT(!Matches(m_scanners.halfFinal, str));\
+		UNIT_ASSERT(!Matches(m_scanners.halfFinalNoMask, str));\
+		UNIT_ASSERT(!Matches(m_scanners.nonrelocHalfFinal, str));\
+		UNIT_ASSERT(!Matches(m_scanners.nonrelocHalfFinalNoMask, str));\
 	} while (false)
 
 

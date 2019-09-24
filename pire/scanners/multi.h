@@ -203,6 +203,12 @@ public:
 		}
 	}
 
+	Scanner(Scanner&& s)
+	{
+		Alias(Null());
+		Swap(s);
+	}
+
 	template<class AnotherRelocation>
 	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
@@ -304,7 +310,7 @@ public:
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
 	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
 
-private:
+protected:
 
 	struct Locals {
 		ui32 statesCount;
@@ -1118,11 +1124,11 @@ typedef Impl::Scanner<Impl::Nonrelocatable, Impl::NoShortcuts> NonrelocScannerNo
 }
 
 namespace std {
-	inline void swap(Pire::Scanner& a, Pire::Scanner b) {
+	inline void swap(Pire::Scanner& a, Pire::Scanner& b) {
 		a.Swap(b);
 	}
 
-	inline void swap(Pire::NonrelocScanner& a, Pire::NonrelocScanner b) {
+	inline void swap(Pire::NonrelocScanner& a, Pire::NonrelocScanner& b) {
 		a.Swap(b);
 	}
 }

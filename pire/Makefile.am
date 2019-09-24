@@ -25,6 +25,8 @@ libpire_la_SOURCES = \
 	fsm.h \
 	fwd.h \
 	glue.h \
+	half_final_fsm.cpp \
+	half_final_fsm.h \
 	partition.h \
 	pire.h \
 	re_lexer.cpp \
@@ -37,6 +39,7 @@ libpire_la_SOURCES = \
 	platform.h \
 	vbitset.h \
 	re_parser.cpp \
+	scanners/half_final.h \
 	scanners/loaded.h \
 	scanners/multi.h \
 	scanners/slow.h \
@@ -79,6 +82,7 @@ pire_hdr_HEADERS = \
 	fsm.h \
 	fwd.h \
 	glue.h \
+	half_final_fsm.h \
 	partition.h \
 	pire.h \
 	re_lexer.h \
@@ -102,6 +106,7 @@ endif
 pire_scannersdir = $(includedir)/pire/scanners
 pire_scanners_HEADERS = \
 	scanners/common.h \
+	scanners/half_final.h \
 	scanners/multi.h \
 	scanners/slow.h \
 	scanners/simple.h \

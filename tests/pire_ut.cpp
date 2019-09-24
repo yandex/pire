@@ -433,6 +433,8 @@ SIMPLE_UNIT_TEST(Copying)
 {
 	TestCopying<Pire::Scanner, Pire::NonrelocScanner>();
 	TestCopying<Pire::ScannerNoMask, Pire::NonrelocScannerNoMask>();
+	TestCopying<Pire::HalfFinalScanner, Pire::NonrelocHalfFinalScanner>();
+	TestCopying<Pire::HalfFinalScannerNoMask, Pire::NonrelocHalfFinalScannerNoMask>();
 }
 
 SIMPLE_UNIT_TEST(Serialization)
@@ -446,6 +448,10 @@ SIMPLE_UNIT_TEST(Serialization)
 	Save(&wbuf, s.fastNoMask);
 	Save(&wbuf, s.nonreloc);
 	Save(&wbuf, s.nonrelocNoMask);
+	Save(&wbuf, s.halfFinal);
+	Save(&wbuf, s.halfFinalNoMask);
+	Save(&wbuf, s.nonrelocHalfFinal);
+	Save(&wbuf, s.nonrelocHalfFinalNoMask);
 
 	Pire::Scanner fast;
 	Pire::SimpleScanner simple;
@@ -453,6 +459,10 @@ SIMPLE_UNIT_TEST(Serialization)
 	Pire::ScannerNoMask fastNoMask;
 	Pire::NonrelocScanner nonreloc;
 	Pire::NonrelocScannerNoMask nonrelocNoMask;
+	Pire::HalfFinalScanner halfFinal;
+	Pire::HalfFinalScannerNoMask halfFinalNoMask;
+	Pire::NonrelocHalfFinalScanner nonrelocHalfFinal;
+	Pire::NonrelocHalfFinalScannerNoMask nonrelocHalfFinalNoMask;
 
 	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
 	Load(&rbuf, fast);
@@ -461,6 +471,10 @@ SIMPLE_UNIT_TEST(Serialization)
 	Load(&rbuf, fastNoMask);
 	Load(&rbuf, nonreloc);
 	Load(&rbuf, nonrelocNoMask);
+	Load(&rbuf, halfFinal);
+	Load(&rbuf, halfFinalNoMask);
+	Load(&rbuf, nonrelocHalfFinal);
+	Load(&rbuf, nonrelocHalfFinalNoMask);
 
 	UNIT_ASSERT(Matches(fast, "regexp"));
 	UNIT_ASSERT(Matches(simple, "regexp"));
@@ -468,25 +482,41 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(Matches(fastNoMask, "regexp"));
 	UNIT_ASSERT(Matches(nonreloc, "regexp"));
 	UNIT_ASSERT(Matches(nonrelocNoMask, "regexp"));
+	UNIT_ASSERT(HalfFinalMatches(halfFinal, "regexp"));
+	UNIT_ASSERT(HalfFinalMatches(halfFinalNoMask, "regexp"));
+	UNIT_ASSERT(HalfFinalMatches(nonrelocHalfFinal, "regexp"));
+	UNIT_ASSERT(HalfFinalMatches(nonrelocHalfFinalNoMask, "regexp"));
 	UNIT_ASSERT(!Matches(fast, "regxp"));
 	UNIT_ASSERT(!Matches(simple, "regxp"));
 	UNIT_ASSERT(!Matches(slow, "regxp"));
 	UNIT_ASSERT(!Matches(fastNoMask, "regxp"));
 	UNIT_ASSERT(!Matches(nonreloc, "regxp"));
 	UNIT_ASSERT(!Matches(nonrelocNoMask, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinal, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinal, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinalNoMask, "regxp"));
 	UNIT_ASSERT(!Matches(fast, "regexp t"));
 	UNIT_ASSERT(!Matches(simple, "regexp t"));
 	UNIT_ASSERT(!Matches(slow, "regexp t"));
 	UNIT_ASSERT(!Matches(fastNoMask, "regexp t"));
 	UNIT_ASSERT(!Matches(nonreloc, "regexp t"));
 	UNIT_ASSERT(!Matches(nonrelocNoMask, "regexp t"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinal, "regexp t"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask, "regexp t"));
+	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinal, "regexp t"));
+	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinalNoMask, "regexp t"));
 
 	Pire::Scanner fast2;
 	Pire::SimpleScanner simple2;
 	Pire::SlowScanner slow2;
 	Pire::ScannerNoMask fastNoMask2;
+	Pire::HalfFinalScanner halfFinal2;
+	Pire::HalfFinalScannerNoMask halfFinalNoMask2;
 	Pire::Scanner fast3;
 	Pire::ScannerNoMask fastNoMask3;
+	Pire::HalfFinalScanner halfFinal3;
+	Pire::HalfFinalScannerNoMask halfFinalNoMask3;
 	const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
 	TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 	const char* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
@@ -509,6 +539,14 @@ SIMPLE_UNIT_TEST(Serialization)
 	ptr = ptr2;
 	ptr2 = (const char*)fastNoMask3.Mmap(ptr, end - ptr);
 	ptr = ptr2;
+	ptr2 = (const char*)halfFinal2.Mmap(ptr, end - ptr);
+	ptr = ptr2;
+	ptr2 = (const char*)halfFinalNoMask2.Mmap(ptr, end - ptr);
+	ptr = ptr2;
+	ptr2 = (const char*)halfFinal3.Mmap(ptr, end - ptr);
+	ptr = ptr2;
+	ptr2 = (const char*)halfFinalNoMask3.Mmap(ptr, end - ptr);
+	ptr = ptr2;
 	UNIT_ASSERT_EQUAL(ptr, end);
 
 	UNIT_ASSERT(Matches(fast2, "regexp"));
@@ -529,6 +567,18 @@ SIMPLE_UNIT_TEST(Serialization)
 	UNIT_ASSERT(Matches(fastNoMask3, "regexp"));
 	UNIT_ASSERT(!Matches(fastNoMask3, "regxp"));
 	UNIT_ASSERT(!Matches(fastNoMask3, "regexp t"));
+	UNIT_ASSERT(HalfFinalMatches(halfFinal2, "regexp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinal2, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinal2, "regexp t"));
+	UNIT_ASSERT(HalfFinalMatches(halfFinalNoMask2, "regexp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask2, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask2, "regexp t"));
+	UNIT_ASSERT(HalfFinalMatches(halfFinal3, "regexp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinal3, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinal3, "regexp t"));
+	UNIT_ASSERT(HalfFinalMatches(halfFinalNoMask3, "regexp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask3, "regxp"));
+	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask3, "regexp t"));
 
 	for (size_t offset = 1; offset < MaxTestOffset; ++offset) {
 		ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
@@ -570,38 +620,43 @@ void TestGlue()
 	Scanner glued = Scanner::Glue(sc1, sc2);
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(2));
 
-	ypair<const size_t*, const size_t*> res;
-
-	res = glued.AcceptedRegexps(RunRegexp(glued, "aaa"));
+	auto state = RunRegexp(glued, "aaa");
+	auto res = glued.AcceptedRegexps(state);
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(*res.first, size_t(0));
 
-	res = glued.AcceptedRegexps(RunRegexp(glued, "bbb"));
+	state = RunRegexp(glued, "bbb");
+	res = glued.AcceptedRegexps(state);
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(*res.first, size_t(1));
 
-	res = glued.AcceptedRegexps(RunRegexp(glued, "aaabbb"));
+	state = RunRegexp(glued, "aaabbb");
+	res = glued.AcceptedRegexps(state);
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(2));
 	UNIT_ASSERT_EQUAL(res.first[0], size_t(0));
 	UNIT_ASSERT_EQUAL(res.first[1], size_t(1));
 
-	res = glued.AcceptedRegexps(RunRegexp(glued, "ccc"));
+	state = RunRegexp(glued, "ccc");
+	res = glued.AcceptedRegexps(state);
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(0));
 
 	Scanner sc3 = ParseRegexp("ccc").Compile<Scanner>();
 	glued = Scanner::Glue(sc3, glued);
 	UNIT_ASSERT_EQUAL(glued.RegexpsCount(), size_t(3));
 
-	res = glued.AcceptedRegexps(RunRegexp(glued, "ccc"));
+	state = RunRegexp(glued, "ccc");
+	res = glued.AcceptedRegexps(state);
 	UNIT_ASSERT_EQUAL(res.second - res.first, ssize_t(1));
 	UNIT_ASSERT_EQUAL(res.first[0], size_t(0));
 	Scanner sc4 = Scanner::Glue(
 		ParseRegexp("a", "n").Compile<Scanner>(),
 		ParseRegexp("c", "n").Compile<Scanner>()
 	);
-	res = sc4.AcceptedRegexps(RunRegexp(sc4, "ac"));
+	state = RunRegexp(sc4, "ac");
+	res = sc4.AcceptedRegexps(state);
 	UNIT_ASSERT(res.second == res.first);
-	UNIT_ASSERT(!sc4.Final(RunRegexp(sc4, "ac")));
+	state = RunRegexp(sc4, "ac");
+	UNIT_ASSERT(!sc4.Final(state));
 }
 
 SIMPLE_UNIT_TEST(Glue)
@@ -610,6 +665,10 @@ SIMPLE_UNIT_TEST(Glue)
 	TestGlue<Pire::NonrelocScanner>();
 	TestGlue<Pire::ScannerNoMask>();
 	TestGlue<Pire::NonrelocScannerNoMask>();
+	TestGlue<Pire::HalfFinalScanner>();
+	TestGlue<Pire::NonrelocHalfFinalScanner>();
+	TestGlue<Pire::HalfFinalScannerNoMask>();
+	TestGlue<Pire::NonrelocHalfFinalScannerNoMask>();
 }
 
 SIMPLE_UNIT_TEST(Slow)
@@ -694,6 +753,8 @@ SIMPLE_UNIT_TEST(EmptyScanner)
 	// Tests for Scanner
 	BasicTestEmptySaveLoadMmap<Pire::Scanner>();
 	BasicTestEmptySaveLoadMmap<Pire::ScannerNoMask>();
+	BasicTestEmptySaveLoadMmap<Pire::HalfFinalScanner>();
+	BasicTestEmptySaveLoadMmap<Pire::HalfFinalScannerNoMask>();
 
 	Pire::Scanner sc;
 	Pire::Scanner scsc = Pire::Scanner::Glue(sc, sc);
