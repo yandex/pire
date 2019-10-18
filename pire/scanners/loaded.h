@@ -101,6 +101,13 @@ protected:
 	}
 
 	LoadedScanner& operator = (const LoadedScanner& s) { LoadedScanner(s).Swap(*this); return *this; }
+	LoadedScanner (LoadedScanner&& other) : LoadedScanner() {
+	    Swap(other);
+	}
+	LoadedScanner& operator=(LoadedScanner&& other) {
+	    Swap(other);
+        return *this;
+	}
 
 public:
 	size_t Size() const { return m.statesCount; }
