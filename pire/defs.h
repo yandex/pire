@@ -32,10 +32,14 @@
 #if defined(_MSC_VER)
 #define PIRE_HAVE_DECLSPEC_ALIGN
 #else
+#ifndef PIRE_HAVE_ALIGNAS
 #define PIRE_HAVE_ALIGNAS
 #endif
+#endif
 
+#ifndef PIRE_HAVE_LAMBDAS
 #define PIRE_HAVE_LAMBDAS
+#endif
 
 namespace Pire {
 
