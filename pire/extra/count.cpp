@@ -863,6 +863,9 @@ private:
 	
 CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const CountingScanner& rhs, size_t maxSize /* = 0 */)
 {
+    if (lhs.RegexpsCount() + rhs.RegexpsCount() > MAX_RE_COUNT) {
+        return CountingScanner();
+    }
 	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<CountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
@@ -870,6 +873,9 @@ CountingScanner CountingScanner::Glue(const CountingScanner& lhs, const Counting
 
 AdvancedCountingScanner AdvancedCountingScanner::Glue(const AdvancedCountingScanner& lhs, const AdvancedCountingScanner& rhs, size_t maxSize /* = 0 */)
 {
+    if (lhs.RegexpsCount() + rhs.RegexpsCount() > MAX_RE_COUNT) {
+        return AdvancedCountingScanner();
+    }
 	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<AdvancedCountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);

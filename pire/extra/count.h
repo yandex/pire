@@ -160,7 +160,7 @@ public:
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 	void TakeAction(State& s, Action a) const
 	{
-		static_cast<const DerivedScanner*>(this)->template TakeActionImpl<OPTIMAL_RE_COUNT>(s, a);
+		static_cast<const DerivedScanner*>(this)->template TakeActionImpl<MAX_RE_COUNT>(s, a);
 	}
 
 	bool CanStop(const State&) const { return false; }
