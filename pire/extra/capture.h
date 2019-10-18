@@ -357,6 +357,8 @@ public:
 					return m_nothing;
 				case GreedyRepetition:
 					return m_greedy;
+                                default:
+                                        return m_greedy;
 			}
 		}
 
@@ -369,6 +371,8 @@ public:
 					return m_nothing;
 				case GreedyRepetition:
 					return m_greedy;
+                                default:
+                                        return m_greedy;
 			}
 		}
 	};
