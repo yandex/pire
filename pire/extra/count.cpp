@@ -791,31 +791,45 @@ CountingScanner::CountingScanner(const Fsm& re, const Fsm& sep)
 	BuildScanner(sq, *this);
 }
 
-AdvancedCountingScanner::AdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple)
-{
-	Impl::CountingFsm countingFsm{re, sep};
-	if (!countingFsm.Determine()) {
-		throw Error("regexp pattern too complicated");
-	}
-	countingFsm.Minimize();
-	if (simple) {
-		*simple = countingFsm.Simple();
-	}
+namespace Impl {
+template <class AdvancedScanner>
+AdvancedScanner MakeAdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple) {
+    Impl::CountingFsm countingFsm{re, sep};
+    if (!countingFsm.Determine()) {
+        throw Error("regexp pattern too complicated");
+    }
+    countingFsm.Minimize();
+    if (simple) {
+        *simple = countingFsm.Simple();
+    }
 
-	const auto& determined = countingFsm.Determined();
-	const auto& letters = countingFsm.Letters();
+    const auto& determined = countingFsm.Determined();
+    const auto& letters = countingFsm.Letters();
 
-	Init(determined.Size(), letters, determined.Initial(), 1);
-
-	for (size_t from = 0; from != determined.Size(); ++from) {
-		for (auto&& lettersEl : letters) {
-			const auto letter = lettersEl.first;
-			const auto& tos = determined.Destinations(from, letter);
-			Y_ASSERT(tos.size() == 1);
-			SetJump(from, letter, *tos.begin(), RemapAction(countingFsm.Output(from, letter)));
-		}
-	}
+    AdvancedScanner scanner;
+    scanner.Init(determined.Size(), letters, determined.Initial(), 1);
+    for (size_t from = 0; from != determined.Size(); ++from) {
+        for (auto&& lettersEl : letters) {
+            const auto letter = lettersEl.first;
+            const auto& tos = determined.Destinations(from, letter);
+            Y_ASSERT(tos.size() == 1);
+            scanner.SetJump(from, letter, *tos.begin(), scanner.RemapAction(countingFsm.Output(from, letter)));
+        }
+    }
+    return scanner;
 }
+}  // namespace Impl
+
+AdvancedCountingScanner::AdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple)
+    : AdvancedCountingScanner(Impl::MakeAdvancedCountingScanner<AdvancedCountingScanner>(re, sep, simple))
+{
+}
+
+NoGlueLimitCountingScanner::NoGlueLimitCountingScanner(const Fsm& re, const Fsm& sep, bool* simple)
+    : NoGlueLimitCountingScanner(Impl::MakeAdvancedCountingScanner<NoGlueLimitCountingScanner>(re, sep, simple))
+{
+}
+
 
 namespace Impl {
 
@@ -848,7 +862,7 @@ public:
 			Action(this->Lhs(), States[from].first, letter) | (Action(this->Rhs(), States[from].second, letter) << this->Lhs().RegexpsCount()));
 	}
 			
-private:
+protected:
 	TVector<State> States;
 	TAction Action(const Scanner& sc, InternalState state, Char letter) const
 	{
@@ -857,6 +871,82 @@ private:
 		const auto& tr = sc.m_jumps[transition_index];
 		return tr.action;
 	}
+};
+
+class NoGlueLimitCountingScannerGlueTask : public CountingScannerGlueTask<NoGlueLimitCountingScanner> {
+public:
+    using ActionIndex = NoGlueLimitCountingScanner::ActionIndex;
+    struct TGlueAction {
+        TVector<ActionIndex> resets;
+        TVector<ActionIndex> increments;
+        bool operator<(const TGlueAction& rhs) const {
+            return std::tie(increments, resets) < std::tie(rhs.increments, rhs.resets);
+        }
+    };
+    using TGlueMap = TMap<TGlueAction, ActionIndex>;
+
+    NoGlueLimitCountingScannerGlueTask(const NoGlueLimitCountingScanner& lhs, const NoGlueLimitCountingScanner& rhs)
+            : CountingScannerGlueTask(lhs, rhs) {
+    }
+
+    void Connect(size_t from, size_t to, Char letter)
+    {
+        TGlueAction glue_action;
+        AppendAction(this->Lhs(), Action(this->Lhs(), States[from].first, letter), 0, &glue_action);
+        AppendAction(this->Rhs(), Action(this->Rhs(), States[from].second, letter), this->Lhs().RegexpsCount(), &glue_action);
+        assert(std::is_sorted(glue_action.increments.begin(), glue_action.increments.end()) &&
+               std::is_sorted(glue_action.resets.begin(), glue_action.resets.end()));
+
+        if (glue_action.increments.empty() && glue_action.resets.empty()) {
+            this->Sc().SetJump(from, letter, to, 0);
+            return;
+        }
+
+        auto action_iter = glue_map_.find(glue_action);
+        if (action_iter == glue_map_.end()) {
+            glue_map_[glue_action] = glue_actions_.size();
+            for (const auto& ids : {glue_action.resets, glue_action.increments}) {
+                glue_actions_.push_back(ids.size());
+                std::copy(ids.begin(), ids.end(), std::back_inserter(glue_actions_));
+            }
+        }
+
+        this->Sc().SetJump(from, letter, to, glue_map_[glue_action]);
+    }
+
+    // Return type is same as in parent class
+    // TODO: Maybe return by value to use move semantic?
+    const NoGlueLimitCountingScanner& Success()
+    {
+        glue_actions_[0] = glue_actions_.size();
+        Sc().AcceptActions(glue_actions_);
+        return Sc();
+    }
+private:
+    TGlueMap glue_map_;
+    TVector<ActionIndex> glue_actions_ = {1};
+
+    static void AppendAction(const NoGlueLimitCountingScanner& sc, TAction a, ActionIndex id_shift, TGlueAction* glue_action) {
+        if (!a) {
+            return;
+        }
+        if (!sc.Actions) {
+            if (a & NoGlueLimitCountingScanner::ResetAction) {
+                glue_action->resets.push_back(id_shift);
+            }
+            if (a & NoGlueLimitCountingScanner::IncrementAction) {
+                glue_action->increments.push_back(id_shift);
+            }
+            return;
+        }
+        auto action = sc.Actions + a;
+        for (auto reset_count = *action++; reset_count--;) {
+            glue_action->resets.push_back(*action++ + id_shift);
+        }
+        for(auto inc_count = *action++; inc_count--;) {
+            glue_action->increments.push_back(*action++ + id_shift);
+        }
+    }
 };
 
 }
@@ -879,6 +969,13 @@ AdvancedCountingScanner AdvancedCountingScanner::Glue(const AdvancedCountingScan
 	static constexpr size_t DefMaxSize = 250000;
 	Impl::CountingScannerGlueTask<AdvancedCountingScanner> task(lhs, rhs);
 	return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
+}
+
+NoGlueLimitCountingScanner NoGlueLimitCountingScanner::Glue(const NoGlueLimitCountingScanner& lhs, const NoGlueLimitCountingScanner& rhs, size_t maxSize /* = 0 */)
+{
+    static constexpr size_t DefMaxSize = 250000;
+    Impl::NoGlueLimitCountingScannerGlueTask task(lhs, rhs);
+    return Impl::Determine(task, maxSize ? maxSize : DefMaxSize);
 }
 
 }

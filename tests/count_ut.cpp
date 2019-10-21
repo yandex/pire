@@ -77,6 +77,8 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		auto countingResult = Run(Pire::CountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
 		auto newResult = Run(Pire::AdvancedCountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
 		UNIT_ASSERT_EQUAL(countingResult, newResult);
+		auto noGlueLimitResult = Run(Pire::NoGlueLimitCountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
+		UNIT_ASSERT_EQUAL(countingResult, noGlueLimitResult);
 		return newResult;
 	}
 
@@ -167,7 +169,9 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		const auto& enc = Pire::Encodings::Latin1();
 		char text[] = "wwwsswwwsssswwws";
 		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
+        UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
 		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
+        UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
 	}
 
 	SIMPLE_UNIT_TEST(CountRepeating)
@@ -192,6 +196,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		CountGlueOne<Pire::CountingScanner>();
 		CountGlueOne<Pire::AdvancedCountingScanner>();
+		CountGlueOne<Pire::NoGlueLimitCountingScanner>();
 	}
 
 	template <class Scanner>
@@ -229,6 +234,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
     {
 	    CountManyGluesOne<Pire::CountingScanner>(20);
 	    CountManyGluesOne<Pire::AdvancedCountingScanner>(20);
+	    CountManyGluesOne<Pire::NoGlueLimitCountingScanner>(50);
     }
 
 	template<class Scanner>
@@ -261,6 +267,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		CountBoundariesOne<Pire::CountingScanner>();
 		CountBoundariesOne<Pire::AdvancedCountingScanner>();
+		CountBoundariesOne<Pire::NoGlueLimitCountingScanner>();
 	}
 
 	template<class Scanner>
@@ -311,6 +318,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		SerializationOne<Pire::CountingScanner>();
 		SerializationOne<Pire::AdvancedCountingScanner>();
+		SerializationOne<Pire::NoGlueLimitCountingScanner>();
 	}
 
 	template<class Scanner>
@@ -401,6 +409,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		Serialization_v6_compatibilityOne<Pire::CountingScanner>();
 		Serialization_v6_compatibilityOne<Pire::AdvancedCountingScanner>();
+		//NoGlueLimitCountingScanner is not v6_compatible
 	}
 
 	template<class Scanner>
@@ -442,6 +451,6 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		EmptyOne<Pire::CountingScanner>();
 		EmptyOne<Pire::AdvancedCountingScanner>();
+		EmptyOne<Pire::NoGlueLimitCountingScanner>();
 	}
-
 }
