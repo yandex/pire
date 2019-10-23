@@ -441,45 +441,11 @@ public:
         }
     }
 
-    void Save(yostream* s) const {
-        LoadedScanner::Save(s);
-        if (Actions) {
-            SavePodArray(s, Actions, *Actions);
-        } else {
-            const ActionIndex zeroSize = 0;
-            SavePodType(s, zeroSize);
-        }
-    }
+    void Save(yostream* s) const;
 
-    void Load(yistream* s) {
-        LoadedScanner::Load(s);
-        ActionIndex actionsSize;
-        LoadPodType(s, actionsSize);
+    void Load(yistream* s);
 
-        if (actionsSize == 0) {
-            ActionsBuffer.reset();
-            Actions = nullptr;
-        } else {
-            ActionsBuffer = TActionsBuffer(new ActionIndex[actionsSize]);
-            ActionsBuffer[0] = actionsSize;
-            LoadPodArray(s, &ActionsBuffer[1], actionsSize - 1);
-            Actions = ActionsBuffer.get();
-        }
-    }
-
-    const void* Mmap(const void* ptr, size_t size) {
-        NoGlueLimitCountingScanner scanner;
-        auto p = static_cast<const size_t*> (scanner.LoadedScanner::Mmap(ptr, size));
-        scanner.Actions = reinterpret_cast<const ActionIndex*>(p);
-        if (*scanner.Actions == 0) {
-            scanner.Actions = nullptr;
-            Impl::AdvancePtr(p, size, sizeof(ActionIndex));
-        } else {
-            Impl::AdvancePtr(p, size, *scanner.Actions * sizeof(ActionIndex));
-        }
-        Swap(scanner);
-        return (const void*) p;
-    }
+    const void* Mmap(const void* ptr, size_t size);
 
     static NoGlueLimitCountingScanner Glue(const NoGlueLimitCountingScanner& a, const NoGlueLimitCountingScanner& b, size_t maxSize = 0);
 
