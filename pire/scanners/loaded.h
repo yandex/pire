@@ -102,11 +102,11 @@ protected:
 
 	LoadedScanner& operator = (const LoadedScanner& s) { LoadedScanner(s).Swap(*this); return *this; }
 	LoadedScanner (LoadedScanner&& other) : LoadedScanner() {
-	    Swap(other);
+		Swap(other);
 	}
 	LoadedScanner& operator=(LoadedScanner&& other) {
-	    Swap(other);
-        return *this;
+		Swap(other);
+		return *this;
 	}
 
 public:

@@ -39,8 +39,8 @@ namespace Impl {
 
 	class NoGlueLimitCountingScannerGlueTask;
 
-    template <class AdvancedScanner>
-    AdvancedScanner MakeAdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple);
+	template <class AdvancedScanner>
+	AdvancedScanner MakeAdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple);
 };
 
 template<size_t I>
@@ -302,28 +302,27 @@ private:
 
 	friend class Impl::ScannerGlueCommon<AdvancedCountingScanner>;
 	friend class Impl::CountingScannerGlueTask<AdvancedCountingScanner>;
-    friend AdvancedCountingScanner Impl::MakeAdvancedCountingScanner<AdvancedCountingScanner>(const Fsm&, const Fsm&, bool*);
-
+	friend AdvancedCountingScanner Impl::MakeAdvancedCountingScanner<AdvancedCountingScanner>(const Fsm&, const Fsm&, bool*);
 };
 
 class NoGlueLimitCountingScanner : public BaseCountingScanner<NoGlueLimitCountingScanner> {
 public:
-    using ActionIndex = ui32;
-    using TActionsBuffer = std::unique_ptr<ActionIndex[]>;
+	using ActionIndex = ui32;
+	using TActionsBuffer = std::unique_ptr<ActionIndex[]>;
 
-    class State {
-    public:
-        size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
+	class State {
+	public:
+		size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
 
-    private:
-        InternalState m_state;
-        TVector<ui32> m_current;
-        TVector<ui32> m_total;
+	private:
+		InternalState m_state;
+		TVector<ui32> m_current;
+		TVector<ui32> m_total;
 
-        friend class NoGlueLimitCountingScanner;
+		friend class NoGlueLimitCountingScanner;
 
 #ifdef PIRE_DEBUG
-        yostream& operator << (yostream& s, const State& state)
+		yostream& operator << (yostream& s, const State& state)
 		{
 			s << state.m_state << " ( ";
 			for (size_t i = 0; i < state.m_current.size(); ++i)
@@ -331,191 +330,177 @@ public:
 			return s << ')';
 		}
 #endif
-    };
+	};
 
 private:
-    TActionsBuffer ActionsBuffer;
-    const ActionIndex* Actions = nullptr;
+	TActionsBuffer ActionsBuffer;
+	const ActionIndex* Actions = nullptr;
 
 public:
-    NoGlueLimitCountingScanner() = default;
-    NoGlueLimitCountingScanner(const Fsm& re, const Fsm& sep, bool* simple = nullptr);
-    NoGlueLimitCountingScanner(const NoGlueLimitCountingScanner& rhs) : BaseCountingScanner(rhs) {
-        if (rhs.ActionsBuffer) {
-            assert(rhs.Actions);
-            ActionsBuffer = TActionsBuffer(new ActionIndex [*rhs.Actions]);
-            memcpy(ActionsBuffer.get(), rhs.ActionsBuffer.get(), *rhs.Actions * sizeof(ActionIndex));
-            Actions = ActionsBuffer.get();
-        } else {
-            Actions = rhs.Actions;
-        }
-    }
+	NoGlueLimitCountingScanner() = default;
+	NoGlueLimitCountingScanner(const Fsm& re, const Fsm& sep, bool* simple = nullptr);
+	NoGlueLimitCountingScanner(const NoGlueLimitCountingScanner& rhs) : BaseCountingScanner(rhs) {
+		if (rhs.ActionsBuffer) {
+			Y_ASSERT(rhs.Actions);
+			ActionsBuffer = TActionsBuffer(new ActionIndex [*rhs.Actions]);
+			memcpy(ActionsBuffer.get(), rhs.ActionsBuffer.get(), *rhs.Actions * sizeof(ActionIndex));
+			Actions = ActionsBuffer.get();
+		} else {
+			Actions = rhs.Actions;
+		}
+	}
 
-    NoGlueLimitCountingScanner(NoGlueLimitCountingScanner&& other) : BaseCountingScanner() {
-        Swap(other);
-    }
+	NoGlueLimitCountingScanner(NoGlueLimitCountingScanner&& other) : BaseCountingScanner() {
+		Swap(other);
+	}
 
-    NoGlueLimitCountingScanner& operator=(NoGlueLimitCountingScanner rhs) {
-        Swap(rhs);
-        return *this;
-    }
+	NoGlueLimitCountingScanner& operator=(NoGlueLimitCountingScanner rhs) {
+		Swap(rhs);
+		return *this;
+	}
 
-    void Swap(NoGlueLimitCountingScanner& s) {
-        LoadedScanner::Swap(s);
-        DoSwap(ActionsBuffer, s.ActionsBuffer);
-        DoSwap(Actions, s.Actions);
-    }
+	void Swap(NoGlueLimitCountingScanner& s) {
+		LoadedScanner::Swap(s);
+		DoSwap(ActionsBuffer, s.ActionsBuffer);
+		DoSwap(Actions, s.Actions);
+	}
 
-    void Initialize(State& state) const
-    {
-        state.m_state = m.initial;
-        state.m_current.assign(RegexpsCount(), 0);
-        state.m_total.assign(RegexpsCount(), 0);
-    }
+	void Initialize(State& state) const
+	{
+		state.m_state = m.initial;
+		state.m_current.assign(RegexpsCount(), 0);
+		state.m_total.assign(RegexpsCount(), 0);
+	}
 
+	////////////////////////////////////////////////////////////
+	// Copy-past from BaseCountingScanner because of changed State type
+	// Alternative is to make State template parameter in all these functions in BaseCountingScanner
+	bool CanStop(const State&) const { return false; }
 
-    ////////////////////////////////////////////////////////////
-    // Copy-past from BaseCountingScanner because of changed State type
-    // Alternative is to make State template parameter in all these functions in BaseCountingScanner
-    bool CanStop(const State&) const { return false; }
+	Action NextTranslated(State& s, Char c) const
+	{
+		Transition x = reinterpret_cast<const Transition*>(s.m_state)[c];
+		s.m_state += SignExtend(x.shift);
+		return x.action;
+	}
 
-    Action NextTranslated(State& s, Char c) const
-    {
-        Transition x = reinterpret_cast<const Transition*>(s.m_state)[c];
-        s.m_state += SignExtend(x.shift);
-        return x.action;
-    }
+	Action Next(State& s, Char c) const
+	{
+		return NextTranslated(s, Translate(c));
+	}
 
-    Action Next(State& s, Char c) const
-    {
-        return NextTranslated(s, Translate(c));
-    }
+	Action Next(const State& current, State& n, Char c) const
+	{
+		n = current;
+		return Next(n, c);
+	}
+	using BaseCountingScanner::Next;
 
-    Action Next(const State& current, State& n, Char c) const
-    {
-        n = current;
-        return Next(n, c);
-    }
-    using BaseCountingScanner::Next;
+	bool Final(const State& /*state*/) const { return false; }
 
-    bool Final(const State& /*state*/) const { return false; }
+	bool Dead(const State&) const { return false; }
 
-    bool Dead(const State&) const { return false; }
+	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
 
-    size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void TakeAction(State& s, Action a) const
+	{
+		TakeActionImpl<MAX_RE_COUNT>(s, a);
+	}
+	// End of copy-past
+	//////////////////////////////////////////////////////////////////////
 
-    PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-    void TakeAction(State& s, Action a) const
-    {
-        TakeActionImpl<MAX_RE_COUNT>(s, a);
-    }
-    // End of copy-past
-    ////////////////////////////////////////////////////////////////////////
+	template <size_t>
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void TakeActionImpl(State& s, Action a) const
+	{
+		if (!a) {
+			return;
+		}
+		// Note: it's important to perform resets before increments,
+		// as it's possible for one repetition group to stop and another begin at the same symbol
+		if (Actions) {
+			auto action = Actions + a;
+			for (auto reset_count = *action++; reset_count--;) {
+				Reset(s, *action++);
+			}
+			for(auto inc_count = *action++; inc_count--;) {
+				Increment(s, *action++);
+			}
+		} else {
+			Y_ASSERT(RegexpsCount() == 1);
+			if (a & ResetAction) {
+				Reset(s, 0);
+			}
+			if (a & IncrementAction) {
+				Increment(s, 0);
+			}
+		}
+	}
 
+	void Save(yostream* s) const;
 
-    template <size_t>
-    PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-    void TakeActionImpl(State& s, Action a) const
-    {
-        if (!a) {
-            return;
-        }
-        // Note: it's important to perform resets before increments,
-        // as it's possible for one repetition group to stop and another begin at the same symbol
-        if (Actions) {
-            auto action = Actions + a;
-            for (auto reset_count = *action++; reset_count--;) {
-                Reset(s, *action++);
-            }
-            for(auto inc_count = *action++; inc_count--;) {
-                Increment(s, *action++);
-            }
-        } else {
-            Y_ASSERT(RegexpsCount() == 1);
-            if (a & ResetAction) {
-                Reset(s, 0);
-            }
-            if (a & IncrementAction) {
-                Increment(s, 0);
-            }
-        }
-    }
+	void Load(yistream* s);
 
-    void Save(yostream* s) const {
-        LoadedScanner::Save(s);
-        if (Actions) {
-            SavePodArray(s, Actions, *Actions);
-        } else {
-            const ActionIndex zeroSize = 0;
-            SavePodType(s, zeroSize);
-        }
-    }
+	const void* Mmap(const void* ptr, size_t size);
 
-    void Load(yistream* s) {
-        LoadedScanner::Load(s);
-        ActionIndex actionsSize;
-        LoadPodType(s, actionsSize);
-
-        if (actionsSize == 0) {
-            ActionsBuffer.reset();
-            Actions = nullptr;
-        } else {
-            ActionsBuffer = TActionsBuffer(new ActionIndex[actionsSize]);
-            ActionsBuffer[0] = actionsSize;
-            LoadPodArray(s, &ActionsBuffer[1], actionsSize - 1);
-            Actions = ActionsBuffer.get();
-        }
-    }
-
-    const void* Mmap(const void* ptr, size_t size) {
-        NoGlueLimitCountingScanner scanner;
-        auto p = static_cast<const size_t*> (scanner.LoadedScanner::Mmap(ptr, size));
-        scanner.Actions = reinterpret_cast<const ActionIndex*>(p);
-        if (*scanner.Actions == 0) {
-            scanner.Actions = nullptr;
-            Impl::AdvancePtr(p, size, sizeof(ActionIndex));
-        } else {
-            Impl::AdvancePtr(p, size, *scanner.Actions * sizeof(ActionIndex));
-        }
-        Swap(scanner);
-        return (const void*) p;
-    }
-
-    static NoGlueLimitCountingScanner Glue(const NoGlueLimitCountingScanner& a, const NoGlueLimitCountingScanner& b, size_t maxSize = 0);
+	static NoGlueLimitCountingScanner Glue(const NoGlueLimitCountingScanner& a, const NoGlueLimitCountingScanner& b, size_t maxSize = 0);
 
 private:
-    Action RemapAction(Action action)
-    {
-        return action;
-    }
+	Action RemapAction(Action action)
+	{
+		return action;
+	}
 
-    void AcceptActions(const TVector<ActionIndex>& actions) {
-        Y_ASSERT(!Actions);
-        Y_ASSERT(actions[0] == actions.size());
+	template <class Iterator>
+	void GetActions(Action a, ActionIndex id_shift, Iterator output_resets, Iterator output_increments) const {
+		if (!a) {
+			return;
+		}
+		if (!Actions) {
+			if (a & ResetAction) {
+				*output_resets++ = id_shift;
+			}
+			if (a & NoGlueLimitCountingScanner::IncrementAction) {
+				*output_increments++ = id_shift;
+			}
+			return;
+		}
+		auto action = Actions + a;
+		for (auto output : {output_resets, output_increments}) {
+			for (auto count = *action++; count--;) {
+				*output++ = *action++ + id_shift;
+			}
+		}
+	}
 
-        ActionsBuffer = TActionsBuffer(new ActionIndex[actions.size()]);
-        memcpy(ActionsBuffer.get(), actions.data(), actions.size() * sizeof(ActionIndex));
-        Actions = ActionsBuffer.get();
-    }
+	void AcceptActions(const TVector<ActionIndex>& actions) {
+		Y_ASSERT(!Actions);
+		Y_ASSERT(!actions.empty());
+		Y_ASSERT(actions[0] == actions.size());
 
-    PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-    static void Reset(State& state, ActionIndex regexp_id) {
-        state.m_current[regexp_id] = 0;
-    }
+		ActionsBuffer = TActionsBuffer(new ActionIndex[actions.size()]);
+		memcpy(ActionsBuffer.get(), actions.data(), actions.size() * sizeof(ActionIndex));
+		Actions = ActionsBuffer.get();
+	}
 
-    PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-    static void Increment(State& state, ActionIndex regexp_id) {
-        ++state.m_current[regexp_id];
-        state.m_total[regexp_id] = ymax(state.m_total[regexp_id], state.m_current[regexp_id]);
-    }
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Reset(State& state, ActionIndex regexp_id) {
+		state.m_current[regexp_id] = 0;
+	}
 
-    friend class Impl::ScannerGlueCommon<NoGlueLimitCountingScanner>;
-    friend class Impl::CountingScannerGlueTask<NoGlueLimitCountingScanner>;
-    friend class Impl::NoGlueLimitCountingScannerGlueTask;
-    friend NoGlueLimitCountingScanner Impl::MakeAdvancedCountingScanner<NoGlueLimitCountingScanner>(const Fsm&, const Fsm&, bool*);
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	static void Increment(State& state, ActionIndex regexp_id) {
+		++state.m_current[regexp_id];
+		state.m_total[regexp_id] = ymax(state.m_total[regexp_id], state.m_current[regexp_id]);
+	}
+
+	friend class Impl::ScannerGlueCommon<NoGlueLimitCountingScanner>;
+	friend class Impl::CountingScannerGlueTask<NoGlueLimitCountingScanner>;
+	friend class Impl::NoGlueLimitCountingScannerGlueTask;
+	friend NoGlueLimitCountingScanner Impl::MakeAdvancedCountingScanner<NoGlueLimitCountingScanner>(const Fsm&, const Fsm&, bool*);
 };
 
 }
-
 
 #endif

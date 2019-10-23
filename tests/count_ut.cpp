@@ -169,9 +169,9 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		const auto& enc = Pire::Encodings::Latin1();
 		char text[] = "wwwsswwwsssswwws";
 		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
-        UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
 		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
-        UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
 	}
 
 	SIMPLE_UNIT_TEST(CountRepeating)
@@ -201,41 +201,41 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 
 	template <class Scanner>
 	void CountManyGluesOne(size_t maxRegexps) {
-        const auto& encoding = Pire::Encodings::Utf8();
-        auto text = "abcdbaa aa";
-	    TVector<ypair<std::string, std::string>> tasks = {
-            {"a", ".*"},
-            {"b", ".*"},
-            {"c", ".*"},
-            {"ba", ".*"},
-            {"ab",".*"},
-	    };
-	    TVector<size_t> answers = { 5, 2, 1, 1, 1};
-	    Scanner scanner;
-	    size_t regexpsCount = 0;
-	    for (; regexpsCount < maxRegexps; ++regexpsCount) {
-	        const auto& task = tasks[regexpsCount % tasks.size()];
-            const auto regexpFsm = MkFsm(task.first.c_str(), encoding);
-            const auto separatorFsm = MkFsm(task.second.c_str(), encoding);
-	        Scanner next_scanner(regexpFsm, separatorFsm);
-	        auto glue = Scanner::Glue(scanner, next_scanner);
-	        if (glue.Empty()) {
-                break;
-	        }
-	        scanner = std::move(glue);
-	    }
-	    auto state = Run(scanner, text);
-	    for (size_t i = 0; i < regexpsCount; ++i) {
-	        UNIT_ASSERT_EQUAL(state.Result(i), answers[i % answers.size()]);
-	    }
+		const auto& encoding = Pire::Encodings::Utf8();
+		auto text = "abcdbaa aa";
+		TVector<ypair<std::string, std::string>> tasks = {
+			{"a", ".*"},
+			{"b", ".*"},
+			{"c", ".*"},
+			{"ba", ".*"},
+			{"ab",".*"},
+		};
+		TVector<size_t> answers = { 5, 2, 1, 1, 1};
+		Scanner scanner;
+		size_t regexpsCount = 0;
+		for (; regexpsCount < maxRegexps; ++regexpsCount) {
+			const auto& task = tasks[regexpsCount % tasks.size()];
+			const auto regexpFsm = MkFsm(task.first.c_str(), encoding);
+			const auto separatorFsm = MkFsm(task.second.c_str(), encoding);
+			Scanner next_scanner(regexpFsm, separatorFsm);
+			auto glue = Scanner::Glue(scanner, next_scanner);
+			if (glue.Empty()) {
+				break;
+			}
+			scanner = std::move(glue);
+		}
+		auto state = Run(scanner, text);
+		for (size_t i = 0; i < regexpsCount; ++i) {
+			UNIT_ASSERT_EQUAL(state.Result(i), answers[i % answers.size()]);
+		}
 	}
 
 	SIMPLE_UNIT_TEST(CountManyGlues)
-    {
-	    CountManyGluesOne<Pire::CountingScanner>(20);
-	    CountManyGluesOne<Pire::AdvancedCountingScanner>(20);
-	    CountManyGluesOne<Pire::NoGlueLimitCountingScanner>(50);
-    }
+	{
+		CountManyGluesOne<Pire::CountingScanner>(20);
+		CountManyGluesOne<Pire::AdvancedCountingScanner>(20);
+		CountManyGluesOne<Pire::NoGlueLimitCountingScanner>(50);
+	}
 
 	template<class Scanner>
 	void CountBoundariesOne()
