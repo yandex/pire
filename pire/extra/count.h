@@ -113,7 +113,7 @@ public:
  * given regexp separated by another regexp
  * in input text.
  */
-template<class DerivedScanner>
+template<class DerivedScanner, class State>
 class BaseCountingScanner: public LoadedScanner {
 public:
 	enum {
@@ -125,34 +125,6 @@ public:
 	};
 
 	static const size_t OPTIMAL_RE_COUNT = 4;
-
-	class State {
-	public:
-		size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
-	private:
-		InternalState m_state;
-		ui32 m_current[MAX_RE_COUNT];
-		ui32 m_total[MAX_RE_COUNT];
-		size_t m_updatedMask;
-
-		friend class BaseCountingScanner;
-
-		template<size_t I>
-		friend class IncrementPerformer;
-
-		template<size_t I>
-		friend class ResetPerformer;
-
-#ifdef PIRE_DEBUG
-		friend yostream& operator << (yostream& s, const State& state)
-		{
-			s << state.m_state << " ( ";
-			for (size_t i = 0; i < MAX_RE_COUNT; ++i)
-				s << state.m_current[i] << '/' << state.m_total[i] << ' ';
-			return s << ')';
-		}
-#endif
-	};
 
 	void Initialize(State& state) const
 	{
@@ -231,8 +203,41 @@ protected:
 	}
 };
 
-class CountingScanner : public BaseCountingScanner<CountingScanner> {
+template <size_t MAX_RE_COUNT>
+class CountingState {
 public:
+	size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
+private:
+	using InternalState = LoadedScanner::InternalState;
+	InternalState m_state;
+	ui32 m_current[MAX_RE_COUNT];
+	ui32 m_total[MAX_RE_COUNT];
+	size_t m_updatedMask;
+
+	template <class DerivedScanner, class State>
+	friend class BaseCountingScanner;
+
+	template<size_t I>
+	friend class IncrementPerformer;
+
+	template<size_t I>
+	friend class ResetPerformer;
+
+#ifdef PIRE_DEBUG
+	friend yostream& operator << (yostream& s, const State& state)
+		{
+			s << state.m_state << " ( ";
+			for (size_t i = 0; i < MAX_RE_COUNT; ++i)
+				s << state.m_current[i] << '/' << state.m_total[i] << ' ';
+			return s << ')';
+		}
+#endif
+};
+
+
+class CountingScanner : public BaseCountingScanner<CountingScanner, CountingState<LoadedScanner::MAX_RE_COUNT>> {
+public:
+	using State = CountingState<MAX_RE_COUNT>;
 	enum {
 		Matched = 2,
 	};
@@ -268,8 +273,10 @@ private:
 	friend class Impl::CountingScannerGlueTask<CountingScanner>;
 };
 
-class AdvancedCountingScanner : public BaseCountingScanner<AdvancedCountingScanner> {
+class AdvancedCountingScanner : public BaseCountingScanner<AdvancedCountingScanner, CountingState<LoadedScanner::MAX_RE_COUNT>> {
 public:
+	using State = CountingState<MAX_RE_COUNT>;
+
 	AdvancedCountingScanner() {}
 	AdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple = nullptr);
 
@@ -305,24 +312,34 @@ private:
 	friend AdvancedCountingScanner Impl::MakeAdvancedCountingScanner<AdvancedCountingScanner>(const Fsm&, const Fsm&, bool*);
 };
 
-class NoGlueLimitCountingScanner : public BaseCountingScanner<NoGlueLimitCountingScanner> {
+class NoGlueLimitCountingState {
 public:
-	using ActionIndex = ui32;
-	using TActionsBuffer = std::unique_ptr<ActionIndex[]>;
+	size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
+    void Initialize(size_t initial, size_t regexpsCount) {
+		m_state = initial;
+		m_current.assign(regexpsCount, 0);
+		m_total.assign(regexpsCount, 0);
+	}
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void Reset(size_t regexpId) {
+		m_current[regexpId] = 0;
+	}
+	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
+	void Increment(size_t regexp_id) {
+		++m_current[regexp_id];
+		m_total[regexp_id] = ymax(m_total[regexp_id], m_current[regexp_id]);
+	}
 
-	class State {
-	public:
-		size_t Result(int i) const { return ymax(m_current[i], m_total[i]); }
+private:
+	LoadedScanner::InternalState m_state;
+	TVector<ui32> m_current;
+	TVector<ui32> m_total;
 
-	private:
-		InternalState m_state;
-		TVector<ui32> m_current;
-		TVector<ui32> m_total;
-
-		friend class NoGlueLimitCountingScanner;
+	template <class DerivedScanner, class State>
+	friend LoadedScanner::Action BaseCountingScanner<DerivedScanner, State>::NextTranslated(State& s, Char c) const;
 
 #ifdef PIRE_DEBUG
-		yostream& operator << (yostream& s, const State& state)
+	yostream& operator << (yostream& s, const State& state)
 		{
 			s << state.m_state << " ( ";
 			for (size_t i = 0; i < state.m_current.size(); ++i)
@@ -330,7 +347,14 @@ public:
 			return s << ')';
 		}
 #endif
-	};
+};
+
+
+class NoGlueLimitCountingScanner : public BaseCountingScanner<NoGlueLimitCountingScanner, NoGlueLimitCountingState> {
+public:
+	using State = NoGlueLimitCountingState;
+	using ActionIndex = ui32;
+	using TActionsBuffer = std::unique_ptr<ActionIndex[]>;
 
 private:
 	TActionsBuffer ActionsBuffer;
@@ -367,48 +391,8 @@ public:
 
 	void Initialize(State& state) const
 	{
-		state.m_state = m.initial;
-		state.m_current.assign(RegexpsCount(), 0);
-		state.m_total.assign(RegexpsCount(), 0);
+		state.Initialize(m.initial, RegexpsCount());
 	}
-
-	////////////////////////////////////////////////////////////
-	// Copy-past from BaseCountingScanner because of changed State type
-	// Alternative is to make State template parameter in all these functions in BaseCountingScanner
-	bool CanStop(const State&) const { return false; }
-
-	Action NextTranslated(State& s, Char c) const
-	{
-		Transition x = reinterpret_cast<const Transition*>(s.m_state)[c];
-		s.m_state += SignExtend(x.shift);
-		return x.action;
-	}
-
-	Action Next(State& s, Char c) const
-	{
-		return NextTranslated(s, Translate(c));
-	}
-
-	Action Next(const State& current, State& n, Char c) const
-	{
-		n = current;
-		return Next(n, c);
-	}
-	using BaseCountingScanner::Next;
-
-	bool Final(const State& /*state*/) const { return false; }
-
-	bool Dead(const State&) const { return false; }
-
-	size_t StateIndex(const State& s) const { return StateIdx(s.m_state); }
-
-	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-	void TakeAction(State& s, Action a) const
-	{
-		TakeActionImpl<MAX_RE_COUNT>(s, a);
-	}
-	// End of copy-past
-	//////////////////////////////////////////////////////////////////////
 
 	template <size_t>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
@@ -422,18 +406,18 @@ public:
 		if (Actions) {
 			auto action = Actions + a;
 			for (auto reset_count = *action++; reset_count--;) {
-				Reset(s, *action++);
+				s.Reset(*action++);
 			}
 			for(auto inc_count = *action++; inc_count--;) {
-				Increment(s, *action++);
+				s.Increment(*action++);
 			}
 		} else {
 			Y_ASSERT(RegexpsCount() == 1);
 			if (a & ResetAction) {
-				Reset(s, 0);
+				s.Reset(0);
 			}
 			if (a & IncrementAction) {
-				Increment(s, 0);
+				s.Increment(0);
 			}
 		}
 	}
@@ -482,17 +466,6 @@ private:
 		ActionsBuffer = TActionsBuffer(new ActionIndex[actions.size()]);
 		memcpy(ActionsBuffer.get(), actions.data(), actions.size() * sizeof(ActionIndex));
 		Actions = ActionsBuffer.get();
-	}
-
-	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-	static void Reset(State& state, ActionIndex regexp_id) {
-		state.m_current[regexp_id] = 0;
-	}
-
-	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
-	static void Increment(State& state, ActionIndex regexp_id) {
-		++state.m_current[regexp_id];
-		state.m_total[regexp_id] = ymax(state.m_total[regexp_id], state.m_current[regexp_id]);
 	}
 
 	friend class Impl::ScannerGlueCommon<NoGlueLimitCountingScanner>;
