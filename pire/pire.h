@@ -31,6 +31,7 @@
 #include "run.h"
 
 #include "scanners/multi.h"
+#include "scanners/half_final.h"
 #include "scanners/simple.h"
 #include "scanners/slow.h"
 #include "scanners/pair.h"
