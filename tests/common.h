@@ -219,10 +219,10 @@ bool Matches(const Scanner& scanner, const ystring& str)
 		UNIT_ASSERT(!Matches(m_scanners.slow, str));\
 		UNIT_ASSERT(!Matches(m_scanners.fastNoMask, str));\
 		UNIT_ASSERT(!Matches(m_scanners.nonrelocNoMask, str));\
-		UNIT_ASSERT(!Matches(m_scanners.halfFinal, str));\
-		UNIT_ASSERT(!Matches(m_scanners.halfFinalNoMask, str));\
-		UNIT_ASSERT(!Matches(m_scanners.nonrelocHalfFinal, str));\
-		UNIT_ASSERT(!Matches(m_scanners.nonrelocHalfFinalNoMask, str));\
+		UNIT_ASSERT(!HalfFinalMatches(m_scanners.halfFinal, str));\
+		UNIT_ASSERT(!HalfFinalMatches(m_scanners.halfFinalNoMask, str));\
+		UNIT_ASSERT(!HalfFinalMatches(m_scanners.nonrelocHalfFinal, str));\
+		UNIT_ASSERT(!HalfFinalMatches(m_scanners.nonrelocHalfFinalNoMask, str));\
 	} while (false)
 
 
