@@ -39,7 +39,6 @@ typedef TMap<Char, Action> TransitionTagRow;
 typedef TVector<TransitionTagRow> TransitionTagTable;
 
 class CountingFsmTask;
-class CountingFsmHopcroftMinimizeTask;
 
 class CountingFsm {
 public:
