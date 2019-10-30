@@ -58,6 +58,15 @@ public:
 	public:
 		typedef TVector<size_t>::const_iterator IdsIterator;
 
+		State() : ScannerState(0) {}
+
+		State(const State& otherState)
+			: ScannerState(otherState.ScannerState)
+			, MatchedRegexps(otherState.MatchedRegexps)
+		{}
+
+		State(const typename Scanner::State& otherState) : ScannerState(otherState) {}
+
 		void GetMatchedRegexpsIds() {
 			MatchedRegexpsIds.clear();
 			for (size_t i = 0; i < MatchedRegexps.size(); i++) {
@@ -76,11 +85,11 @@ public:
 		}
 
 		bool operator==(const State& other) const {
-			return State == other.State && MatchedRegexps == other.MatchedRegexps;
+			return ScannerState == other.ScannerState && MatchedRegexps == other.MatchedRegexps;
 		}
 
 		bool operator!=(const State& other) const {
-			return State != other.State || MatchedRegexps != other.MatchedRegexps;
+			return ScannerState != other.ScannerState || MatchedRegexps != other.MatchedRegexps;
 		}
 
 		size_t Result(size_t regexp_id) const {
@@ -90,7 +99,7 @@ public:
 		void Save(yostream* s) const {
 			SavePodType(s, Pire::Header(5, sizeof(size_t)));
 			Impl::AlignSave(s, sizeof(Pire::Header));
-			auto stateSizePair = ymake_pair(State, MatchedRegexps.size());
+			auto stateSizePair = ymake_pair(ScannerState, MatchedRegexps.size());
 			SavePodType(s, stateSizePair);
 			Impl::AlignSave(s, sizeof(ypair<size_t, size_t>));
 			Y_ASSERT(0);
@@ -101,14 +110,14 @@ public:
 			ypair<size_t, size_t> stateSizePair;
 			LoadPodType(s, stateSizePair);
 			Impl::AlignLoad(s, sizeof(ypair<size_t, size_t>));
-			State = stateSizePair.first;
+			ScannerState = stateSizePair.first;
 			MatchedRegexps.clear();
 			MatchedRegexps.resize(stateSizePair.second);
 		}
 
 	private:
 		TVector<size_t> MatchedRegexpsIds;
-		typename Scanner::State State;
+		typename Scanner::State ScannerState;
 		TVector<size_t> MatchedRegexps;
 
 		friend class HalfFinalScanner<Relocation, Shortcutting>;
@@ -116,11 +125,11 @@ public:
 
 
 	/// Checks whether specified state is in any of the final sets
-	bool Final(const State& state) const { return Scanner::Final(state.State); }
+	bool Final(const State& state) const { return Scanner::Final(state.ScannerState); }
 
 	/// Checks whether specified state is 'dead' (i.e. scanner will never
 	/// reach any final state from current one)
-	bool Dead(const State& state) const { return Scanner::Dead(state.State); }
+	bool Dead(const State& state) const { return Scanner::Dead(state.ScannerState); }
 
 	typedef ypair<typename State::IdsIterator, typename State::IdsIterator> AcceptedRegexpsType;
 
@@ -131,19 +140,19 @@ public:
 
 	/// Returns an initial state for this scanner
 	void Initialize(State& state) const {
-		state.State = Scanner::m.initial;
+		state.ScannerState = Scanner::m.initial;
 		state.MatchedRegexps.clear();
 		state.MatchedRegexps.resize(Scanner::m.regexpsCount);
 		TakeAction(state, 0);
 	}
 
 	Action NextTranslated(State& state, Char letter) const {
-		return Scanner::NextTranslated(state.State, letter);
+		return Scanner::NextTranslated(state.ScannerState, letter);
 	}
 
 	/// Handles one character
 	Action Next(State& state, Char c) const {
-		return Scanner::NextTranslated(state.State, Scanner::Translate(c));
+		return Scanner::NextTranslated(state.ScannerState, Scanner::Translate(c));
 	}
 
 	void TakeAction(State& state, Action) const {
@@ -182,7 +191,7 @@ public:
 	}
 
 	size_t StateIndex(const State& s) const {
-		return Scanner::StateIndex(s.State);
+		return Scanner::StateIndex(s.ScannerState);
 	}
 
 	/**
@@ -197,9 +206,9 @@ public:
 		return Scanner::Glue(a, b, maxSize);
 	}
 
-	ScannerRowHeader& Header(const State& s) { return Scanner::Header(s.State); }
+	ScannerRowHeader& Header(const State& s) { return Scanner::Header(s.ScannerState); }
 
-	const ScannerRowHeader& Header(const State& s) const { return Scanner::Header(s.State); }
+	const ScannerRowHeader& Header(const State& s) const { return Scanner::Header(s.ScannerState); }
 
 private:
 	template<class Scanner>

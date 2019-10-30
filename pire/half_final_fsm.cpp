@@ -3,9 +3,7 @@
 namespace Pire {
 	Fsm CreateHalfFinalFsm(Fsm fsm, bool addFinalTransitions, bool count) {
 		bool allowHalfFinals = true;
-		if (!fsm.IsDetermined()) {
-			fsm.RemoveEpsilons();
-		}
+		fsm.Canonize();
 		for (size_t state = 0; state < fsm.Size(); ++state) {
 			if (fsm.IsFinal(state)) {
 				for (const auto& let : fsm.Letters()) {
@@ -46,6 +44,8 @@ namespace Pire {
 			}
 			fsm.ClearFinal();
 			fsm.SetFinal(newFinal, true);
+			fsm.Sparse();
+			return fsm;
 		}
 		for (size_t state = 0; state != fsm.Size(); ++state) {
 			if (fsm.IsFinal(state)) {
@@ -54,16 +54,18 @@ namespace Pire {
 					for (const auto& to : destinations) {
 						fsm.Disconnect(state, to, letter);
 					}
-					if (addFinalTransitions) {
-						fsm.Connect(state, fsm.Initial(), letter);
-					}
+				}
+				if (addFinalTransitions) {
+					fsm.Connect(state, fsm.Initial());
 				}
 			}
 		}
-		fsm.Sparse();
-		if (fsm.IsDetermined()) {
-			fsm.Minimize();
+		fsm.SetIsDetermined(false);
+		if (count) {
+			fsm.PrependAnything();
 		}
+		fsm.Sparse();
+		fsm.Canonize();
 		return fsm;
 	}
 }
