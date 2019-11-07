@@ -76,6 +76,16 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		const auto separatorFsm = MkFsm(separator, encoding);
 		auto countingResult = Run(Pire::CountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
 		auto newResult = Run(Pire::AdvancedCountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
+		if (strcmp(separator, ".*") == 0) {
+			HalfFinalFsm fsm(regexpFsm);
+			fsm.MakeGreedyCounter(true);
+			auto halfFinalSimpleResult = Run(Pire::HalfFinalScanner{fsm}, text, len).Result(0);
+			fsm = HalfFinalFsm(regexpFsm);
+			fsm.MakeGreedyCounter(false);
+			auto halfFinalCorrectResult = Run(Pire::HalfFinalScanner{fsm}, text, len).Result(0);
+			UNIT_ASSERT_EQUAL(halfFinalSimpleResult, halfFinalCorrectResult);
+			UNIT_ASSERT_EQUAL(halfFinalSimpleResult, countingResult);
+		}
 		UNIT_ASSERT_EQUAL(countingResult, newResult);
 		return newResult;
 	}
@@ -407,4 +417,85 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		EmptyOne<Pire::AdvancedCountingScanner>();
 	}
 
+	template<typename Scanner>
+	TVector<Scanner> MakeHalfFinalCount(const char* regexp, const Pire::Encoding& encoding = Pire::Encodings::Utf8()) {
+		TVector<Scanner> scanners(6);
+		const auto regexpFsm = MkFsm(regexp, encoding);
+		HalfFinalFsm fsm(regexpFsm);
+		fsm.MakeGreedyCounter(true);
+		scanners[0] = Scanner(fsm);
+		fsm = HalfFinalFsm(regexpFsm);
+		fsm.MakeGreedyCounter(false);
+		scanners[1] = Scanner(fsm);
+		fsm = HalfFinalFsm(regexpFsm);
+		fsm.MakeNonGreedyCounter(true, true);
+		scanners[2] = Scanner(fsm);
+		fsm = HalfFinalFsm(regexpFsm);
+		fsm.MakeNonGreedyCounter(true, false);
+		scanners[3] = Scanner(fsm);
+		fsm = HalfFinalFsm(regexpFsm);
+		fsm.MakeNonGreedyCounter(false);
+		scanners[4] = Scanner(fsm);
+		scanners[5] = scanners[0];
+		for (size_t i = 1; i < 5; i++) {
+			scanners[5] = Scanner::Glue(scanners[5], scanners[i]);
+		}
+		return scanners;
+	}
+
+	template<typename Scanner>
+	void HalfFinalCount(TVector<Scanner> scanners, const char* text, TVector<size_t> result) {
+		for (size_t i = 0; i < 5; i++) {
+			UNIT_ASSERT_EQUAL(Run(scanners[i], text, -1).Result(0), result[i]);
+		}
+		auto state = Run(scanners[5], text, -1);
+		for (size_t i = 0; i < 5; i++) {
+			UNIT_ASSERT_EQUAL(state.Result(i), result[i]);
+		}
+	}
+
+	template<typename Scanner>
+	void TestHalfFinalCount() {
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("ab+"), "abbabbbabbbbbb", {3, 3, 3, 11, 3});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("(ab)+"), "ababbababbab", {3, 3, 5, 5, 5});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("(abab)+"), "ababababab", {1, 1, 4, 4, 2});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("ab+c|b"), "abbbbbbbbbb", {1, 10, 10, 10, 10});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("ab+c|b"), "abbbbbbbbbbb", {1, 10, 11, 11, 11});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("ab+c|b"), "abbbbbbbbbbc", {1, 1, 10, 11, 10});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("ab+c|b"), "abbbbbbbbbbbc", {1, 1, 11, 12, 11});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("a\\w+c|b"), "abbbdbbbdbbc", {1, 1, 8, 9, 8});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("a\\w+c|b"), "abbbdbbbdbb", {1, 8, 8, 8, 8});
+		HalfFinalCount(MakeHalfFinalCount<Scanner>("a[a-z]+c|b"), "abeeeebeeeeeeeeeceeaeebeeeaeecceebeeaeebeeb", {2, 4, 7, 9, 7});
+	}
+
+	SIMPLE_UNIT_TEST(HalfFinal)
+	{
+		TestHalfFinalCount<Pire::HalfFinalScanner>();
+		TestHalfFinalCount<Pire::NonrelocHalfFinalScanner>();
+		TestHalfFinalCount<Pire::HalfFinalScannerNoMask>();
+		TestHalfFinalCount<Pire::NonrelocHalfFinalScannerNoMask>();
+	}
+
+	template<typename Scanner>
+	void TestHalfFinalSerialization() {
+		auto oldScanners = MakeHalfFinalCount<Scanner>("(\\w\\w)+");
+		BufferOutput wbuf;
+		for (size_t i = 0; i < 6; i++) {
+			::Save(&wbuf, oldScanners[i]);
+		}
+
+		MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
+		TVector<Scanner> scanners(6);
+		for (size_t i = 0; i < 6; i++) {
+			::Load(&rbuf, scanners[i]);
+		}
+
+		HalfFinalCount(scanners, "ab abbb ababa a", {3, 3, 8, 8, 5});
+	}
+
+	SIMPLE_UNIT_TEST(HalfFinalSerialization)
+	{
+		TestHalfFinalSerialization<Pire::HalfFinalScanner>();
+		TestHalfFinalSerialization<Pire::HalfFinalScannerNoMask>();
+	}
 }

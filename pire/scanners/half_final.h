@@ -36,19 +36,20 @@ public:
 
 	HalfFinalScanner() : Scanner() {}
 
-	explicit HalfFinalScanner(const Fsm& fsm_, size_t distance = 0, bool count = false) {
-		Fsm fsm = fsm_;
+	explicit HalfFinalScanner(Fsm fsm_, size_t distance = 0) {
 		if (distance) {
-			fsm = CreateApproxFsm(fsm, distance);
+			fsm_ = CreateApproxFsm(fsm_, distance);
 		}
-		if (fsm.IsDetermined()) {
-			fsm = CreateHalfFinalFsm(fsm, true, count);
-		} else {
-			fsm = CreateHalfFinalFsm(fsm, false, count);
-			fsm.Canonize();
-		}
-		Scanner::Init(fsm.Size(), fsm.Letters(), fsm.Finals().size(), fsm.Initial(), 1);
-		BuildScanner(fsm, *this);
+		HalfFinalFsm fsm(fsm_);
+		fsm.MakeScanner();
+		Scanner::Init(fsm.GetFsm().Size(), fsm.GetFsm().Letters(), fsm.GetFsm().Finals().size(), fsm.GetFsm().Initial(), 1);
+		BuildScanner(fsm.GetFsm(), *this);
+	}
+
+	explicit HalfFinalScanner(const HalfFinalFsm& fsm) {
+		Scanner::Init(fsm.GetFsm().Size(), fsm.GetFsm().Letters(), fsm.GetTotalCount(), fsm.GetFsm().Initial(), 1);
+		BuildScanner(fsm.GetFsm(), *this);
+		BuildFinals(fsm);
 	}
 
 	typedef typename Scanner::ScannerRowHeader ScannerRowHeader;
@@ -211,6 +212,19 @@ public:
 	const ScannerRowHeader& Header(const State& s) const { return Scanner::Header(s.ScannerState); }
 
 private:
+	void BuildFinals(const HalfFinalFsm& fsm) {
+		Y_ASSERT(Scanner::m_buffer);
+		Y_ASSERT(fsm.GetFsm().Size() == Scanner::Size());
+		Scanner::m_finalEnd = Scanner::m_final;
+		for (size_t state = 0; state < Scanner::Size(); ++state) {
+			Scanner::m_finalIndex[state] = Scanner::m_finalEnd - Scanner::m_final;
+			for (size_t i = 0; i < fsm.GetCount(state); i++) {
+				*Scanner::m_finalEnd++ = 0;
+			}
+			*Scanner::m_finalEnd++ = static_cast<size_t>(-1);
+		}
+	}
+
 	template<class Scanner>
 	friend void Pire::BuildScanner(const Fsm&, Scanner&);
 
