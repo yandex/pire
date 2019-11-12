@@ -95,43 +95,26 @@ SIMPLE_UNIT_TEST(Primitives)
 	}
 }
 
+void TestMassAlternatives(const char* pattern) {
+	REGEXP(pattern) {
+		ACCEPTS("abc");
+		ACCEPTS("def");
+		ACCEPTS("ghi");
+		ACCEPTS("klm");
+		DENIES ("aei");
+		DENIES ("klc");
+	}
+}
+
 SIMPLE_UNIT_TEST(MassAlternatives)
 {
-	REGEXP("((abc|def)|ghi)|klm") {
-		ACCEPTS("abc");
-		ACCEPTS("def");
-		ACCEPTS("ghi");
-		ACCEPTS("klm");
-		DENIES ("aei");
-		DENIES ("klc");
-	}
+	TestMassAlternatives("((abc|def)|ghi)|klm");
 
-	REGEXP("(abc|def)|(ghi|klm)") {
-		ACCEPTS("abc");
-		ACCEPTS("def");
-		ACCEPTS("ghi");
-		ACCEPTS("klm");
-		DENIES ("aei");
-		DENIES ("klc");
-	}
+	TestMassAlternatives("(abc|def)|(ghi|klm)");
 
-	REGEXP("abc|(def|(ghi|klm))") {
-		ACCEPTS("abc");
-		ACCEPTS("def");
-		ACCEPTS("ghi");
-		ACCEPTS("klm");
-		DENIES ("aei");
-		DENIES ("klc");
-	}
+	TestMassAlternatives("abc|(def|(ghi|klm))");
 
-	REGEXP("abc|(def|ghi)|klm") {
-		ACCEPTS("abc");
-		ACCEPTS("def");
-		ACCEPTS("ghi");
-		ACCEPTS("klm");
-		DENIES ("aei");
-		DENIES ("klc");
-	}
+	TestMassAlternatives("abc|(def|ghi)|klm");
 }
 
 SIMPLE_UNIT_TEST(Composition)
@@ -437,6 +420,26 @@ SIMPLE_UNIT_TEST(Copying)
 	TestCopying<Pire::HalfFinalScannerNoMask, Pire::NonrelocHalfFinalScannerNoMask>();
 }
 
+template<class Scanner>
+void MatchScanner(Scanner& scanner) {
+	UNIT_ASSERT(Matches(scanner, "regexp"));
+	UNIT_ASSERT(!Matches(scanner, "regxp"));
+	UNIT_ASSERT(!Matches(scanner, "regexp t"));
+}
+
+template<class Scanner>
+void LoadAndMatchScanner(MemoryInput& rbuf, Scanner& scanner) {
+	Load(&rbuf, scanner);
+	MatchScanner(scanner);
+}
+
+template<class Scanner>
+const char* MmapAndMatchScanner(Scanner& scanner, const char* ptr, size_t size) {
+	const char* ptr2 = (const char*)scanner.Mmap(ptr, size);
+	MatchScanner(scanner);
+	return ptr2;
+}
+
 SIMPLE_UNIT_TEST(Serialization)
 {
 	Scanners s("^regexp$");
@@ -453,70 +456,28 @@ SIMPLE_UNIT_TEST(Serialization)
 	Save(&wbuf, s.nonrelocHalfFinal);
 	Save(&wbuf, s.nonrelocHalfFinalNoMask);
 
+	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
+	LoadAndMatchScanner(rbuf, s.fast);
+	LoadAndMatchScanner(rbuf, s.simple);
+	LoadAndMatchScanner(rbuf, s.slow);
+	LoadAndMatchScanner(rbuf, s.fastNoMask);
+	LoadAndMatchScanner(rbuf, s.nonreloc);
+	LoadAndMatchScanner(rbuf, s.nonrelocNoMask);
+	LoadAndMatchScanner(rbuf, s.halfFinal);
+	LoadAndMatchScanner(rbuf, s.halfFinalNoMask);
+	LoadAndMatchScanner(rbuf, s.nonrelocHalfFinal);
+	LoadAndMatchScanner(rbuf, s.nonrelocHalfFinalNoMask);
+
 	Pire::Scanner fast;
 	Pire::SimpleScanner simple;
 	Pire::SlowScanner slow;
 	Pire::ScannerNoMask fastNoMask;
-	Pire::NonrelocScanner nonreloc;
-	Pire::NonrelocScannerNoMask nonrelocNoMask;
 	Pire::HalfFinalScanner halfFinal;
 	Pire::HalfFinalScannerNoMask halfFinalNoMask;
-	Pire::NonrelocHalfFinalScanner nonrelocHalfFinal;
-	Pire::NonrelocHalfFinalScannerNoMask nonrelocHalfFinalNoMask;
-
-	MemoryInput rbuf(wbuf.Buffer().Data(), wbuf.Buffer().Size());
-	Load(&rbuf, fast);
-	Load(&rbuf, simple);
-	Load(&rbuf, slow);
-	Load(&rbuf, fastNoMask);
-	Load(&rbuf, nonreloc);
-	Load(&rbuf, nonrelocNoMask);
-	Load(&rbuf, halfFinal);
-	Load(&rbuf, halfFinalNoMask);
-	Load(&rbuf, nonrelocHalfFinal);
-	Load(&rbuf, nonrelocHalfFinalNoMask);
-
-	UNIT_ASSERT(Matches(fast, "regexp"));
-	UNIT_ASSERT(Matches(simple, "regexp"));
-	UNIT_ASSERT(Matches(slow, "regexp"));
-	UNIT_ASSERT(Matches(fastNoMask, "regexp"));
-	UNIT_ASSERT(Matches(nonreloc, "regexp"));
-	UNIT_ASSERT(Matches(nonrelocNoMask, "regexp"));
-	UNIT_ASSERT(HalfFinalMatches(halfFinal, "regexp"));
-	UNIT_ASSERT(HalfFinalMatches(halfFinalNoMask, "regexp"));
-	UNIT_ASSERT(HalfFinalMatches(nonrelocHalfFinal, "regexp"));
-	UNIT_ASSERT(HalfFinalMatches(nonrelocHalfFinalNoMask, "regexp"));
-	UNIT_ASSERT(!Matches(fast, "regxp"));
-	UNIT_ASSERT(!Matches(simple, "regxp"));
-	UNIT_ASSERT(!Matches(slow, "regxp"));
-	UNIT_ASSERT(!Matches(fastNoMask, "regxp"));
-	UNIT_ASSERT(!Matches(nonreloc, "regxp"));
-	UNIT_ASSERT(!Matches(nonrelocNoMask, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinal, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinal, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinalNoMask, "regxp"));
-	UNIT_ASSERT(!Matches(fast, "regexp t"));
-	UNIT_ASSERT(!Matches(simple, "regexp t"));
-	UNIT_ASSERT(!Matches(slow, "regexp t"));
-	UNIT_ASSERT(!Matches(fastNoMask, "regexp t"));
-	UNIT_ASSERT(!Matches(nonreloc, "regexp t"));
-	UNIT_ASSERT(!Matches(nonrelocNoMask, "regexp t"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinal, "regexp t"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask, "regexp t"));
-	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinal, "regexp t"));
-	UNIT_ASSERT(!HalfFinalMatches(nonrelocHalfFinalNoMask, "regexp t"));
-
-	Pire::Scanner fast2;
-	Pire::SimpleScanner simple2;
-	Pire::SlowScanner slow2;
-	Pire::ScannerNoMask fastNoMask2;
-	Pire::HalfFinalScanner halfFinal2;
-	Pire::HalfFinalScannerNoMask halfFinalNoMask2;
-	Pire::Scanner fast3;
-	Pire::ScannerNoMask fastNoMask3;
-	Pire::HalfFinalScanner halfFinal3;
-	Pire::HalfFinalScannerNoMask halfFinalNoMask3;
+	Pire::Scanner fast1;
+	Pire::ScannerNoMask fastNoMask1;
+	Pire::HalfFinalScanner halfFinal1;
+	Pire::HalfFinalScannerNoMask halfFinalNoMask1;
 	const size_t MaxTestOffset = 2 * sizeof(Pire::Impl::MaxSizeWord);
 	TVector<char> buf2(wbuf.Buffer().Size() + sizeof(size_t) + MaxTestOffset);
 	const char* ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t));
@@ -524,71 +485,33 @@ SIMPLE_UNIT_TEST(Serialization)
 	memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
 
 	const char* ptr2 = 0;
-	ptr2 = (const char*)fast2.Mmap(ptr, end - ptr);
+	ptr2 = MmapAndMatchScanner(fast, ptr, end - ptr);
 	size_t fastSize = ptr2 - ptr;
 	ptr = ptr2;
-	ptr2 = (const char*)simple2.Mmap(ptr, end - ptr);
+	ptr2 = MmapAndMatchScanner(simple, ptr, end - ptr);
 	size_t simpleSize = ptr2 - ptr;
 	ptr = ptr2;
-	ptr2 = (const char*)slow2.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	ptr2 = (const char*)fastNoMask2.Mmap(ptr, end - ptr);
-	ptr = ptr2;
+	ptr = MmapAndMatchScanner(slow, ptr, end - ptr);
+	ptr = MmapAndMatchScanner(fastNoMask, ptr, end - ptr);
 	// Nonreloc-s are saved as Scaner-s, so read them again
-	ptr2 = (const char*)fast3.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	ptr2 = (const char*)fastNoMask3.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	ptr2 = (const char*)halfFinal2.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	ptr2 = (const char*)halfFinalNoMask2.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	ptr2 = (const char*)halfFinal3.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	ptr2 = (const char*)halfFinalNoMask3.Mmap(ptr, end - ptr);
-	ptr = ptr2;
-	UNIT_ASSERT_EQUAL(ptr, end);
+	ptr = MmapAndMatchScanner(fast1, ptr, end - ptr);
+	ptr = MmapAndMatchScanner(fastNoMask1, ptr, end - ptr);
 
-	UNIT_ASSERT(Matches(fast2, "regexp"));
-	UNIT_ASSERT(!Matches(fast2, "regxp"));
-	UNIT_ASSERT(!Matches(fast2, "regexp t"));
-	UNIT_ASSERT(Matches(fastNoMask2, "regexp"));
-	UNIT_ASSERT(!Matches(fastNoMask2, "regxp"));
-	UNIT_ASSERT(!Matches(fastNoMask2, "regexp t"));
-	UNIT_ASSERT(Matches(slow2, "regexp"));
-	UNIT_ASSERT(!Matches(slow2, "regxp"));
-	UNIT_ASSERT(!Matches(slow2, "regexp t"));
-	UNIT_ASSERT(Matches(simple2, "regexp"));
-	UNIT_ASSERT(!Matches(simple2, "regxp"));
-	UNIT_ASSERT(!Matches(simple2, "regexp t"));
-	UNIT_ASSERT(Matches(fast3, "regexp"));
-	UNIT_ASSERT(!Matches(fast3, "regxp"));
-	UNIT_ASSERT(!Matches(fast3, "regexp t"));
-	UNIT_ASSERT(Matches(fastNoMask3, "regexp"));
-	UNIT_ASSERT(!Matches(fastNoMask3, "regxp"));
-	UNIT_ASSERT(!Matches(fastNoMask3, "regexp t"));
-	UNIT_ASSERT(HalfFinalMatches(halfFinal2, "regexp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinal2, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinal2, "regexp t"));
-	UNIT_ASSERT(HalfFinalMatches(halfFinalNoMask2, "regexp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask2, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask2, "regexp t"));
-	UNIT_ASSERT(HalfFinalMatches(halfFinal3, "regexp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinal3, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinal3, "regexp t"));
-	UNIT_ASSERT(HalfFinalMatches(halfFinalNoMask3, "regexp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask3, "regxp"));
-	UNIT_ASSERT(!HalfFinalMatches(halfFinalNoMask3, "regexp t"));
+	ptr = MmapAndMatchScanner(halfFinal, ptr, end - ptr);
+	ptr = MmapAndMatchScanner(halfFinalNoMask, ptr, end - ptr);
+	ptr = MmapAndMatchScanner(halfFinal1, ptr, end - ptr);
+	ptr = MmapAndMatchScanner(halfFinalNoMask1, ptr, end - ptr);
+	UNIT_ASSERT_EQUAL(ptr, end);
 
 	for (size_t offset = 1; offset < MaxTestOffset; ++offset) {
 		ptr = Pire::Impl::AlignUp(&buf2[0], sizeof(size_t)) + offset;
 		end = ptr + wbuf.Buffer().Size();
 		memcpy((void*) ptr, wbuf.Buffer().Data(), wbuf.Buffer().Size());
-		BasicMmapTest::Match(fast2, ptr, end - ptr, "regexp");
+		BasicMmapTest::Match(fast, ptr, end - ptr, "regexp");
 		ptr = ptr + fastSize;
-		BasicMmapTest::Match(simple2, ptr, end - ptr, "regexp");
+		BasicMmapTest::Match(simple, ptr, end - ptr, "regexp");
 		ptr = ptr + simpleSize;
-		BasicMmapTest::Match(slow2, ptr, end - ptr, "regexp");
+		BasicMmapTest::Match(slow, ptr, end - ptr, "regexp");
 	}
 }
 
