@@ -175,22 +175,17 @@ typename Scanner::State RunRegexp(const Scanner& scanner, const char* str)
 }
 
 template<class Scanner>
-bool Matches(const Scanner& scanner, const char* str)
+bool Matches(const Scanner& scanner, const ystring& str)
 {
-	return scanner.Final(RunRegexp(scanner, str));
-}
-
-template<typename Relocation, typename Shortcutting>
-bool HalfFinalMatches(const Pire::Impl::HalfFinalScanner<Relocation, Shortcutting>& scanner, const ystring& str) {
 	auto state = RunRegexp(scanner, str);
 	auto result = scanner.AcceptedRegexps(state);
 	return result.first != result.second;
 }
 
 template<class Scanner>
-bool Matches(const Scanner& scanner, const ystring& str)
+bool Matches(const Scanner& scanner, const char* str)
 {
-	return scanner.Final(RunRegexp(scanner, str));
+	return Matches(scanner, ystring(str));
 }
 
 #define SCANNER(fsm) for (Scanners m_scanners(fsm), *m_flag = &m_scanners; m_flag; m_flag = 0)
@@ -205,10 +200,10 @@ bool Matches(const Scanner& scanner, const ystring& str)
 		UNIT_ASSERT(Matches(m_scanners.slow, str));\
 		UNIT_ASSERT(Matches(m_scanners.fastNoMask, str));\
 		UNIT_ASSERT(Matches(m_scanners.nonrelocNoMask, str));\
-		UNIT_ASSERT(HalfFinalMatches(m_scanners.halfFinal, str));\
-		UNIT_ASSERT(HalfFinalMatches(m_scanners.halfFinalNoMask, str));\
-		UNIT_ASSERT(HalfFinalMatches(m_scanners.nonrelocHalfFinal, str));\
-		UNIT_ASSERT(HalfFinalMatches(m_scanners.nonrelocHalfFinalNoMask, str));\
+		UNIT_ASSERT(Matches(m_scanners.halfFinal, str));\
+		UNIT_ASSERT(Matches(m_scanners.halfFinalNoMask, str));\
+		UNIT_ASSERT(Matches(m_scanners.nonrelocHalfFinal, str));\
+		UNIT_ASSERT(Matches(m_scanners.nonrelocHalfFinalNoMask, str));\
 	} while (false)
 
 #define DENIES(str) \
@@ -219,10 +214,10 @@ bool Matches(const Scanner& scanner, const ystring& str)
 		UNIT_ASSERT(!Matches(m_scanners.slow, str));\
 		UNIT_ASSERT(!Matches(m_scanners.fastNoMask, str));\
 		UNIT_ASSERT(!Matches(m_scanners.nonrelocNoMask, str));\
-		UNIT_ASSERT(!HalfFinalMatches(m_scanners.halfFinal, str));\
-		UNIT_ASSERT(!HalfFinalMatches(m_scanners.halfFinalNoMask, str));\
-		UNIT_ASSERT(!HalfFinalMatches(m_scanners.nonrelocHalfFinal, str));\
-		UNIT_ASSERT(!HalfFinalMatches(m_scanners.nonrelocHalfFinalNoMask, str));\
+		UNIT_ASSERT(!Matches(m_scanners.halfFinal, str));\
+		UNIT_ASSERT(!Matches(m_scanners.halfFinalNoMask, str));\
+		UNIT_ASSERT(!Matches(m_scanners.nonrelocHalfFinal, str));\
+		UNIT_ASSERT(!Matches(m_scanners.nonrelocHalfFinalNoMask, str));\
 	} while (false)
 
 

@@ -63,6 +63,10 @@ public:
 
 	bool Dead(const State&) const { return false; }
 
+	ypair<const size_t*, const size_t*> AcceptedRegexps(const State& s) const {
+		return Final(s) ? Accept() : Deny();
+	}
+
 	/// returns an initial state for this scanner
 	void Initialize(State& state) const { state = m.initial; }
 
@@ -181,6 +185,18 @@ protected:
 	{
 		static const SimpleScanner n = Fsm::MakeFalse().Compile<SimpleScanner>();
 		return n;
+	}
+
+	static ypair<const size_t*, const size_t*> Accept()
+	{
+		static size_t v[1] = { 0 };
+		return ymake_pair(v, v + 1);
+	}
+
+	static ypair<const size_t*, const size_t*> Deny()
+	{
+		static size_t v[1] = { 0 };
+		return ymake_pair(v, v);
 	}
 
 	/*
