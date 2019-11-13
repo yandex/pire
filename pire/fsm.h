@@ -252,7 +252,7 @@ namespace Pire {
 	inline void BuildScanner(const Fsm& fsm, Scanner& r)
 	{
 		TSet<size_t> dead;
-		if (Scanner::DeadFlag != 0)
+		if (Scanner::DeadFlag)
 			dead = fsm.DeadStates();
 
 		for (size_t state = 0; state < fsm.Size(); ++state)

@@ -821,7 +821,7 @@ AdvancedScanner MakeAdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool*
 }  // namespace Impl
 
 AdvancedCountingScanner::AdvancedCountingScanner(const Fsm& re, const Fsm& sep, bool* simple)
-    : AdvancedCountingScanner(Impl::MakeAdvancedCountingScanner<AdvancedCountingScanner>(re, sep, simple))
+	: AdvancedCountingScanner(Impl::MakeAdvancedCountingScanner<AdvancedCountingScanner>(re, sep, simple))
 {
 }
 
@@ -1001,7 +1001,7 @@ const void *NoGlueLimitCountingScanner::Mmap(const void *ptr, size_t size) {
 		Impl::AdvancePtr(p, size, *scanner.Actions * sizeof(ActionIndex));
 	}
 	Swap(scanner);
-	return (const void*) p;
+	return static_cast<const void*>(p);
 }
 
 }

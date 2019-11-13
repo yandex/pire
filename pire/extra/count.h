@@ -27,6 +27,8 @@
 #include "../scanners/loaded.h"
 #include "../fsm.h"
 
+#include <algorithm>
+
 namespace Pire {
 class Fsm;
 
@@ -123,8 +125,6 @@ public:
 		FinalFlag = 0,
 		DeadFlag = 1,
 	};
-
-	static const size_t OPTIMAL_RE_COUNT = 4;
 
 	void Initialize(State& state) const
 	{
@@ -367,7 +367,7 @@ public:
 		if (rhs.ActionsBuffer) {
 			Y_ASSERT(rhs.Actions);
 			ActionsBuffer = TActionsBuffer(new ActionIndex [*rhs.Actions]);
-			memcpy(ActionsBuffer.get(), rhs.ActionsBuffer.get(), *rhs.Actions * sizeof(ActionIndex));
+			std::copy_n(rhs.ActionsBuffer.get(), *rhs.Actions, ActionsBuffer.get());
 			Actions = ActionsBuffer.get();
 		} else {
 			Actions = rhs.Actions;
@@ -408,7 +408,7 @@ public:
 			for (auto reset_count = *action++; reset_count--;) {
 				s.Reset(*action++);
 			}
-			for(auto inc_count = *action++; inc_count--;) {
+			for (auto inc_count = *action++; inc_count--;) {
 				s.Increment(*action++);
 			}
 		} else {
@@ -464,7 +464,7 @@ private:
 		Y_ASSERT(actions[0] == actions.size());
 
 		ActionsBuffer = TActionsBuffer(new ActionIndex[actions.size()]);
-		memcpy(ActionsBuffer.get(), actions.data(), actions.size() * sizeof(ActionIndex));
+		std::copy(actions.begin(), actions.end(), ActionsBuffer.get());
 		Actions = ActionsBuffer.get();
 	}
 

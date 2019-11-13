@@ -220,15 +220,15 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 			{"ba", ".*"},
 			{"ab",".*"},
 		};
-		TVector<size_t> answers = { 5, 2, 1, 1, 1};
+		TVector<size_t> answers = {5, 2, 1, 1, 1};
 		Scanner scanner;
 		size_t regexpsCount = 0;
 		for (; regexpsCount < maxRegexps; ++regexpsCount) {
 			const auto& task = tasks[regexpsCount % tasks.size()];
 			const auto regexpFsm = MkFsm(task.first.c_str(), encoding);
 			const auto separatorFsm = MkFsm(task.second.c_str(), encoding);
-			Scanner next_scanner(regexpFsm, separatorFsm);
-			auto glue = Scanner::Glue(scanner, next_scanner);
+			Scanner nextScanner(regexpFsm, separatorFsm);
+			auto glue = Scanner::Glue(scanner, nextScanner);
 			if (glue.Empty()) {
 				break;
 			}

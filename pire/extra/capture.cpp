@@ -96,14 +96,12 @@ namespace {
 			fsm.Resize(fsm.Size() + 1);
 			fsm.ConnectFinal(fsm.Size() - 1);
 
-			for (size_t state = 0; state < fsm.Size() - 1; ++state) {
-				if (fsm.IsFinal(state)) {
+			for (size_t state = 0; state < fsm.Size() - 1; ++state)
+				if (fsm.IsFinal(state))
 					if (greedy)
 						fsm.SetOutput(state, fsm.Size() - 1, SlowCapturingScanner::EndRepetition);
 					else
 						fsm.SetOutput(state, fsm.Size() - 1, SlowCapturingScanner::EndNonGreedyRepetition);
-				}
-			}
 			fsm.ClearFinal();
 			fsm.SetFinal(fsm.Size() - 1, true);
 			fsm.SetIsDetermined(false);
