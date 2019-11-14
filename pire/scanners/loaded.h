@@ -116,7 +116,7 @@ public:
 		Impl::CheckAlign(ptr);
 		LoadedScanner s;
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
-		Header header = Impl::ValidateHeader(p, size, 4, sizeof(s.m));
+		Header header = Impl::ValidateHeader(p, size, ScannerIOTypes::LoadedScanner, sizeof(s.m));
 
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);

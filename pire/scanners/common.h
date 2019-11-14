@@ -30,6 +30,15 @@
 #include "../platform.h"
 
 namespace Pire {
+	namespace ScannerIOTypes {
+		enum {
+			NoScanner = 0,
+			Scanner = 1,
+			SimpleScanner = 2,
+			SlowScanner = 3,
+			LoadedScanner = 4
+		};
+	}
 
 	struct Header {
 		ui32 Magic;
@@ -58,7 +67,7 @@ namespace Pire {
 				throw Error("Serialized regexp incompatible with your system");
 			if (Version != RE_VERSION && Version != RE_VERSION_WITH_MACTIONS)
 				throw Error("You are trying to used an incompatible version of a serialized regexp");
-			if ((type != 0 && type != Type) || (hdrsize != 0 && HdrSize != hdrsize))
+			if ((type != ScannerIOTypes::NoScanner && type != Type) || (hdrsize != 0 && HdrSize != hdrsize))
 				throw Error("Serialized regexp incompatible with your system");
 		}
 	};
@@ -97,7 +106,7 @@ namespace Pire {
 
 		inline Header ValidateHeader(yistream* s, ui32 type, size_t hdrsize)
 		{
-			Header hdr(0, 0);
+			Header hdr(ScannerIOTypes::NoScanner, 0);
 			LoadPodType(s, hdr);
 			AlignLoad(s, sizeof(hdr));
 			hdr.Validate(type, hdrsize);

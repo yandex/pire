@@ -247,7 +247,7 @@ public:
 		Scanner s;
 
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
-		Impl::ValidateHeader(p, size, 1, sizeof(m));
+		Impl::ValidateHeader(p, size, ScannerIOTypes::Scanner, sizeof(m));
 		if (size < sizeof(s.m))
 			throw Error("EOF reached while mapping Pire::Scanner");
 
@@ -562,7 +562,7 @@ struct ScannerSaver {
 
 		typename ScannerType::Locals mc = scanner.m;
 		mc.initial -= reinterpret_cast<size_t>(scanner.m_transitions);
-		SavePodType(s, Pire::Header(1, sizeof(mc)));
+		SavePodType(s, Pire::Header(ScannerIOTypes::Scanner, sizeof(mc)));
 		Impl::AlignSave(s, sizeof(Pire::Header));
 		SavePodType(s, mc);
 		Impl::AlignSave(s, sizeof(mc));
@@ -578,7 +578,7 @@ struct ScannerSaver {
 		typedef Scanner<Relocatable, Shortcutting> ScannerType;
 
 		Scanner<Relocatable, Shortcutting> sc;
-		Impl::ValidateHeader(s, 1, sizeof(sc.m));
+		Impl::ValidateHeader(s, ScannerIOTypes::Scanner, sizeof(sc.m));
 		LoadPodType(s, sc.m);
 		Impl::AlignLoad(s, sizeof(sc.m));
 		if (Shortcutting::Signature != sc.m.shortcuttingSignature)
