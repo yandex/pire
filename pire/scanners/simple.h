@@ -125,7 +125,7 @@ public:
 		SimpleScanner s;
 
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
-		Impl::ValidateHeader(p, size, 2, sizeof(m));
+		Impl::ValidateHeader(p, size, ScannerIOTypes::SimpleScanner, sizeof(m));
 		if (size < sizeof(s.m))
 			throw Error("EOF reached while mapping NPire::Scanner");
 

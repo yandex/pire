@@ -23,6 +23,7 @@
 
 #include "stub/stl.h"
 #include "stub/saveload.h"
+#include "scanners/common.h"
 #include "scanners/slow.h"
 #include "scanners/simple.h"
 #include "scanners/loaded.h"
@@ -33,7 +34,7 @@ namespace Pire {
 	
 void SimpleScanner::Save(yostream* s) const
 {
-	SavePodType(s, Header(2, sizeof(m)));
+	SavePodType(s, Header(ScannerIOTypes::SimpleScanner, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	Locals mc = m;
 	mc.initial -= reinterpret_cast<size_t>(m_transitions);
@@ -50,7 +51,7 @@ void SimpleScanner::Save(yostream* s) const
 void SimpleScanner::Load(yistream* s)
 {
 	SimpleScanner sc;
-	Impl::ValidateHeader(s, 2, sizeof(sc.m));
+	Impl::ValidateHeader(s, ScannerIOTypes::SimpleScanner, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	bool empty;
@@ -69,7 +70,7 @@ void SimpleScanner::Load(yistream* s)
 
 void SlowScanner::Save(yostream* s) const
 {
-	SavePodType(s, Header(3, sizeof(m)));
+	SavePodType(s, Header(ScannerIOTypes::SlowScanner, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	SavePodType(s, m);
 	Impl::AlignSave(s, sizeof(m));
@@ -111,7 +112,7 @@ void SlowScanner::Save(yostream* s) const
 void SlowScanner::Load(yistream* s)
 {
 	SlowScanner sc;
-	Impl::ValidateHeader(s, 3, sizeof(sc.m));
+	Impl::ValidateHeader(s, ScannerIOTypes::SlowScanner, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	bool empty;
@@ -170,7 +171,7 @@ void SlowScanner::Load(yistream* s)
 
 void LoadedScanner::Save(yostream* s) const
 {
-	SavePodType(s, Header(4, sizeof(m)));
+	SavePodType(s, Header(ScannerIOTypes::LoadedScanner, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	Locals mc = m;
 	mc.initial -= reinterpret_cast<size_t>(m_jumps);
@@ -185,7 +186,7 @@ void LoadedScanner::Save(yostream* s) const
 void LoadedScanner::Load(yistream* s)
 {
 	LoadedScanner sc;
-	Header header = Impl::ValidateHeader(s, 4, sizeof(sc.m));
+	Header header = Impl::ValidateHeader(s, ScannerIOTypes::LoadedScanner, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	sc.m_buffer = BufferType(new char[sc.BufSize()]);
