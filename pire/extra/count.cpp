@@ -978,7 +978,6 @@ void NoGlueLimitCountingScanner::Save(yostream* s) const {
 void NoGlueLimitCountingScanner::Load(yistream* s) {
 	ui32 type;
 	LoadedScanner::Load(s, &type);
-	Y_ASSERT(type == ScannerIOTypes::LoadedScanner);
 	ActionIndex actionsSize;
 	if (type == ScannerIOTypes::NoGlueLimitCountingScanner) {
 		LoadPodType(s, actionsSize);
