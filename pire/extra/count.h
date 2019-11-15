@@ -330,13 +330,19 @@ public:
 		m_total[regexp_id] = ymax(m_total[regexp_id], m_current[regexp_id]);
 	}
 
+	template<size_t I>
+	friend class IncrementPerformer;
+
+	template<size_t I>
+	friend class ResetPerformer;
+
 private:
 	LoadedScanner::InternalState m_state;
 	TVector<ui32> m_current;
 	TVector<ui32> m_total;
 
 	template <class DerivedScanner, class State>
-	friend LoadedScanner::Action BaseCountingScanner<DerivedScanner, State>::NextTranslated(State& s, Char c) const;
+	friend class BaseCountingScanner;
 
 #ifdef PIRE_DEBUG
 	yostream& operator << (yostream& s, const State& state)
@@ -359,6 +365,7 @@ public:
 private:
 	TActionsBuffer ActionsBuffer;
 	const ActionIndex* Actions = nullptr;
+	bool AdvancedScannerCompatibilityMode = false;
 
 public:
 	NoGlueLimitCountingScanner() = default;
@@ -387,6 +394,7 @@ public:
 		LoadedScanner::Swap(s);
 		DoSwap(ActionsBuffer, s.ActionsBuffer);
 		DoSwap(Actions, s.Actions);
+		DoSwap(AdvancedScannerCompatibilityMode, s.AdvancedScannerCompatibilityMode);
 	}
 
 	void Initialize(State& state) const
@@ -394,11 +402,15 @@ public:
 		state.Initialize(m.initial, RegexpsCount());
 	}
 
-	template <size_t>
+	template <size_t ActualReCount>
 	PIRE_FORCED_INLINE PIRE_HOT_FUNCTION
 	void TakeActionImpl(State& s, Action a) const
 	{
 		if (!a) {
+			return;
+		}
+		if (AdvancedScannerCompatibilityMode) {
+			AdvancedScannerTakeActionImpl<ActualReCount>(s, a);
 			return;
 		}
 		// Note: it's important to perform resets before increments,
@@ -466,6 +478,16 @@ private:
 		ActionsBuffer = TActionsBuffer(new ActionIndex[actions.size()]);
 		std::copy(actions.begin(), actions.end(), ActionsBuffer.get());
 		Actions = ActionsBuffer.get();
+	}
+
+	template <size_t ActualReCount>
+	void AdvancedScannerTakeActionImpl(State& s, Action a) const {
+		if (a & ResetMask) {
+			ResetPerformer<ActualReCount>::Do(s, a);
+		}
+		if (a & IncrementMask) {
+			IncrementPerformer<ActualReCount>::Do(s, a);
+		}
 	}
 
 	friend class Impl::ScannerGlueCommon<NoGlueLimitCountingScanner>;

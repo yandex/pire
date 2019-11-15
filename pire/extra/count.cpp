@@ -964,8 +964,9 @@ NoGlueLimitCountingScanner NoGlueLimitCountingScanner::Glue(const NoGlueLimitCou
 
 // Should Save(), Load() and Mmap() functions return stream/pointer in aligned state?
 // Now they don't because tests don't require it.
-void NoGlueLimitCountingScanner::Save(yostream *s) const {
-	LoadedScanner::Save(s);
+void NoGlueLimitCountingScanner::Save(yostream* s) const {
+	Y_ASSERT(!AdvancedScannerCompatibilityMode);
+	LoadedScanner::Save(s, ScannerIOTypes::NoGlueLimitCountingScanner);
 	if (Actions) {
 		SavePodArray(s, Actions, *Actions);
 	} else {
@@ -974,31 +975,45 @@ void NoGlueLimitCountingScanner::Save(yostream *s) const {
 	}
 }
 
-void NoGlueLimitCountingScanner::Load(yistream *s) {
-	LoadedScanner::Load(s);
+void NoGlueLimitCountingScanner::Load(yistream* s) {
+	ui32 type;
+	LoadedScanner::Load(s, &type);
+	Y_ASSERT(type == ScannerIOTypes::LoadedScanner);
 	ActionIndex actionsSize;
-	LoadPodType(s, actionsSize);
+	if (type == ScannerIOTypes::NoGlueLimitCountingScanner) {
+		LoadPodType(s, actionsSize);
 
-	if (actionsSize == 0) {
-		ActionsBuffer.reset();
-		Actions = nullptr;
+		if (actionsSize == 0) {
+			ActionsBuffer.reset();
+			Actions = nullptr;
+		} else {
+			ActionsBuffer = TActionsBuffer(new ActionIndex[actionsSize]);
+			ActionsBuffer[0] = actionsSize;
+			LoadPodArray(s, &ActionsBuffer[1], actionsSize - 1);
+			Actions = ActionsBuffer.get();
+		}
 	} else {
-		ActionsBuffer = TActionsBuffer(new ActionIndex[actionsSize]);
-		ActionsBuffer[0] = actionsSize;
-		LoadPodArray(s, &ActionsBuffer[1], actionsSize - 1);
-		Actions = ActionsBuffer.get();
+		Y_ASSERT(type == ScannerIOTypes::LoadedScanner);
+		AdvancedScannerCompatibilityMode = true;
 	}
 }
 
-const void *NoGlueLimitCountingScanner::Mmap(const void *ptr, size_t size) {
+const void* NoGlueLimitCountingScanner::Mmap(const void* ptr, size_t size) {
 	NoGlueLimitCountingScanner scanner;
-	auto p = static_cast<const size_t*> (scanner.LoadedScanner::Mmap(ptr, size));
-	scanner.Actions = reinterpret_cast<const ActionIndex*>(p);
-	if (*scanner.Actions == 0) {
-		scanner.Actions = nullptr;
-		Impl::AdvancePtr(p, size, sizeof(ActionIndex));
+	ui32 type;
+	auto p = static_cast<const size_t*> (scanner.LoadedScanner::Mmap(ptr, size, &type));
+
+	if (type == ScannerIOTypes::NoGlueLimitCountingScanner) {
+		scanner.Actions = reinterpret_cast<const ActionIndex*>(p);
+		if (*scanner.Actions == 0) {
+			scanner.Actions = nullptr;
+			Impl::AdvancePtr(p, size, sizeof(ActionIndex));
+		} else {
+			Impl::AdvancePtr(p, size, *scanner.Actions * sizeof(ActionIndex));
+		}
 	} else {
-		Impl::AdvancePtr(p, size, *scanner.Actions * sizeof(ActionIndex));
+		Y_ASSERT(type == ScannerIOTypes::LoadedScanner);
+		scanner.AdvancedScannerCompatibilityMode = true;
 	}
 	Swap(scanner);
 	return static_cast<const void*>(p);

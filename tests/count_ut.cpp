@@ -419,7 +419,42 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		Serialization_v6_compatibilityOne<Pire::CountingScanner>();
 		Serialization_v6_compatibilityOne<Pire::AdvancedCountingScanner>();
-		//NoGlueLimitCountingScanner is not v6_compatible
+		// NoGlueLimitCountingScanner is not v6_compatible
+	}
+
+	SIMPLE_UNIT_TEST(NoGlueLimitScannerCompatibilityWithAdvancedScanner) {
+		const auto& enc = Pire::Encodings::Latin1();
+		auto sc1 = AdvancedCountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		auto sc2 = AdvancedCountingScanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
+		auto sc = AdvancedCountingScanner::Glue(sc1, sc2);
+
+		BufferOutput wbuf;
+		::Save(&wbuf, sc);
+
+		TVector<char> buf2(wbuf.Buffer().Size());
+		memcpy(buf2.data(), wbuf.Buffer().Data(), wbuf.Buffer().Size());
+
+		// test loading from stream
+		{
+			MemoryInput rbuf(buf2.data(), buf2.size());
+			NoGlueLimitCountingScanner scanner;
+			::Load(&rbuf, scanner);
+			auto state = Run(scanner,
+						 "abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(state.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(state.Result(1), size_t(2));
+		}
+
+		// test loading using Mmap
+		{
+			NoGlueLimitCountingScanner scanner;
+			const void* tail = scanner.Mmap(buf2.data(), buf2.size());
+			UNIT_ASSERT_EQUAL(tail, buf2.data() + buf2.size());
+			auto state = Run(scanner,
+						 "abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(state.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(state.Result(1), size_t(2));
+		}
 	}
 
 	template<class Scanner>

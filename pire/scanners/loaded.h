@@ -118,12 +118,19 @@ public:
 
 	size_t LettersCount() const { return m.lettersCount; }
 
-	const void* Mmap(const void* ptr, size_t size)
+	const void* Mmap(const void* ptr, size_t size) {
+		return Mmap(ptr, size, nullptr);
+	}
+
+	const void* Mmap(const void* ptr, size_t size, ui32* type)
 	{
 		Impl::CheckAlign(ptr);
 		LoadedScanner s;
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
 		Header header = Impl::ValidateHeader(p, size, ScannerIOTypes::LoadedScanner, sizeof(s.m));
+		if (type) {
+			*type = header.Type;
+		}
 
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
@@ -143,7 +150,9 @@ public:
 		return (const void*) p;
 	}
 
+	void Save(yostream*, ui32 type) const;
 	void Save(yostream*) const;
+	void Load(yistream*, ui32* type);
 	void Load(yistream*);
 
 		template<class Eq>
