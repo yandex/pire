@@ -87,6 +87,8 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 			UNIT_ASSERT_EQUAL(halfFinalSimpleResult, countingResult);
 		}
 		UNIT_ASSERT_EQUAL(countingResult, newResult);
+		auto noGlueLimitResult = Run(Pire::NoGlueLimitCountingScanner{regexpFsm, separatorFsm}, text, len).Result(0);
+		UNIT_ASSERT_EQUAL(countingResult, noGlueLimitResult);
 		return newResult;
 	}
 
@@ -177,7 +179,9 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 		const auto& enc = Pire::Encodings::Latin1();
 		char text[] = "wwwsswwwsssswwws";
 		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www", ".{1,6}", text, sizeof(text), enc), size_t(3));
 		UNIT_ASSERT_EQUAL(CountOne<Pire::AdvancedCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
+		UNIT_ASSERT_EQUAL(CountOne<Pire::NoGlueLimitCountingScanner>("www.{1,6}", "", text, sizeof(text), enc), size_t(3));
 	}
 
 	SIMPLE_UNIT_TEST(CountRepeating)
@@ -202,6 +206,45 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		CountGlueOne<Pire::CountingScanner>();
 		CountGlueOne<Pire::AdvancedCountingScanner>();
+		CountGlueOne<Pire::NoGlueLimitCountingScanner>();
+	}
+
+	template <class Scanner>
+	void CountManyGluesOne(size_t maxRegexps) {
+		const auto& encoding = Pire::Encodings::Utf8();
+		auto text = "abcdbaa aa";
+		TVector<ypair<std::string, std::string>> tasks = {
+			{"a", ".*"},
+			{"b", ".*"},
+			{"c", ".*"},
+			{"ba", ".*"},
+			{"ab",".*"},
+		};
+		TVector<size_t> answers = {5, 2, 1, 1, 1};
+		Scanner scanner;
+		size_t regexpsCount = 0;
+		for (; regexpsCount < maxRegexps; ++regexpsCount) {
+			const auto& task = tasks[regexpsCount % tasks.size()];
+			const auto regexpFsm = MkFsm(task.first.c_str(), encoding);
+			const auto separatorFsm = MkFsm(task.second.c_str(), encoding);
+			Scanner nextScanner(regexpFsm, separatorFsm);
+			auto glue = Scanner::Glue(scanner, nextScanner);
+			if (glue.Empty()) {
+				break;
+			}
+			scanner = std::move(glue);
+		}
+		auto state = Run(scanner, text);
+		for (size_t i = 0; i < regexpsCount; ++i) {
+			UNIT_ASSERT_EQUAL(state.Result(i), answers[i % answers.size()]);
+		}
+	}
+
+	SIMPLE_UNIT_TEST(CountManyGlues)
+	{
+		CountManyGluesOne<Pire::CountingScanner>(20);
+		CountManyGluesOne<Pire::AdvancedCountingScanner>(20);
+		CountManyGluesOne<Pire::NoGlueLimitCountingScanner>(50);
 	}
 
 	template<class Scanner>
@@ -234,6 +277,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		CountBoundariesOne<Pire::CountingScanner>();
 		CountBoundariesOne<Pire::AdvancedCountingScanner>();
+		CountBoundariesOne<Pire::NoGlueLimitCountingScanner>();
 	}
 
 	template<class Scanner>
@@ -284,6 +328,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		SerializationOne<Pire::CountingScanner>();
 		SerializationOne<Pire::AdvancedCountingScanner>();
+		SerializationOne<Pire::NoGlueLimitCountingScanner>();
 	}
 
 	template<class Scanner>
@@ -374,6 +419,42 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		Serialization_v6_compatibilityOne<Pire::CountingScanner>();
 		Serialization_v6_compatibilityOne<Pire::AdvancedCountingScanner>();
+		// NoGlueLimitCountingScanner is not v6_compatible
+	}
+
+	SIMPLE_UNIT_TEST(NoGlueLimitScannerCompatibilityWithAdvancedScanner) {
+		const auto& enc = Pire::Encodings::Latin1();
+		auto sc1 = AdvancedCountingScanner(MkFsm("[a-z]+", enc), MkFsm(".*", enc));
+		auto sc2 = AdvancedCountingScanner(MkFsm("[0-9]+", enc), MkFsm(".*", enc));
+		auto sc = AdvancedCountingScanner::Glue(sc1, sc2);
+
+		BufferOutput wbuf;
+		::Save(&wbuf, sc);
+
+		TVector<char> buf2(wbuf.Buffer().Size());
+		memcpy(buf2.data(), wbuf.Buffer().Data(), wbuf.Buffer().Size());
+
+		// test loading from stream
+		{
+			MemoryInput rbuf(buf2.data(), buf2.size());
+			NoGlueLimitCountingScanner scanner;
+			::Load(&rbuf, scanner);
+			auto state = Run(scanner,
+						 "abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(state.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(state.Result(1), size_t(2));
+		}
+
+		// test loading using Mmap
+		{
+			NoGlueLimitCountingScanner scanner;
+			const void* tail = scanner.Mmap(buf2.data(), buf2.size());
+			UNIT_ASSERT_EQUAL(tail, buf2.data() + buf2.size());
+			auto state = Run(scanner,
+						 "abc defg 123 jklmn 4567 opqrst");
+			UNIT_ASSERT_EQUAL(state.Result(0), size_t(4));
+			UNIT_ASSERT_EQUAL(state.Result(1), size_t(2));
+		}
 	}
 
 	template<class Scanner>
@@ -415,6 +496,7 @@ SIMPLE_UNIT_TEST_SUITE(TestCount) {
 	{
 		EmptyOne<Pire::CountingScanner>();
 		EmptyOne<Pire::AdvancedCountingScanner>();
+		EmptyOne<Pire::NoGlueLimitCountingScanner>();
 	}
 
 	template<typename Scanner>
