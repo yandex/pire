@@ -370,7 +370,10 @@ private:
 public:
 	NoGlueLimitCountingScanner() = default;
 	NoGlueLimitCountingScanner(const Fsm& re, const Fsm& sep, bool* simple = nullptr);
-	NoGlueLimitCountingScanner(const NoGlueLimitCountingScanner& rhs) : BaseCountingScanner(rhs) {
+	NoGlueLimitCountingScanner(const NoGlueLimitCountingScanner& rhs)
+	    : BaseCountingScanner(rhs)
+	    , AdvancedScannerCompatibilityMode(rhs.AdvancedScannerCompatibilityMode)
+	{
 		if (rhs.ActionsBuffer) {
 			Y_ASSERT(rhs.Actions);
 			ActionsBuffer = TActionsBuffer(new ActionIndex [*rhs.Actions]);
