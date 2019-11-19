@@ -25,6 +25,7 @@ libpire_la_SOURCES = \
 	fsm.h \
 	fwd.h \
 	glue.h \
+	minimize.h \
 	half_final_fsm.cpp \
 	half_final_fsm.h \
 	partition.h \
@@ -82,6 +83,7 @@ pire_hdr_HEADERS = \
 	fsm.h \
 	fwd.h \
 	glue.h \
+	minimize.h \
 	half_final_fsm.h \
 	partition.h \
 	pire.h \

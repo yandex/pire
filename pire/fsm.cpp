@@ -33,6 +33,7 @@
 #include "vbitset.h"
 #include "partition.h"
 #include "determine.h"
+#include "minimize.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -289,7 +290,7 @@ Fsm& Fsm::Append(char c)
 	determined = false;
     return *this;
 }
-    
+
 Fsm& Fsm::Append(const ystring& str)
 {
     for (auto&& i : str)
@@ -1034,15 +1035,44 @@ bool Fsm::Determine(size_t maxsize /* = 0 */)
 namespace Impl {
 class FsmMinimizeTask {
 public:
-	typedef Fsm::LettersTbl LettersTbl;
-	typedef Partition<size_t, MinimizeEquality<FsmMinimizeTask>> StateClasses;
-
 	explicit FsmMinimizeTask(const Fsm& fsm)
 		: mFsm(fsm)
-	{}
+		, reversedTransitions(fsm.Size())
+		, StateClass(fsm.Size())
+		, Classes(fsm.Size() ? 1 : 0)
+	{
+		Y_ASSERT(mFsm.IsDetermined());
 
-	const LettersTbl& Letters() const {
-		return mFsm.Letters();
+		for (size_t state = 0; state < mFsm.Size(); ++state) {
+			reversedTransitions[state].resize(mFsm.Letters().Size());
+			if (mFsm.IsFinal(state)) {
+				StateClass[state] = 0;
+			} else {
+				StateClass[state] = 1;
+				Classes = 2;
+			}
+		}
+
+		for (size_t state = 0; state < mFsm.Size(); ++state) {
+			TSet<ypair<Char, size_t>> usedTransitions;
+			for (const auto& transition : mFsm.m_transitions[state]) {
+				Y_ASSERT(transition.second.size() == 1);
+				auto destination = *transition.second.begin();
+				auto letter = mFsm.Letters().Index(transition.first);
+				if (usedTransitions.find(ymake_pair(letter, destination)) == usedTransitions.end()) {
+					usedTransitions.insert(ymake_pair(letter, destination));
+					reversedTransitions[destination][letter].push_back(state);
+				}
+			}
+		}
+	}
+
+	TVector<size_t>& GetStateClass() { return StateClass; }
+
+	size_t& GetClassesNumber() { return Classes; }
+
+	size_t LettersCount() const {
+		return mFsm.Letters().Size();
 	}
 
 	bool IsDetermined() const {
@@ -1053,14 +1083,12 @@ public:
 		return mFsm.Size();
 	}
 
-	size_t Next(size_t state, Char letter) const {
-		const Fsm::StatesSet& tos = mFsm.Destinations(state, letter);
-		Y_ASSERT(tos.size() == 1);
-		return *tos.begin();
+	const TVector<size_t>& Previous(size_t state, size_t letter) const {
+		return reversedTransitions[state][letter];
 	}
 
-	void AcceptPartition(const StateClasses& partition) {
-		mNewFsm.Resize(partition.Size());
+	void AcceptStates() {
+		mNewFsm.Resize(Classes);
 		mNewFsm.letters = mFsm.letters;
 		mNewFsm.determined = mFsm.determined;
 		mNewFsm.m_sparsed = mFsm.m_sparsed;
@@ -1069,11 +1097,11 @@ public:
 		// Unite equality classes into new states
 		size_t fromIdx = 0;
 		for (auto from = mFsm.m_transitions.begin(), fromEnd = mFsm.m_transitions.end(); from != fromEnd; ++from, ++fromIdx) {
-			size_t dest = partition.Index(fromIdx);
+			size_t dest = StateClass[fromIdx];
 			PIRE_IFDEBUG(Cdbg << "[min] State " << fromIdx << " becomes state " << dest << Endl);
 			for (auto&& letter : *from) {
 				Y_ASSERT(letter.second.size() == 1 || !"FSM::minimize(): FSM not deterministic");
-				mNewFsm.Connect(dest, partition.Index(*letter.second.begin()), letter.first);
+				mNewFsm.Connect(dest, StateClass[*letter.second.begin()], letter.first);
 			}
 			if (mFsm.IsFinal(fromIdx)) {
 				mNewFsm.SetFinal(dest, true);
@@ -1087,20 +1115,12 @@ public:
 				PIRE_IFDEBUG(Cdbg << "[min] New state " << dest << " carries tag " << ti->second << " because of old state " << fromIdx << Endl);
 			}
 		}
-		mNewFsm.initial = partition.Representative(mFsm.initial);
+		mNewFsm.initial = StateClass[mFsm.initial];
 
 		// Restore outputs
 		for (auto&& output : mFsm.outputs)
 			for (auto&& output2 : output.second)
-				mNewFsm.outputs[partition.Index(output.first)].insert(ymake_pair(partition.Index(output2.first), output2.second));
-	}
-
-	void Connect(size_t from, size_t to, Char letter) {
-		mNewFsm.Connect(from, to, letter);
-	}
-
-	bool SameClasses(size_t first, size_t second) const {
-		return mFsm.IsFinal(first) == mFsm.IsFinal(second);
+				mNewFsm.outputs[StateClass[output.first]].insert(ymake_pair(StateClass[output2.first], output2.second));
 	}
 
 	typedef bool Result;
@@ -1120,6 +1140,9 @@ public:
 private:
 	const Fsm& mFsm;
 	Fsm mNewFsm;
+	TVector<TVector<TVector<size_t>>> reversedTransitions;
+	TVector<size_t> StateClass;
+	size_t Classes;
 };
 }
 

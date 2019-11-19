@@ -1011,7 +1011,7 @@ public:
 	using Base::Rhs;
 	using Base::Sc;
 	using Base::Letters;
-    
+
 	typedef GluedStateLookupTable<256*1024, typename Scanner::State> InvStates;
 	
 	ScannerGlueTask(const Scanner& lhs, const Scanner& rhs)
@@ -1048,7 +1048,7 @@ public:
 		return Sc();
 	}
 	
-private:    
+private:
 	template<class Iter>
 	size_t RangeLen(ypair<Iter, Iter> range) const
 	{

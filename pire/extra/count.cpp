@@ -24,8 +24,10 @@
 #include "count.h"
 #include "../fsm.h"
 #include "../determine.h"
+#include "../minimize.h"
 #include "../glue.h"
 #include "../stub/lexical_cast.h"
+#include "../stub/stl.h"
 #include <tuple>
 
 namespace Pire {
@@ -148,17 +150,61 @@ private:
 	TransitionTagTable mNewActions;
 };
 
+class StateLessForMinimize {
+public:
+	StateLessForMinimize(const CountingFsm& fsm) : mFsm(fsm) {}
+
+	bool operator()(size_t first, size_t second) const {
+		for (auto&& lettersEl : mFsm.Letters()) {
+			const auto letter = lettersEl.first;
+			if (mFsm.Output(first, letter) != mFsm.Output(second, letter)) {
+				return mFsm.Output(first, letter) < mFsm.Output(second, letter);
+			}
+		}
+		return false;
+	}
+
+private:
+	const CountingFsm& mFsm;
+};
+
+
 class CountingFsmMinimizeTask : public CountingFsmTask {
 public:
-	using CountingFsmTask::LettersTbl;
-	typedef Partition<size_t, MinimizeEquality<CountingFsmMinimizeTask>> StateClasses;
-
 	explicit CountingFsmMinimizeTask(const CountingFsm& fsm)
 		: mFsm(fsm)
-	{}
+		, reversedTransitions(fsm.Determined().Size())
+		, StateClass(fsm.Determined().Size())
+		, Classes(0)
+	{
+		TMap<size_t, size_t, StateLessForMinimize> stateClassMap = TMap<size_t, size_t, StateLessForMinimize>(StateLessForMinimize(mFsm));
+		for (size_t state = 0; state < mFsm.Determined().Size(); ++state) {
+			if (stateClassMap.find(state) == stateClassMap.end()) {
+				stateClassMap[state] = Classes++;
+			}
+			StateClass[state] = stateClassMap[state];
+			reversedTransitions[state].resize(mFsm.Letters().Size());
+		}
 
-	const LettersTbl& Letters() const {
-		return mFsm.Letters();
+		for (size_t state = 0; state < mFsm.Determined().Size(); ++state) {
+			TSet<ypair<Char, size_t>> usedTransitions;
+			for (const auto& letter : mFsm.Letters()) {
+				const auto destination = Next(state, letter.first);
+				const auto letterId = letter.second.first;
+				if (usedTransitions.find(ymake_pair(letterId, destination)) == usedTransitions.end()) {
+					usedTransitions.insert(ymake_pair(letterId, destination));
+					reversedTransitions[destination][letterId].push_back(state);
+				}
+			}
+		}
+	}
+
+	TVector<size_t>& GetStateClass() { return StateClass; }
+
+	size_t& GetClassesNumber() { return Classes; }
+
+	size_t LettersCount() const {
+		return mFsm.Letters().Size();
 	}
 
 	bool IsDetermined() const {
@@ -169,25 +215,23 @@ public:
 		return mFsm.Determined().Size();
 	}
 
-	size_t Next(size_t state, Char letter) const {
-		const auto& tos = mFsm.Determined().Destinations(state, letter);
-		Y_ASSERT(tos.size() == 1);
-		return *tos.begin();
+	const TVector<size_t>& Previous(size_t state, size_t letter) const {
+		return reversedTransitions[state][letter];
 	}
 
-	void AcceptPartition(const StateClasses& partition) {
-		ResizeOutput(partition.Size());
+	void AcceptStates() {
+		ResizeOutput(Classes);
 		auto& newFsm = Output();
 		auto& newActions = Actions();
 		newFsm.SetFinal(0, false);
 
 		// Unite equality classes into new states
 		for (size_t from = 0; from != Size(); ++from) {
-			const auto fromMinimized = partition.Index(from);
-			for (auto&& letter : Letters()) {
+			const auto fromMinimized = StateClass[from];
+			for (auto&& letter : mFsm.Letters()) {
 				const auto representative = letter.first;
 				const auto next = Next(from, representative);
-				const auto nextMinimized = partition.Index(next);
+				const auto nextMinimized = StateClass[next];
 				Connect(fromMinimized, nextMinimized, representative);
 				const auto outputs = mFsm.Output(from, representative);
 				if (outputs) {
@@ -198,23 +242,21 @@ public:
 				newFsm.SetFinal(fromMinimized, true);
 			}
 		}
-
-		newFsm.SetInitial(0);
+		newFsm.SetInitial(StateClass[mFsm.Determined().Initial()]);
 		newFsm.SetIsDetermined(true);
-	}
-
-	bool SameClasses(size_t first, size_t second) const {
-		for (auto&& lettersEl : Letters()) {
-			const auto letter = lettersEl.first;
-			if (mFsm.Output(first, letter) != mFsm.Output(second, letter)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 private:
 	const CountingFsm& mFsm;
+	TVector<TVector<TVector<size_t>>> reversedTransitions;
+	TVector<size_t> StateClass;
+	size_t Classes;
+
+	size_t Next(size_t state, Char letter) const {
+		const auto& tos = mFsm.Determined().Destinations(state, letter);
+		Y_ASSERT(tos.size() == 1);
+		return *tos.begin();
+	}
 };
 
 typedef size_t RawState;
