@@ -1039,18 +1039,18 @@ public:
 		: mFsm(fsm)
 		, reversedTransitions(fsm.Size())
 		, StateClass(fsm.Size())
-		, Classes(fsm.Size() ? 1 : 0)
+		, Classes(0)
 	{
 		Y_ASSERT(mFsm.IsDetermined());
 
+		TMap<bool, size_t> FinalStateClassMap;
+
 		for (size_t state = 0; state < mFsm.Size(); ++state) {
 			reversedTransitions[state].resize(mFsm.Letters().Size());
-			if (mFsm.IsFinal(state)) {
-				StateClass[state] = 0;
-			} else {
-				StateClass[state] = 1;
-				Classes = 2;
+			if (FinalStateClassMap.find(mFsm.IsFinal(state)) == FinalStateClassMap.end()) {
+				FinalStateClassMap[mFsm.IsFinal(state)] = Classes++;
 			}
+			StateClass[state] = FinalStateClassMap[mFsm.IsFinal(state)];
 		}
 
 		for (size_t state = 0; state < mFsm.Size(); ++state) {
