@@ -138,44 +138,6 @@ namespace Pire {
 
 		// Faster transition table representation for determined FSM
 		typedef TVector<size_t> DeterminedTransitions;
-
-		// Mapping of states into partitions in minimization algorithm.
-		typedef TVector<size_t> StateClassMap;
-
-		template<class Task>
-		struct MinimizeEquality : public ybinary_function<size_t, size_t, bool> {
-		public:
-
-			MinimizeEquality(const DeterminedTransitions& tbl, const TVector<Char>& letters, const StateClassMap* clMap, const Task* task) :
-				m_tbl(&tbl), m_letters(&letters), m_prev(clMap), m_task(task) {}
-
-			inline bool operator()(size_t a, size_t b) const
-			{
-				if (m_task) {
-					if (!m_task->SameClasses(a, b)) {
-						return false;
-					}
-				}
-				if (m_prev) {
-					if ((*m_prev)[a] != (*m_prev)[b])
-						return false;
-					for (auto&& letter : *m_letters)
-						if ((*m_prev)[Next(a, letter)] != (*m_prev)[Next(b, letter)])
-							return false;
-				}
-				return true;
-			};
-
-		private:
-			const DeterminedTransitions* m_tbl;
-			const TVector<Char>* m_letters;
-			const StateClassMap* m_prev;
-			const Task* m_task;
-
-			size_t Next(size_t state, Char letter) const {
-				return (*m_tbl)[state * MaxChar + letter];
-			}
-		};
 	}
 }
 

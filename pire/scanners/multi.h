@@ -37,7 +37,6 @@
 #include "../platform.h"
 #include "../glue.h"
 #include "../determine.h"
-#include "../minimize.h"
 
 namespace Pire {
 
@@ -49,12 +48,6 @@ namespace Impl {
 
 	template<class T>
 	class ScannerGlueTask;
-
-	template<class T>
-	class ScannerMinimizeTask;
-
-	template<class T>
-	class ScannerLettersEquality;
 
 	// This strategy allows to mmap() saved representation of a scanner. This is achieved by
 	// storing shifts instead of addresses in the transition table.
@@ -210,6 +203,12 @@ public:
 		}
 	}
 
+	Scanner(Scanner&& s)
+	{
+		Alias(Null());
+		Swap(s);
+	}
+
 	template<class AnotherRelocation>
 	Scanner(const Scanner<AnotherRelocation, Shortcutting>& s)
 	{
@@ -248,7 +247,7 @@ public:
 		Scanner s;
 
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
-		Impl::ValidateHeader(p, size, 1, sizeof(m));
+		Impl::ValidateHeader(p, size, ScannerIOTypes::Scanner, sizeof(m));
 		if (size < sizeof(s.m))
 			throw Error("EOF reached while mapping Pire::Scanner");
 
@@ -311,7 +310,7 @@ public:
 	ScannerRowHeader& Header(State s) { return *(ScannerRowHeader*) s; }
 	const ScannerRowHeader& Header(State s) const { return *(const ScannerRowHeader*) s; }
 
-private:
+protected:
 
 	struct Locals {
 		ui32 statesCount;
@@ -543,8 +542,6 @@ private:
 	typedef State InternalState; // Needed for agglutination
 	friend class ScannerGlueCommon<Scanner>;
 	friend class ScannerGlueTask<Scanner>;
-	friend class ScannerMinimizeTask<Scanner>;
-	friend class ScannerLettersEquality<Scanner>;
 
 	template<class AnotherRelocation, class AnotherShortcutting>
 	friend class Scanner;
@@ -565,7 +562,7 @@ struct ScannerSaver {
 
 		typename ScannerType::Locals mc = scanner.m;
 		mc.initial -= reinterpret_cast<size_t>(scanner.m_transitions);
-		SavePodType(s, Pire::Header(1, sizeof(mc)));
+		SavePodType(s, Pire::Header(ScannerIOTypes::Scanner, sizeof(mc)));
 		Impl::AlignSave(s, sizeof(Pire::Header));
 		SavePodType(s, mc);
 		Impl::AlignSave(s, sizeof(mc));
@@ -581,7 +578,7 @@ struct ScannerSaver {
 		typedef Scanner<Relocatable, Shortcutting> ScannerType;
 
 		Scanner<Relocatable, Shortcutting> sc;
-		Impl::ValidateHeader(s, 1, sizeof(sc.m));
+		Impl::ValidateHeader(s, ScannerIOTypes::Scanner, sizeof(sc.m));
 		LoadPodType(s, sc.m);
 		Impl::AlignLoad(s, sizeof(sc.m));
 		if (Shortcutting::Signature != sc.m.shortcuttingSignature)
@@ -1050,20 +1047,20 @@ public:
 		Sc().BuildShortcuts();
 		return Sc();
 	}
-
-	template<class Iter, class OutIter>
-	static OutIter Shift(ypair<Iter, Iter> range, size_t shift, OutIter out)
-	{
-		for (; range.first != range.second; ++range.first, ++out)
-			*out = *range.first + shift;
-		return out;
-	}
 	
 private:
 	template<class Iter>
 	size_t RangeLen(ypair<Iter, Iter> range) const
 	{
 		return std::distance(range.first, range.second);
+	}
+
+	template<class Iter, class OutIter>
+	OutIter Shift(ypair<Iter, Iter> range, size_t shift, OutIter out) const
+	{
+		for (; range.first != range.second; ++range.first, ++out)
+			*out = *range.first + shift;
+		return out;
 	}
 };
 
@@ -1127,11 +1124,11 @@ typedef Impl::Scanner<Impl::Nonrelocatable, Impl::NoShortcuts> NonrelocScannerNo
 }
 
 namespace std {
-	inline void swap(Pire::Scanner& a, Pire::Scanner b) {
+	inline void swap(Pire::Scanner& a, Pire::Scanner& b) {
 		a.Swap(b);
 	}
 
-	inline void swap(Pire::NonrelocScanner& a, Pire::NonrelocScanner b) {
+	inline void swap(Pire::NonrelocScanner& a, Pire::NonrelocScanner& b) {
 		a.Swap(b);
 	}
 }

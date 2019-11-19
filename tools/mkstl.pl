@@ -86,7 +86,6 @@ print <<EOF;
 #include <list>
 #include <map>
 #include <set>
-#include <unordered_map>
 #include <bitset>
 #include <utility>
 #include <memory>
@@ -116,7 +115,6 @@ print_def 'TDeque',    'std::deque',     'class T', 'class A = std::allocator<T>
 print_def 'TList',     'std::list',      'class T', 'class A = std::allocator<T>';
 print_def 'TMap',      'std::map',       'class K', 'class V', 'class C = std::less<K>', 'class A = std::allocator< std::pair<const K, V> >';
 print_def 'TSet',      'std::set',       'class T', 'class C = std::less<T>', 'class A = std::allocator<T>';
-print_def 'THashMap',  'std::unordered_map', 'class K', 'class V', 'class H = std::hash<K>', 'class E = std::equal_to<K>', 'class A = std::allocator< std::pair<const K, V> >';
 
 print_def 'ybitset',   'std::bitset',    'size_t N';
 print_def 'ypair',     'std::pair',      'class A', 'class B';

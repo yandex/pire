@@ -278,7 +278,7 @@ Fsm& Fsm::AppendDot()
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
-	return *this;
+    return *this;
 }
 
 Fsm& Fsm::Append(char c)
@@ -288,14 +288,14 @@ Fsm& Fsm::Append(char c)
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
-	return *this;
+    return *this;
 }
 
 Fsm& Fsm::Append(const ystring& str)
 {
-	for (auto&& i : str)
-		Append(i);
-	return *this;
+    for (auto&& i : str)
+        Append(i);
+    return *this;
 }
 
 Fsm& Fsm::AppendSpecial(Char c)
@@ -305,7 +305,7 @@ Fsm& Fsm::AppendSpecial(Char c)
 	ClearFinal();
 	SetFinal(Size() - 1, true);
 	determined = false;
-	return *this;
+    return *this;
 }
 
 Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
@@ -372,7 +372,7 @@ Fsm& Fsm::AppendStrings(const TVector<ystring>& strings)
 
 	ClearFinal();
 	SetFinal(end, true);
-	return *this;
+    return *this;
 }
 
 void Fsm::Import(const Fsm& rhs)
@@ -908,7 +908,7 @@ public:
 		std::sort(next.begin(), next.end());
 		next.erase(std::unique(next.begin(), next.end()), next.end());
 		PIRE_IFDEBUG(Cdbg << "Returning transition [" << Join(state.begin(), state.end(), ", ") << "] --" << letter
-						  << "--> [" << Join(next.begin(), next.end(), ", ") << "]" << Endl);
+		                  << "--> [" << Join(next.begin(), next.end(), ", ") << "]" << Endl);
 		return next;
 	}
 	

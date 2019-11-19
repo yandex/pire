@@ -80,7 +80,7 @@ public:
 
 	size_t GetLettersCount() const {return m.lettersCount; };
 
-	size_t Size() const { GetSize(); }
+	size_t Size() const { return GetSize(); }
 	size_t GetSize() const { return m.statesCount; }
 	bool Empty() const { return m_finals == Null().m_finals; }
 	
@@ -176,7 +176,7 @@ public:
 		SlowScanner s;
 		const size_t* p = reinterpret_cast<const size_t*>(ptr);
 
-		Impl::ValidateHeader(p, size, 3, sizeof(s.m));
+		Impl::ValidateHeader(p, size, ScannerIOTypes::SlowScanner, sizeof(s.m));
 		Locals* locals;
 		Impl::MapPtr(locals, 1, p, size);
 		memcpy(&s.m, locals, sizeof(s.m));

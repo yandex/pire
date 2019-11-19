@@ -125,7 +125,7 @@ namespace Pire {
 					for (const auto state : classStates[splittedClass]) {
 						if (stateClass[state] == splittedClass) {
 							*iter = state;
-							iter++;
+							++iter;
 						}
 					}
 					classStates[splittedClass].erase(iter, classStates[splittedClass].end());

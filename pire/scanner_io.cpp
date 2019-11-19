@@ -23,6 +23,7 @@
 
 #include "stub/stl.h"
 #include "stub/saveload.h"
+#include "scanners/common.h"
 #include "scanners/slow.h"
 #include "scanners/simple.h"
 #include "scanners/loaded.h"
@@ -33,7 +34,7 @@ namespace Pire {
 	
 void SimpleScanner::Save(yostream* s) const
 {
-	SavePodType(s, Header(2, sizeof(m)));
+	SavePodType(s, Header(ScannerIOTypes::SimpleScanner, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	Locals mc = m;
 	mc.initial -= reinterpret_cast<size_t>(m_transitions);
@@ -50,7 +51,7 @@ void SimpleScanner::Save(yostream* s) const
 void SimpleScanner::Load(yistream* s)
 {
 	SimpleScanner sc;
-	Impl::ValidateHeader(s, 2, sizeof(sc.m));
+	Impl::ValidateHeader(s, ScannerIOTypes::SimpleScanner, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	bool empty;
@@ -69,7 +70,7 @@ void SimpleScanner::Load(yistream* s)
 
 void SlowScanner::Save(yostream* s) const
 {
-	SavePodType(s, Header(3, sizeof(m)));
+	SavePodType(s, Header(ScannerIOTypes::SlowScanner, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	SavePodType(s, m);
 	Impl::AlignSave(s, sizeof(m));
@@ -111,7 +112,7 @@ void SlowScanner::Save(yostream* s) const
 void SlowScanner::Load(yistream* s)
 {
 	SlowScanner sc;
-	Impl::ValidateHeader(s, 3, sizeof(sc.m));
+	Impl::ValidateHeader(s, ScannerIOTypes::SlowScanner, sizeof(sc.m));
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	bool empty;
@@ -168,9 +169,14 @@ void SlowScanner::Load(yistream* s)
 	Swap(sc);
 }
 
-void LoadedScanner::Save(yostream* s) const
+void LoadedScanner::Save(yostream* s) const {
+	Save(s, ScannerIOTypes::LoadedScanner);
+}
+
+void LoadedScanner::Save(yostream* s, ui32 type) const
 {
-	SavePodType(s, Header(4, sizeof(m)));
+	Y_ASSERT(type == ScannerIOTypes::LoadedScanner || type == ScannerIOTypes::NoGlueLimitCountingScanner);
+	SavePodType(s, Header(type, sizeof(m)));
 	Impl::AlignSave(s, sizeof(Header));
 	Locals mc = m;
 	mc.initial -= reinterpret_cast<size_t>(m_jumps);
@@ -182,10 +188,17 @@ void LoadedScanner::Save(yostream* s) const
 	Impl::AlignedSaveArray(s, m_tags, m.statesCount);
 }
 
-void LoadedScanner::Load(yistream* s)
+void LoadedScanner::Load(yistream* s) {
+	Load(s, nullptr);
+}
+
+void LoadedScanner::Load(yistream* s, ui32* type)
 {
 	LoadedScanner sc;
-	Header header = Impl::ValidateHeader(s, 4, sizeof(sc.m));
+	Header header = Impl::ValidateHeader(s, ScannerIOTypes::LoadedScanner, sizeof(sc.m));
+	if (type) {
+		*type = header.Type;
+	}
 	LoadPodType(s, sc.m);
 	Impl::AlignLoad(s, sizeof(sc.m));
 	sc.m_buffer = BufferType(new char[sc.BufSize()]);
