@@ -24,6 +24,7 @@
 #ifndef PIRE_SCANNERS_MULTI_H
 #define PIRE_SCANNERS_MULTI_H
 
+#include <cstring>
 #include <string.h>
 #include "common.h"
 #include "../approx_matching.h"
@@ -353,6 +354,7 @@ protected:
 	template<class Eq>
 	void Init(size_t states, const Partition<Char, Eq>& letters, size_t finalStatesCount, size_t startState, size_t regexpsCount = 1)
 	{
+		std::memset(&m, 0, sizeof(m));
 		m.relocationSignature = Relocation::Signature;
 		m.shortcuttingSignature = Shortcutting::Signature;
 		m.statesCount = states;
