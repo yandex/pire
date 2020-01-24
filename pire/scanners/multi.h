@@ -414,6 +414,7 @@ protected:
 		m.relocationSignature = Relocation::Signature;
 		m.shortcuttingSignature = Shortcutting::Signature;
 		m_buffer = BufferType(new char[BufSize() + sizeof(size_t)]);
+		std::memset(m_buffer.get(), 0, BufSize() + sizeof(size_t));
 		Markup(AlignUp(m_buffer.get(), sizeof(size_t)));
 
 		// Values in letter-to-leterclass table take into account row header size
