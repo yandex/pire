@@ -231,7 +231,6 @@ public:
 		DoSwap(m_letters, s.m_letters);
 		DoSwap(m.finalTableSize, s.m.finalTableSize);
 		DoSwap(m_final, s.m_final);
-		DoSwap(m_finalEnd, s.m_finalEnd);
 		DoSwap(m_finalIndex, s.m_finalIndex);
 		DoSwap(m_transitions, s.m_transitions);
 	}
@@ -328,7 +327,6 @@ protected:
 	Letter* m_letters;
 
 	size_t* m_final;
-	size_t* m_finalEnd;
 	size_t* m_finalIndex;
 
 	Transition* m_transitions;
@@ -365,7 +363,6 @@ protected:
 		m_buffer = BufferType(new char[BufSize() + sizeof(size_t)]);
 		memset(m_buffer.get(), 0, BufSize() + sizeof(size_t));
 		Markup(AlignUp(m_buffer.get(), sizeof(size_t)));
-		m_finalEnd = m_final;
 
 		for (size_t i = 0; i != Size(); ++i)
 			Header(IndexToState(i)) = ScannerRowHeader();
@@ -427,7 +424,6 @@ protected:
 		memcpy(m_finalIndex, s.m_finalIndex, m.statesCount * sizeof(*m_finalIndex));
 
 		m.initial = IndexToState(s.StateIndex(s.m.initial));
-		m_finalEnd = m_final + (s.m_finalEnd - s.m_final);
 
 		for (size_t st = 0; st != m.statesCount; ++st) {
 			size_t oldstate = s.IndexToState(st);
@@ -521,11 +517,12 @@ protected:
 	void FinishBuild()
 	{
 		Y_ASSERT(m_buffer);
+		auto m_finalWriter = m_final;
 		for (size_t state = 0; state != Size(); ++state) {
-			m_finalIndex[state] = m_finalEnd - m_final;
+			m_finalIndex[state] = m_finalWriter - m_final;
 			if (Header(IndexToState(state)).Common.Flags & FinalFlag)
-				*m_finalEnd++ = 0;
-			*m_finalEnd++ = static_cast<size_t>(-1);
+				*m_finalWriter++ = 0;
+			*m_finalWriter++ = static_cast<size_t>(-1);
 		}
 		BuildShortcuts();
 	}
@@ -1031,12 +1028,13 @@ public:
 			finalTableSize += RangeLen(Lhs().AcceptedRegexps(i.first)) + RangeLen(Rhs().AcceptedRegexps(i.second));
 		this->SetSc(std::unique_ptr<Scanner>(new Scanner));
 		Sc().Init(states.size(), Letters(), finalTableSize, size_t(0), Lhs().RegexpsCount() + Rhs().RegexpsCount());
-				
+
+		auto m_finalWriter = Sc().m_final;
 		for (size_t state = 0; state != states.size(); ++state) {
-			Sc().m_finalIndex[state] = Sc().m_finalEnd - Sc().m_final;
-			Sc().m_finalEnd = Shift(Lhs().AcceptedRegexps(states[state].first), 0, Sc().m_finalEnd);
-			Sc().m_finalEnd = Shift(Rhs().AcceptedRegexps(states[state].second), Lhs().RegexpsCount(), Sc().m_finalEnd);
-			*Sc().m_finalEnd++ = static_cast<size_t>(-1);
+			Sc().m_finalIndex[state] = m_finalWriter - Sc().m_final;
+			m_finalWriter = Shift(Lhs().AcceptedRegexps(states[state].first), 0, m_finalWriter);
+			m_finalWriter = Shift(Rhs().AcceptedRegexps(states[state].second), Lhs().RegexpsCount(), m_finalWriter);
+			*m_finalWriter++ = static_cast<size_t>(-1);
 			
 			Sc().SetTag(state, ((Lhs().Final(states[state].first) || Rhs().Final(states[state].second)) ? Scanner::FinalFlag : 0)
 				| ((Lhs().Dead(states[state].first) && Rhs().Dead(states[state].second)) ? Scanner::DeadFlag : 0));

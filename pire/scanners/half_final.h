@@ -215,13 +215,13 @@ private:
 	void BuildFinals(const HalfFinalFsm& fsm) {
 		Y_ASSERT(Scanner::m_buffer);
 		Y_ASSERT(fsm.GetFsm().Size() == Scanner::Size());
-		Scanner::m_finalEnd = Scanner::m_final;
+		auto m_finalWriter = Scanner::m_final;
 		for (size_t state = 0; state < Scanner::Size(); ++state) {
-			Scanner::m_finalIndex[state] = Scanner::m_finalEnd - Scanner::m_final;
+			Scanner::m_finalIndex[state] = m_finalWriter - Scanner::m_final;
 			for (size_t i = 0; i < fsm.GetCount(state); i++) {
-				*Scanner::m_finalEnd++ = 0;
+				*m_finalWriter++ = 0;
 			}
-			*Scanner::m_finalEnd++ = static_cast<size_t>(-1);
+			*m_finalWriter++ = static_cast<size_t>(-1);
 		}
 	}
 
