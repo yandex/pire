@@ -75,6 +75,8 @@ void AppendRange(const Encoding& encoding, Fsm& a, const Term::CharacterRange& c
 %term YRE_AND
 %term YRE_NOT
 
+%destructor { delete $$; } <>
+
 %%
 
 regexp
@@ -83,22 +85,23 @@ regexp
 			ConvertToFSM(rlex.Encoding(), $1);
 			DoSwap(rlex.Retval(), *$1);
 			delete $1;
+			$$ = nullptr;
 		}
 	;
 
 alternative
 	: conjunction
-	| alternative '|' conjunction { ConvertToFSM(rlex.Encoding(), ($$ = $1)) |= ConvertToFSM(rlex.Encoding(), $3); delete $3; }
+	| alternative '|' conjunction { ConvertToFSM(rlex.Encoding(), ($$ = $1)) |= ConvertToFSM(rlex.Encoding(), $3); delete $2; delete $3; }
 	;
 
 conjunction
 	: negation
-	| conjunction YRE_AND negation { ConvertToFSM(rlex.Encoding(), ($$ = $1)) &= ConvertToFSM(rlex.Encoding(), $3); delete $3; }
+	| conjunction YRE_AND negation { ConvertToFSM(rlex.Encoding(), ($$ = $1)) &= ConvertToFSM(rlex.Encoding(), $3); delete $2; delete $3; }
 	;
 
 negation
 	: concatenation
-	| YRE_NOT concatenation { ConvertToFSM(rlex.Encoding(), ($$ = $2)).Complement(); }
+	| YRE_NOT concatenation { ConvertToFSM(rlex.Encoding(), ($$ = $2)).Complement(); delete $1; }
 	;
 
 concatenation
@@ -152,7 +155,7 @@ term
 	| YRE_DOT
 	| '^'
 	| '$'
-	| '(' alternative ')'      { $$ = $2; rlex.Parenthesized($$->As<Fsm>()); }
+	| '(' alternative ')'      { $$ = $2; rlex.Parenthesized($$->As<Fsm>()); delete $1; delete $3; }
 	;
 
 %%
@@ -163,6 +166,8 @@ int yylex(YYSTYPE* lval, Pire::Lexer& rlex)
 		Pire::Term term = rlex.Lex();
 		if (!term.Value().Empty())
 			*lval = new Any(term.Value());
+		else
+			*lval = nullptr;
 		return term.Type();
 	} catch (Pire::Error &e) {
 		rlex.SetErrMsg(e.what());
