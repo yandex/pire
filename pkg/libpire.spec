@@ -1,7 +1,7 @@
 %define pkgname libpire
 
 Name: libpire
-Version: 0.0.5
+Version: 0.0.6
 Release: my1
 
 Summary: Perl Incompatible Regular Expressions library
@@ -10,7 +10,7 @@ Group: System/Libraries
 Url: http://wiki.yandex-team.ru/DmitrijjProkopcev/pire
 Packager: Dmitry Prokoptsev <dprokoptsev@yandex-team.ru>
 
-Source: pire-0.0.5.tar.gz
+Source: pire-0.0.6.tar.gz
 
 Provides: libpire = %version-%release
 
@@ -63,6 +63,24 @@ programs which use %pkgname.
 %_libdir/libpire.a
 
 %changelog
+* Tue May 12 2020 Sergey Galtsev <galtsev@yandex-team.ru> 0.0.6-my1
+- Add support for matching within a given Levenshtein distance.
+- Add AdvancedCountingScanner as a much more accurate alternative to CountingScanner.
+- Add SlowCapturingScanner.
+- Add HalfFinal multiscanner.
+- Add NoGlueLimitCountScanner.
+- Add support for unicode escape sequences.
+- Reduce memory usage of scanners.
+- Use smart-pointers and containers instead of manual memory management.
+- Use Hopcroft algorithm for minimization of Fsm and glued scanners.
+- Lexer: fix Parse() memleaks on invalid regexps.
+- Fix possible invalid read in DoRun.
+- Make serialization of scanners stable.
+- CountingScanner: increase RE count from 4 to 16
+- Lots of small fixes.
+- Lots of style improvements, including C++11 updates.
+- Add a second license - MIT.
+
 * Fri Nov 08 2013 Dmitry Prokoptsev <dprokoptsev@yandex-team.ru> 0.0.5-my1
 - Fixed lots of compatibility issues (clang, libc++,
   older & newer autotools, older & newer bison, etc...)

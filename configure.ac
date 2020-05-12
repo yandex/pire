@@ -1,5 +1,5 @@
 AC_PREREQ([2.60])
-AC_INIT([pire], [0.0.5], [dprokoptsev@yandex-team.ru])
+AC_INIT([pire], [0.0.6], [galtsev@yandex-team.ru])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_CONFIG_SRCDIR([pire/classes.cpp])
 AC_CONFIG_HEADERS([config.h.in])
