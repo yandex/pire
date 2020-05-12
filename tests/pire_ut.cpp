@@ -322,44 +322,154 @@ namespace {
 		const char* end = Pire::ShortestPrefix(sc, str, str + strlen(str));
 		return end ? end - str : -1;
 	}
+
+	ssize_t LongestSuffixLen(const char* pattern, const char* str)
+	{
+		Pire::Scanner sc = Pire::Lexer(pattern).Parse().Compile<Pire::Scanner>();
+		const char* rbegin = str + strlen(str) - 1;
+		const char* rend = Pire::LongestSuffix(sc, rbegin, str - 1);
+		return rend ? rbegin - rend : -1;
+	}
+
+	ssize_t ShortestSuffixLen(const char* pattern, const char* str)
+	{
+		Pire::Scanner sc = Pire::Lexer(pattern).Parse().Compile<Pire::Scanner>();
+		const char* rbegin = str + strlen(str) - 1;
+		const char* rend = Pire::ShortestSuffix(sc, rbegin, str - 1);
+		return rend ? rbegin - rend : -1;
+	}
 }
 
 SIMPLE_UNIT_TEST(ScanBoundaries)
 {
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("fixed", "fixed prefix"), ssize_t(5));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("fixed", "a fixed nonexistent prefix"), ssize_t(-1));
+	struct Case {
+		ystring pattern;
+		ystring text;
+		ssize_t shortestPrefixLen;
+		ssize_t longestPrefixLen;
+	};
+	TVector<Case> cases = {
+		{
+			"a*",
+			"",
+			0,
+			0,
+		},
+		{
+			"a",
+			"",
+			-1,
+			-1,
+		},
+		{
+			"fixed",
+			"fixed prefix",
+			5,
+			5,
+		},
+		{
+			"fixed",
+			"a fixed nonexistent prefix",
+			-1,
+			-1,
+		},
+		{
+			"a*",
+			"aaabbb",
+			0,
+			3,
+		},
+		{
+			"a*",
+			"bbbbbb",
+			0,
+			0,
+		},
+		{
+			"a*",
+			"aaaaaa",
+			0,
+			6,
+		},
+		{
+			"aa*",
+			"aaabbb",
+			1,
+			3,
+		},
+		{
+			"a*a",
+			"aaaaaa",
+			1,
+			6,
+		},
+		{
+			".*a",
+			"bbbba",
+			5,
+			5,
+		},
+		{
+			".*",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-",
+			0,
+			80,
+		},
+		{
+			".*a",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a",
+			81,
+			81,
+		},
+		{
+			".*a",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a",
+			81,
+			162,
+		},
+		{
+			".*b",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-",
+			-1,
+			-1,
+		},
+		{
+			".*a.*",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-b",
+			81,
+			162,
+		},
+		{
+			".*a.*b",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-b",
+			162,
+			162,
+		},
+		{
+			"1.*a.*",
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
+			"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-b",
+			81,
+			162,
+		},
+		{
+			"a+",
+			"bbbbbb",
+			-1,
+			-1,
+		},
+	};
 
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("a*", "aaabbb"), ssize_t(3));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("a*", "bbbbbb"), ssize_t(0));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("a*", "aaaaaa"), ssize_t(6));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen(".*",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-"), ssize_t(80));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen(".*b",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-"), ssize_t(-1));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen(".*a.*",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-b"), ssize_t(162));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("1.*a.*",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-b"), ssize_t(162));
-	UNIT_ASSERT_EQUAL(LongestPrefixLen("a+", "bbbbbb"), ssize_t(-1));
-
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen("fixed", "fixed prefix"), ssize_t(5));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen("fixed", "a fixed nonexistent prefix"), ssize_t(-1));
-
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen("a*", "aaabbb"), ssize_t(0));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen("aa*", "aaabbb"), ssize_t(1));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen("a*a", "aaaaaa"), ssize_t(1));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen(".*a", "bbbba"), ssize_t(5));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen(".*a",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"), ssize_t(81));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen(".*a",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"), ssize_t(81));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen(".*a.*b",
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-a"
-		"123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-b"), ssize_t(162));
-	UNIT_ASSERT_EQUAL(ShortestPrefixLen("a+", "bbbbbb"), ssize_t(-1));
+	for (const auto& test: cases) {
+		UNIT_ASSERT_EQUAL(ShortestPrefixLen(test.pattern.c_str(), test.text.c_str()), test.shortestPrefixLen);
+		UNIT_ASSERT_EQUAL(LongestPrefixLen(test.pattern.c_str(), test.text.c_str()), test.longestPrefixLen);
+		ystring reversed{test.text.rbegin(), test.text.rend()};
+		UNIT_ASSERT_EQUAL(ShortestSuffixLen(test.pattern.c_str(), reversed.c_str()), test.shortestPrefixLen);
+		UNIT_ASSERT_EQUAL(LongestSuffixLen(test.pattern.c_str(), reversed.c_str()), test.longestPrefixLen);
+	}
 }
 
 SIMPLE_UNIT_TEST(ScanTermination)
