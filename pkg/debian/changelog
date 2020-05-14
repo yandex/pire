@@ -1,3 +1,25 @@
+pire (0.0.6-1) unstable; urgency=low
+
+  * PIRE now requires C++11 compatible compiler.
+  * Add support for matching within a given Levenshtein distance.
+  * Add AdvancedCountingScanner as a much more accurate alternative to CountingScanner.
+  * Add SlowCapturingScanner.
+  * Add HalfFinal multiscanner.
+  * Add NoGlueLimitCountScanner.
+  * Add support for unicode escape sequences.
+  * Reduce memory usage of scanners.
+  * Use smart-pointers and containers instead of manual memory management.
+  * Use Hopcroft algorithm for minimization of Fsm and glued scanners.
+  * Lexer: fix Parse() memleaks on invalid regexps.
+  * Fix possible invalid read in DoRun.
+  * Make serialization of scanners stable.
+  * CountingScanner: increase RE count from 4 to 16
+  * Lots of small fixes.
+  * Lots of style improvements, including C++11 updates.
+  * Add a second license - MIT.
+
+ -- Sergey Galtsev <galtsev@yandex-team.ru>  Tue, 12 May 2020 17:55:29 +0300
+
 pire (0.0.5-1) unstable; urgency=low
 
   * Fixed lots of compatibility issues (clang, libc++,
