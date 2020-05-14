@@ -1,5 +1,6 @@
 pire (0.0.6-1) unstable; urgency=low
 
+  * PIRE now requires C++11 compatible compiler.
   * Add support for matching within a given Levenshtein distance.
   * Add AdvancedCountingScanner as a much more accurate alternative to CountingScanner.
   * Add SlowCapturingScanner.

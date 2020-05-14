@@ -15,7 +15,7 @@ Source: pire-0.0.6.tar.gz
 Provides: libpire = %version-%release
 
 BuildPreReq: rpm-build >= 4.0.0
-BuildRequires: gcc-c++ >= 3.0.0, libstdc++-devel
+BuildRequires: gcc-c++ >= 4.8.1, libstdc++-devel
 
 %description
 An extremely fast (but with limited functionality) regular expressions
@@ -64,6 +64,7 @@ programs which use %pkgname.
 
 %changelog
 * Tue May 12 2020 Sergey Galtsev <galtsev@yandex-team.ru> 0.0.6-my1
+- PIRE now requires C++11 compatible compiler.
 - Add support for matching within a given Levenshtein distance.
 - Add AdvancedCountingScanner as a much more accurate alternative to CountingScanner.
 - Add SlowCapturingScanner.
