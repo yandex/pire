@@ -61,11 +61,6 @@ public:
 
 		State() : ScannerState(0) {}
 
-		State(const State& otherState)
-			: ScannerState(otherState.ScannerState)
-			, MatchedRegexps(otherState.MatchedRegexps)
-		{}
-
 		State(const typename Scanner::State& otherState) : ScannerState(otherState) {}
 
 		void GetMatchedRegexpsIds() {
