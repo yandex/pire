@@ -1,0 +1,357 @@
+What is Pire
+=======
+
+Pire (Perl Incompatible Regular Expressions) is the library 
+aimed at quick checking a huge amount of text against regular expressions.
+The library checks whether the text matches the search pattern with the 
+speed 400 MB/s regardless of regular expression complexity on our hardware.
+Several search patterns can be united for text checking, it allows to perform
+text checking against about ten patterns at a time at the same speed.
+
+Since Pire examines each character only once, without any lookaheads
+or rollbacks, spending about five machine instructions per each character,
+it can be used even in realtime tasks.
+
+On the other hand, Pire has limited functionality compared to
+other regexp libraries. Pire does not support Perl conditional
+regexps, lookaheads & backtrackings, greedy/non-greedy matches; neither
+all capturing facilities (limited version of capturing can be implemented
+as described below).
+
+Full details of methods that allow Pire to be so fast are described in
+Dragon Book. We recommend to read this book for a better principle understanding.
+
+
+Pire was developed in Yandex (http://company.yandex.ru/) as a part of its
+web crawler and became an independent project. 
+
+
+Quick start
+=============
+
+#include <stdio.h>
+#include <vector>
+#include <pire/pire.h>
+
+Pire::Scanner CompileRegexp(const char* pattern)
+{
+	// Переводим шаблон в UCS4
+	std::vector<Pire::wchar32> ucs4;
+	Pire::Encodings::Utf8().FromLocal(pattern, pattern + strlen(pattern), std::back_inserter(ucs4));
+	// или другая кодировка
+
+	return Pire::Lexer(ucs4.begin(), ucs4.end())
+		.AddFeature(Pire::Features::CaseInsensitive())	// to ignore case
+		.SetEncoding(Pire::Encodings::Utf8())		// set the input string encoding
+		.Parse() 					// parse the regular expression
+		.Surround()					// to disable the PCRE_ANCHORED logic
+		.Compile<Pire::Scanner>();			// compile the regular expression
+}
+
+bool Matches(const Pire::Scanner& scanner, const char* ptr, size_t len)
+{
+	return Pire::Runner(scanner)
+		.Begin()	// the start of the string
+		.Run(ptr, len)	// the string
+		.End();		// the end of the string
+		// implicitly cast to bool
+}
+
+int main()
+{
+	char re[] = "hello\\s+w.+d$";
+	char str[] = "Hello world";
+
+	Pire::Scanner sc = CompileRegexp(re);
+
+	bool res = Matches(sc, str, strlen(str));
+
+	printf("String \"%s\" %s \"%s\"\n", str, (res ? "matches" : "doesn't match"), re);
+		
+	return 0;
+}
+
+
+Running `MATCH`
+==================
+
+The compiled regular expression is stored in the scanner which is the state machine
+in the form optimized for moving across the strings. There are several scanners with
+approximately the same operation in Pire (for example, Scanner, SlowScanner и SimpleScanner).
+
+Each scanner has the State type that stores the state, and methods Initialize(State&)
+to return the initial machine state, Next(State&, char) to take the machine to the next state,
+Final(const State&) to report whether the state is valid. To check whether the string matches
+the pattern, it is required to run Initialize(), then Next() for each letter, then Final()
+to get the result.
+
+There is the Pire::Run(const Scanner&, Scanner::State&, const char* begin, const char* end)
+method that runs optimized Scanner::Next() for each character from the range.
+
+The pattern may include characters of the string start and end (^ and $ respectively).
+These characters are replaced with BeginMark and EndMark at compilation.
+
+To check the string with two scanners, you can use the Pire::Run(const Scanner1&, 
+const Scanner2&, Scanner1::State&, Scanner2::State&, const char* begin, const char* end)
+function. This function checks the string faster than two consecutive calls of
+the regular Run() function.
+
+Also, there is the RunHelper class that simplifies working with the Initialize-Step-Run-Step-Final
+cycle writing it as a single expression (see an example).
+
+Four more functions helpful in lexical analysis are LongestPrefix(), LongestSuffix(), ShortestPrefix(),
+and ShortestSuffix(). These functions returns the largest / the smallest prefix or suffix allowed by
+the pattern. Before LongestSuffix() or ShortestSuffix() call, it is required to run Fsm::Reverse().
+
+Machine union
+================
+
+As it is already mentioned above, the time to check whether the string matches the pattern
+does not depend on the pattern size. In terms of the checking speed it is better to use
+some complex expressions than a lot of simple ones. If it is required to check the text with
+a lot of simple expressions, it is possible to unite several scanners into one.
+
+The function Pire::Scanner::Glue() unites several machines. The resulting scanner
+checks whether the string matches all united patterns at a time. The Scanner::RegexpsCount()
+function returns common number of patterns. It is recommended to replace running Final() with
+AcceptedRegexps(const State&) that returns iterators with the [begin,end] semantics indicating the
+range of expression numbers to which the read string corresponds.
+
+Numbers start from 0 and, after union, numbers of expressions on the right are shifted
+by the expression numbers on the left.
+
+United machines can be united once again. However, it is not recommended to repeat union
+indefinitely because the number of states in the resulting scanner grows
+exponentially with each added pattern. The max size of the scanners can be specified in
+the maxSize parameter in the function Glue(). If the specified size is exceeded, an empty scanner
+will be returned (Size() == 0, Empty() == true).
+
+Parsing a regular expression
+============================
+
+An instruction above describes analyzing the text with the ready scanner and this
+block contains information on how to get the scanner. The easiest way to get the scanner
+is to construct it from the string with the regular expression using the Pire::Lexer class.
+
+Regular expressions have the syntax similar to POSIX. It supports standard features as
+a|b, a*, a+, ., [a-z], a{3}, a{3,5}, a{3,}) and character classes (\w (alphanumeric characters),
+\W (non-alphanumeric characters), \d (decimal characters), \D (non-digit character), \s (whitespace),
+\S (non-whitespace)). Operators a&b (intersection, see Fsm::operator &), ~a (inversion, see
+Fsm::Complement), non-greedy analogs of repetitions *?, +?, ?? (Fsm::SlowCapturingScanner).
+Operators in this scanner can be set to as short expressions as possible, in contrast to greedy
+analogs that set to as long expressions as possible.
+
+Lexer accepts the UCS-4 encoded expression as the range of wchar32 or any other types
+implicitly converted to wchar32. If the expression is set as const char* regexp and
+consists of characters from latin-1,just lexer.Assign(regexp, regexp + strlen(regexp))
+can be called. If expression characters are encoded in UTF-8 or KOI8-R, characters must be
+explicitly converted to UCS-4 first.
+
+lexer.SetEncoding() sets the encoding for the string that will be matched with the
+regular expression (it does not sets the encoding for the regular expression).
+It is required because the scanner analyzes not symbols but bytes (for example,
+the dot or any other symbol in UTF-8 is a non-trivial construction).
+
+Fine-tuning of lexer is available by adding features (Pire::Feature) using the
+lexer.AddFeature() method. For example, case ignoring is configured with the
+Pire::CaseInsensitive feature.
+
+When lexer is tuned, it is required to call lexer.Parse() that returns parsed
+machine (Pire::Fsm). The machine can be compiled into the scanner with
+Fsm::Compile<Pire::Scanner>().
+
+The regular expression template can be too complex to be compiled into the determined machine
+of a reasonable size. In this case, Fsm::Compile() will return an exception. To process such
+exceptions, Fsm::Determine(size_t maxSize) can be explicitly called. If the method will return
+false, Pire::Scanner can be skipped to call just Pire::SlowScanner (see below).
+
+Manual scanner building
+==========================
+
+In addition to parsing a regular expression pattern, the scanner can be built directly
+with the Pire::Fsm class. The most useful methods are:
+
+    * Default constructor: creates the scanner that allows an empty string
+    * MakeFalse(): creates the scanner that does not allows any string
+    * Size(): the scanner size (number of states)
+    * Append(unsigned char c): adds to the machine the transition for the match with .
+    * AppendStrings(const vector<string>&): adds to the machine the transition for
+      the match with at least one passed string
+    * operator + (const Fsm&): returns the concatenation of machines that allows
+      strings divided into two parts so that the first is allowed by the first machine,
+      and the second - by the second machine
+    * operator | (const Fsm&): returns the union of machines that allows
+      strings allowed by at least one machine
+    * operator * (): returns the machine iteration that allows
+      strings representing a repetition of a string allowed by the original machine
+      0 or more times (the so-called Kleene star)
+    * operator ~ (): returns the machine inversion that allows strings now allowed by the
+      original machine
+    * operator & (const Fsm&): returns the machine intersection that allows strings allowed by
+      both machines
+    * operator * (size_t n): returns the machine that allows strings representing a repetition of
+      a string allowed by the original machine n times
+    * Surrounded(): returns the machine that allows any strings containing the string allowed by the
+      original machine (adds /.*/ to the start or the end)
+    * operator +=, operator |=, Iterate, Complement, operator &=, operator *=, and Surround the same to
+      the seven described above
+    * Reverse(): returns the machine that allows strings that are a mirror of strings allowed by
+      the original machine
+
+Combined machine building is available, for example: (lexer1.Parse() | lexer2.Parse()).Compile<Scanner>()).
+For example, it allows to read a list of patterns from a file, compile them into Fsm, and combine them all
+into one large Fsm which can be compiled into a scanner.
+
+Scanners
+=======
+
+There are three existing scanners in Pire: Scanner, SimpleScanner, and SlowScanner.
+
+    * Scanner is the main engine of all Pire. This scanner was mentioned above.
+    * SimpleScanner is the simplified version of the scanner suitable for checking the text with one simple regular expression.
+      It does not support machines union, and its transition table is slightly larger than in Scanner,
+      but SimpleScanner works about a third faster.
+    * SlowScanner works extremely slowly but does not require machine determinization and
+      can be used to match complex expressions like /x.{50}$/ which cannot be compiled into Scanner.
+
+Required scanner type can be determined calling Fsm::Compile() or by explicitly constructing the desired scanner from Fsm.
+
+Encodings
+=========
+
+
+Pire supports Latin-1 and UTF-8 encodings by default. The required instances of the Pire::Encoding classes can be
+obtained by calling the appropriate functions from the namespace Pire::Encodings.
+
+Support for other encodings inheriting from Pire::Encoding can be added.
+In the inherited class, the following methods should be overridden:
+
+    * wchar32 FromLocal(const char*& begin, const char* end) reads and returns input character and forwards begin.
+      Returns an exceprion if the input includes an invalid sequence.
+    * std::string ToLocal(wchar32) returns returns the byte representation of the character in this encoding.
+      If the character in this encoding is not representable, returns an empty string.
+    * AppendDot(Fsm&) adds a fragment to the end machine that allows any one character in this encoding.
+
+After that, an instance of such a class can be passed to lexer.SetEncoding() along with the built-in ones.
+
+Serialization, MMAP() AND Inlining
+=================================
+
+Built scanners can be saved to std::ostream or uploaded from std::istream by calling Scanner:: Save()
+and Scanner::Load() (similarly for other scanners).
+
+If the scanner was saved to a file, and then the file was mapped to memory, then
+instead of calling Scanner::Load(), Scanner:: Mmap() that will not copy the
+table with transitions can be used. Mmap() returns a pointer to the first byte
+after the regular expression is serialized.
+
+Note that the scanner beginning must be in memory at the address aligned on the boundary of the machine word.
+If something other than serialized scanners is written to the file (the scanner views themselves always takes
+an integer number of machine words), manual alignment or alignment with the AlignedInput and AlignedOutput classes
+should be performed.
+
+The serialized scanner is not portable between architectures (even between x86 and x86_64).
+When trying to read or map the regular expression serialized in another architecture,
+an exception will be returned.
+
+If the code requires using the same predetermined regular expression,
+static const Scanner = Pire::Lexer(«...»).Parse().Compile() can be used, but in this case
+compilation of the expression will be performed every time the program starts.
+To avoid delays in the program starting, the expression can be compiled into a scanner,
+serialized, substituted into the code as a string literal, and called Scanner::Mmap() on it.
+The pire_inline program performs all these actions. The program accepts the file with the C++ code,
+searches all the PIRE_REGEXP("pattern", "flags") entries outside the comments and string in the file
+and replaces found entries with an expression that returns the machine with a ready table of transitions.
+
+The following characters can be in the string with flags:
+
+    * i - case insensitive
+    * u - compile the expression in UTF-8
+    * s - escape the expression .* on each side
+    * a - enable checking for the & and ~ operators in expressions (see above)
+    * g - perform the conversion fsm = ~fsm.Surrounded() + fsm (for the needs of Scan ())
+
+Pire extensions
+===============
+
+If any functionality that is not available in Pire is required, there is a possibility
+to implement it using the existing extensions in Pire or go into details (maybe the Dragon Book will help).
+
+
+** About FSM
+
+Fsm is a state machine with the output. The machine has many states numbered with integers
+from 0 to Fsm::Size() - 1. Each state and each letter is given a set of states into which
+one can go from this state by this letter (perhaps this set is empty), one state is declared initial,
+and some states are marked admitting.
+
+To manage this data, Fsm has functions:
+
+    * Size(), Resize();
+    * Destinations(), Connected(), Connect();
+    * Initial(), SetInitial();
+    * Finals(), IsFinal(), SetFinal(), ClearFinal().
+
+In addition, a bit flag field will be associated with each state and each transition of the machine.
+Transition flags are called outputs (since they implement a classic spacecraft with an output).
+The functions Output(), SetOutput() and ClearOutputs() are used to operate with outputs. State flags are
+called tags and are supported by the Tag() and SetTag() functions.
+
+When determining or combining states, all flags are combined with a bitwise OR.
+
+A number of functions do not belong to any group:
+
+    * Divert(size_t from, size_t to, size_t dest) breaks all transitions from `from` to `to`
+      and redirects them to the state dest. All flags that marked transitions are carried over to new transitions.
+    * Import(const Fsm&) copies an external machine inside this one. All its states are shifted by the number
+      of states in this one. The states are not connected in any way.
+    * DeadStates() returns a set of states from which none of the eligible states is unattainable.
+    * RemoveEpsilons() eliminates all epsilon transitions in the machine (transitions from one state
+      to another on an empty line).
+
+** About LEXER and FEATURE
+
+The main function of Lexer is to parse the input string into a sequence of terms (Pire::Term).
+
+The feature is the ability to change the behavior of a lexer. Features have three main points:
+
+    * Process a fragment of the pattern in any way, returning the term (functions Accepts() and Lex())
+    * Change the already selected term (Alter());
+    * Change the selected fragment of the state machine enclosed in parentheses (Parenthesized()).
+
+If a feature parses a fragment of a pattern, then the Accepts(wchar32) function must be implemented.
+This function must return true if the transmitted character is the beginning of the character sequence
+perceived by the feature. Also, the Lex() function must be implemented to perform lexical analysis
+(if Accepts() returned false, Lex() will not be called). Inside the feature, standard functions for
+working with the input are available: GetChar(), PeekChar() and UngetChar(). If Accepts() returned true
+but the sequence does not match inside Lex(), you can put it all back using UngetChar() and return
+empty Term(), showing lexer that the feature could not process the stream.
+
+There can be several features sorted by priority and chained in a lexer.
+Lex() and Accepts() are called from a higher priority to a smaller one until
+some feature processes the input stream to obtain a term. This term is passed
+in reverse through Feature::Alter().
+
+When reading the closing parenthesis, the machine fragment corresponding to the
+expression fragment in parentheses is going through Feature::Parenthesized() 
+in order of increasing priority.
+
+A simple example of use: case insensitivity is made by the feature in which the Alter()
+method changes each returned range of characters adding the character in upper and lower case
+to each character.
+
+** Example: CapturingScanner
+
+For example, we need a limited capture of one fragment in the text (check whether
+the text matches the expression /id\s*=\s*['"]([a-z0–9]+)['"]/ / and extract the ID of the match).
+
+    * Set up two flags for transitions: BeginCapture and EndCapture.
+    * Add a feature tracking all the brackets. Lex() returns the bracket and counts the bracket in order.
+    * After the required closing bracket is found, the feature gets a machine in Parenthesized()
+      that matches the content from parentheses. Extend this machine into two states, transfer the new initial
+      state to the penultimate one, the only one allowed — the last state, and connect them to the
+      old initial and eligible state to allow epsilon transitions. Mark these transitions with the
+      BeginCapture and EndCapture flags.
+    * Create a scanner that marks the position in the input stream when the flags BeginCapure or EndCapture found.
+
+An example is located in the extra/capture.h and extra/capture.cpp files.
