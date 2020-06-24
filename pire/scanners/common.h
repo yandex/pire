@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include "../align.h"
 #include "../stub/defaults.h"
+#include "../stub/msgpuck.h"
 #include "../defs.h"
 #include "../platform.h"
 
@@ -52,6 +53,8 @@ namespace Pire {
 		static const ui32 MAGIC = 0x45524950;   // "PIRE" on litte-endian
 		static const ui32 RE_VERSION = 7;       // Should be incremented each time when the format of serialized scanner changes
 		static const ui32 RE_VERSION_WITH_MACTIONS = 6;  // LoadedScanner with m_actions, which is ignored
+		static const ui32 PACKED_VERSION = 1;
+		static const ui32 PACKED_HEADERS = 5;
 
 		explicit Header(ui32 type, size_t hdrsize)
 			: Magic(MAGIC)
@@ -74,6 +77,42 @@ namespace Pire {
 			}
 			if (hdrsize != 0 && HdrSize != hdrsize)
 				throw Error("Serialized regexp incompatible with your system");
+		}
+
+		void Pack(yostream* s)
+		{
+			char buf[MsgpuckSizeofArrayMax + PACKED_HEADERS * MsgpuckSizeofUintMax];
+			char *ptr = buf;
+
+			ptr = mp_encode_array(ptr, PACKED_HEADERS);
+			ptr = mp_encode_uint(ptr, Magic);
+			ptr = mp_encode_uint(ptr, PACKED_VERSION);
+			ptr = mp_encode_uint(ptr, MaxCharUnaligned);
+			ptr = mp_encode_uint(ptr, MaxWordSize);
+			ptr = mp_encode_uint(ptr, Type);
+			s->write(buf, ptr - buf);
+		}
+
+		void Unpack(yistream* s) const
+		{
+			if (MsgpuckReadArray(s) != PACKED_HEADERS) {
+				throw Error("Headers number is invalid");
+			}
+			if (MsgpuckReadUint(s) != Magic) {
+				throw Error("Unknown magic");
+			}
+			if (MsgpuckReadUint(s) != PACKED_VERSION) {
+				throw Error("You are trying to use an incompatible version of a serialized regexp");
+			}
+			if (MsgpuckReadUint(s) != MaxCharUnaligned) {
+				throw Error("MaxCharUnaligned mismatch");
+			}
+			if (MsgpuckReadUint(s) != MaxWordSize) {
+				throw Error("MaxWordSize mismatch");
+			}
+			if (MsgpuckReadUint(s) != Type) {
+				throw Error("Incompatible regexp type");
+			}
 		}
 	};
 
