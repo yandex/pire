@@ -97,6 +97,7 @@ AM_CONDITIONAL([HAVE_VALGRIND], [test x"$pire_cv_have_valgrind" = xyes])
 AC_CONFIG_FILES([
 	Makefile
 	pire/Makefile
+	pire2hyperscan/Makefile
 	tests/Makefile
 	pkg/Makefile
 	tools/Makefile
