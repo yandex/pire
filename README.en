@@ -35,7 +35,7 @@ Quick start
 
 Pire::Scanner CompileRegexp(const char* pattern)
 {
-	// Переводим шаблон в UCS4
+	// Convert the template to UCS4
 	std::vector<Pire::wchar32> ucs4;
 	Pire::Encodings::Utf8().FromLocal(pattern, pattern + strlen(pattern), std::back_inserter(ucs4));
 	// или другая кодировка
@@ -114,7 +114,7 @@ a lot of simple expressions, it is possible to unite several scanners into one.
 The function Pire::Scanner::Glue() unites several machines. The resulting scanner
 checks whether the string matches all united patterns at a time. The Scanner::RegexpsCount()
 function returns common number of patterns. It is recommended to replace running Final() with
-AcceptedRegexps(const State&) that returns iterators with the [begin,end] semantics indicating the
+AcceptedRegexps(const State&) that returns iterators with the [begin,end) semantics indicating the
 range of expression numbers to which the read string corresponds.
 
 Numbers start from 0 and, after union, numbers of expressions on the right are shifted
@@ -134,8 +134,8 @@ block contains information on how to get the scanner. The easiest way to get the
 is to construct it from the string with the regular expression using the Pire::Lexer class.
 
 Regular expressions have the syntax similar to POSIX. It supports standard features as
-a|b, a*, a+, ., [a-z], a{3}, a{3,5}, a{3,}) and character classes (\w (alphanumeric characters),
-\W (non-alphanumeric characters), \d (decimal characters), \D (non-digit character), \s (whitespace),
+a|b, a*, a+, ., [a-z], a{3}, a{3,5}, a{3,}) and character classes (\w (alphabetic characters),
+\W (non-alphabetic characters), \d (decimal characters), \D (non-digit character), \s (whitespace),
 \S (non-whitespace)). Operators a&b (intersection, see Fsm::operator &), ~a (inversion, see
 Fsm::Complement), non-greedy analogs of repetitions *?, +?, ?? (Fsm::SlowCapturingScanner).
 Operators in this scanner can be set to as short expressions as possible, in contrast to greedy
@@ -293,7 +293,7 @@ To manage this data, Fsm has functions:
     * Finals(), IsFinal(), SetFinal(), ClearFinal().
 
 In addition, a bit flag field will be associated with each state and each transition of the machine.
-Transition flags are called outputs (since they implement a classic spacecraft with an output).
+Transition flags are called outputs (since they implement a classic FSM with an output).
 The functions Output(), SetOutput() and ClearOutputs() are used to operate with outputs. State flags are
 called tags and are supported by the Tag() and SetTag() functions.
 
